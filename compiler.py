@@ -7,10 +7,16 @@ def main():
     f = open(sys.argv[1],"r")
     source = f.read()
     f.close()
-    
+
     lexer = Lexer(source)
-    while lexer.cur_char != "\0":
-        print(lexer.cur_char, " at position ", lexer.cur_pos)
+    # print(lexer.source_len)
+    token = lexer.get_token()
+    while token.type != TokenType.EOF:
+        # print(lexer.cur_char, " at position ", lexer.cur_pos)
+        print(token.type,token.text)
         lexer.next_char()
+        token = lexer.get_token()
+        
+
 
 main()

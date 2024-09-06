@@ -1,5 +1,7 @@
 from enum import Enum
-
+import sys
+#Todo: Finish adding tokenizing logic for datatypes and keyWords
+# Continue testing if skip_comment error persists
 class Lexer:
     def __init__(self,source) -> None:
         self.source = source + '\n'
@@ -26,48 +28,140 @@ class Lexer:
 
     # Invalid token found, print error message and exit.
     def abort(self, message):
-        pass
+        sys.exit(message)
 		
     # Skip whitespace except newlines, which we will use to indicate the end of a statement.
     def skip_whitespace(self):
-        if self.cur_char == '\n' or self.cur_char == '\t' or self.cur_char == '\r':
+        while self.cur_char == "\n" or self.cur_char == "\t" or self.cur_char == "\r" or self.cur_char == " " :
             self.next_char()
 		
     # Skip comments in the code.
     def skip_comment(self):
-        pass
+        if self.cur_char == ";":
+            while self.cur_char != "\n" and self.cur_pos < self.source_len:
+                self.next_char()
 
-    # Return the next token.
-    def get_token(self):
-        pass
+    # Return the token of the current char.
+    def get_token(self) -> Enum:
+        self.skip_whitespace()
+        self.skip_comment()
+        token = None
+        
+        #tokens of length 1
+        if self.cur_char == "(":
+            token = Token(self.cur_char,TokenType.EXPR_START)
+        elif self.cur_char == ")":
+            token = Token(self.cur_char,TokenType.EXPR_END)
+        elif self.cur_char == "\n":
+            token = Token(self.cur_char,TokenType.NEWLINE)
+        elif self.cur_char == "\0":
+            token = Token(self.cur_char,TokenType.EOF)
+        elif self.cur_char == "+":
+            token = Token(self.cur_char,TokenType.PLUS)
+        elif self.cur_char == "-":
+            token = Token(self.cur_char,TokenType.MINUS)
+        elif self.cur_char == "*":
+            token = Token(self.cur_char,TokenType.ASTERISK)
+        elif self.cur_char == "/":
+            token = Token(self.cur_char,TokenType.SLASH)
+        elif self.cur_char == "=":
+            token = Token(self.cur_char,TokenType.EQUAL_SIGN)
+        elif self.cur_char == "'":
+            token = Token(self.cur_char,TokenType.QUOTE_SYMBOL)
+        elif self.cur_char == "<":
+            if self.peek() == "=":
+                last = self.cur_char
+                self.next_char()
+                token = Token(last + self.cur_char,TokenType.LEQ)
+            else:
+                token = Token(self.cur_char,TokenType.LESS)
+
+        elif self.cur_char == ">":
+            if self.peek() == "=":
+                last = self.cur_char
+                self.next_char()
+                token = Token(last + self.cur_char,TokenType.GEQ)
+            else:
+                token = Token(self.cur_char,TokenType.GREATER)
+        #Now the datatypes
+        elif self.cur_char == "#":
+            if self.peek() == "t" or self.peek() == "T" or self.peek() == "f" or self.peek() == "F":
+                last = self.cur_char
+                self.next_char()
+                token = Token(last + self.cur_char.lower(),TokenType.BOOLEAN)
+            elif self.peek() == "\\":
+                self.next_char()
+                #this is suspect, might need to be more restrictive with which characters are valid
+                if self.peek() != "\0":
+                    self.next_char()
+                    token = Token(self.cur_char,TokenType.CHAR)
+                else:
+                    self.abort("Cannot set a character to \0.")
+            else: 
+                self.abort("Illegal character after the #." + self.peek())
+        else:
+            self.abort("Unknown Token: ", self.cur_char)
+        return token
+        
+                
+        
+                
+                
+        
+            
+        
+            
+            
+            
 
 class TokenType(Enum):
     EOF = -1
     NEWLINE = 0
     IDENTIFIER = 1
-    EXP_START = 2
-    EXP_END = 3
+    EXPR_START = 2
+    EXPR_END = 3
     
     #Operators
     PLUS = 201
     MINUS = 202
     ASTERISK = 203
     SLASH = 204
-    CAR = 205
-    CDR = 206
-    CONS = 207
-    LIST_WORD = 208
-    DEF = 209
-    SET = 210
+    EQUAL_SIGN = 205
+    QUOTE_SYMBOL = 206
+    LESS = 207
+    GREATER = 208
+    #Operators longer than 1
+    LEQ = 209
+    GEQ = 210
     
-    #OPERANDS
-    BOOLEAN = 301
-    CHAR = 302
-    SYMBOL = 303
-    NUMBER = 304
-    LIST = 305
-    VECTOR = 306
-    BYTEVECTOR = 307
+    #KeyWord Operators
+    CAR = 301
+    CDR = 302
+    CADR = 303
+    CONS = 304
+    LIST_WORD = 305
+    DEF = 306
+    SET = 307
+    SQRT = 308
+    ABS = 309
+    QUOTE = 310
+    AND = 311
+    OR = 312
+    NOT = 313
+    EQ = 314
+    EQV = 315
+    EQUAL = 316
+    LIST = 317
+    
+    #OPERANDS/Datatypes
+    BOOLEAN = 401
+    CHAR = 402
+    STRING = 403
+    NUMBER = 404
+    # LIST = 405
+    # VECTOR = 406
+    # BYTEVECTOR = 407
+    #WTF IS SYMBOL?. decide whether to include
 
 
 class Token:
