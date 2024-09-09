@@ -16,7 +16,5 @@ def main():
         print(token.type,token.text)
         lexer.next_char()
         token = lexer.get_token()
-        
-
-
+            
 main()

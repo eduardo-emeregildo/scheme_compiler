@@ -1,7 +1,6 @@
 from enum import Enum
 import sys
-#Todo: Finish adding tokenizing logic for datatypes and keyWords
-# Continue testing if skip_comment error persists
+#Todo: Continue to test lexer, get started on parser
 class Lexer:
     def __init__(self,source) -> None:
         self.source = source + '\n'
@@ -56,9 +55,9 @@ class Lexer:
             token = Token(self.cur_char,TokenType.NEWLINE)
         elif self.cur_char == "\0":
             token = Token(self.cur_char,TokenType.EOF)
-        elif self.cur_char == "+":
+        elif self.cur_char == "+" and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
             token = Token(self.cur_char,TokenType.PLUS)
-        elif self.cur_char == "-":
+        elif self.cur_char == "-" and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
             token = Token(self.cur_char,TokenType.MINUS)
         elif self.cur_char == "*":
             token = Token(self.cur_char,TokenType.ASTERISK)
@@ -99,75 +98,120 @@ class Lexer:
                     self.abort("Cannot set a character to \0.")
             else: 
                 self.abort("Illegal character after the #." + self.peek())
+        #numbers
+        elif self.cur_char == "." or self.cur_char.isdigit() or self.cur_char == "+" or self.cur_char == "-":
+            start = self.cur_pos
+            peek = self.peek()
+            while peek != "\0" and (peek == "." or peek.isdigit()):
+                self.next_char()
+                peek = self.peek()
+            text = self.source[start : self.cur_pos + 1]
+            try:
+                token = Token(int(text),TokenType.NUMBER)
+            except:
+                try:
+                    token = Token(float(text),TokenType.NUMBER)
+                except:
+                    self.abort("Error: Invalid number.")
+        #strings
+        elif self.cur_char == '"':
+            start = self.cur_pos
+            found = False
+            peek = self.peek()
+            while peek != "\0" and not found:
+                if peek == '"':
+                    found = True
+                self.next_char()
+                peek = self.peek()
+            if found:
+                token = Token(self.source[start:self.cur_pos + 1],TokenType.STRING)
+            else:
+                self.abort("Error: Invalid string")
+                
+        #keywords/identifiers. characters like _,-,>,< are acceptable for the start of an identifier
+        elif self.cur_char != "\n" and self.cur_char != "\t" and self.cur_char != "\r" and self.cur_char != " ":
+            start = self.cur_pos
+            peek = self.peek()
+            while peek != "\0" and peek != "\n" and peek != "\t" and peek != "\r" and peek != " " and peek != "(" and peek != ")":
+                if peek == '"' or peek == "'":
+                    self.abort("Invalid identifier name.")
+                self.next_char()
+                peek = self.peek()
+                
+            token_text = self.source[start : self.cur_pos + 1]
+            keyword = Token.check_if_keyword(token_text.upper())
+            if keyword == None:
+                token = Token(token_text,TokenType.IDENTIFIER)
+            else:
+                token = Token(token_text.upper(),keyword)
+            
         else:
-            self.abort("Unknown Token: ", self.cur_char)
+            self.abort("Unknown Token: " + self.cur_char)
         return token
         
-                
+TokenType = Enum(
+    value = "TokenType",
+    names = [
+        ("EOF" , -1),
+        ("NEWLINE" , 0),
+        ("IDENTIFIER" , 1),
+        ("EXPR_START" , 2),
+        ("EXPR_END" , 3),
         
-                
-                
+        #Operators
+        ("PLUS" , 201),
+        ("MINUS" , 202),
+        ("ASTERISK" , 203),
+        ("SLASH" , 204),
+        ("EQUAL_SIGN" , 205),
+        ("QUOTE_SYMBOL" , 206),
+        ("LESS" , 207),
+        ("GREATER" , 208),
+        #Operators longer than 1
+        ("LEQ" , 209),
+        ("GEQ" , 210),
+        #KeyWord Operators
+        ("CAR" , 301),
+        ("CDR" , 302),
+        ("CADR" , 303),
+        ("CONS" , 304),
+        ("LIST" , 305),
+        ("DEFINE" , 306),
+        ("SET" , 307),
+        ("SQRT" , 308),
+        ("ABS" , 309),
+        ("QUOTE" , 310),
+        ("AND" , 311),
+        ("OR" , 312),
+        ("NOT" , 313),
+        ("EQ?" , 314),
+        ("EQV?" , 315),
+        ("EQUAL?" , 316),
         
-            
-        
-            
-            
-            
-
-class TokenType(Enum):
-    EOF = -1
-    NEWLINE = 0
-    IDENTIFIER = 1
-    EXPR_START = 2
-    EXPR_END = 3
+        #OPERANDS/Datatypes
+        ("BOOLEAN" , 401),
+        ("CHAR" , 402),
+        ("STRING" , 403),
+        ("NUMBER" , 404),
+        # LIST = 405
+        # VECTOR = 406
+        # BYTEVECTOR = 407
+    ]
+)
     
-    #Operators
-    PLUS = 201
-    MINUS = 202
-    ASTERISK = 203
-    SLASH = 204
-    EQUAL_SIGN = 205
-    QUOTE_SYMBOL = 206
-    LESS = 207
-    GREATER = 208
-    #Operators longer than 1
-    LEQ = 209
-    GEQ = 210
-    
-    #KeyWord Operators
-    CAR = 301
-    CDR = 302
-    CADR = 303
-    CONS = 304
-    LIST_WORD = 305
-    DEF = 306
-    SET = 307
-    SQRT = 308
-    ABS = 309
-    QUOTE = 310
-    AND = 311
-    OR = 312
-    NOT = 313
-    EQ = 314
-    EQV = 315
-    EQUAL = 316
-    LIST = 317
-    
-    #OPERANDS/Datatypes
-    BOOLEAN = 401
-    CHAR = 402
-    STRING = 403
-    NUMBER = 404
-    # LIST = 405
-    # VECTOR = 406
-    # BYTEVECTOR = 407
-    #WTF IS SYMBOL?. decide whether to include
-
 
 class Token:
     def __init__(self,token_text,token_type) -> None:
         self.text = token_text
         self.type = token_type
+    
+    @staticmethod
+    def check_if_keyword(token_text):
+        for type in TokenType:
+            if type.value >= 300 and type.value < 400 and type.name == token_text:
+                return type
+        return None 
+        
         
         
     
