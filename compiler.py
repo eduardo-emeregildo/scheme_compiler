@@ -1,4 +1,5 @@
 from lex import *
+from parse import *
 import sys
 
 def main():
@@ -9,12 +10,18 @@ def main():
     f.close()
 
     lexer = Lexer(source)
-    # print(lexer.source_len)
-    token = lexer.get_token()
-    while token.type != TokenType.EOF:
-        # print(lexer.cur_char, " at position ", lexer.cur_pos)
-        print(token.type,token.text)
-        lexer.next_char()
-        token = lexer.get_token()
+    parser = Parser(lexer)
+    parser.program()
+    print("Parsing finished")
+    
+    
+    # # print(lexer.source_len)
+    # token = lexer.get_token()
+    # while token.type != TokenType.EOF:
+    #     # print(lexer.cur_char, " at position ", lexer.cur_pos)
+    #     print(token.type,token.text)
+    #     # lexer.next_char()
+    #     token = lexer.get_token()
+
             
 main()

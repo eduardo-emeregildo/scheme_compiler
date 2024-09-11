@@ -147,6 +147,7 @@ class Lexer:
             
         else:
             self.abort("Unknown Token: " + self.cur_char)
+        self.next_char()
         return token
         
 TokenType = Enum(
@@ -187,6 +188,10 @@ TokenType = Enum(
         ("EQ?" , 314),
         ("EQV?" , 315),
         ("EQUAL?" , 316),
+        ("LAMBDA", 317),
+        ("LET", 318),
+        ("IF",319),
+        ("COND", 320),
         
         #OPERANDS/Datatypes
         ("BOOLEAN" , 401),

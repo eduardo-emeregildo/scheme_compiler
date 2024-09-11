@@ -6,6 +6,7 @@
 ("")
 "hellloo+" <=
 (eq? x 3 )
-(define _yes 45 EQ?)
+(define _yes 45 EQ? )
 EQ?(
 EQ
+(lambda x 21)
