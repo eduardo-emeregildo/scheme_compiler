@@ -14,7 +14,6 @@ def main():
     parser.program()
     print("Parsing finished")
     
-    
     # # print(lexer.source_len)
     # token = lexer.get_token()
     # while token.type != TokenType.EOF:

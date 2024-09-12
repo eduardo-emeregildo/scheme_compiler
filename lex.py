@@ -1,6 +1,6 @@
 from enum import Enum
 import sys
-#Todo: Continue to test lexer, get started on parser
+
 class Lexer:
     def __init__(self,source) -> None:
         self.source = source + '\n'
@@ -55,6 +55,8 @@ class Lexer:
             token = Token(self.cur_char,TokenType.NEWLINE)
         elif self.cur_char == "\0":
             token = Token(self.cur_char,TokenType.EOF)
+        elif self.cur_char == "." and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
+            token = Token(self.cur_char,TokenType.DOT)
         elif self.cur_char == "+" and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
             token = Token(self.cur_char,TokenType.PLUS)
         elif self.cur_char == "-" and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
@@ -158,6 +160,8 @@ TokenType = Enum(
         ("IDENTIFIER" , 1),
         ("EXPR_START" , 2),
         ("EXPR_END" , 3),
+        #for making pairs
+        ("DOT" , 4),
         
         #Operators
         ("PLUS" , 201),

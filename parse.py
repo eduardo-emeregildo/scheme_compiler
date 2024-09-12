@@ -1,6 +1,6 @@
 import sys
 from lex import *
-
+#Todo: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
     def __init__(self, lexer):
@@ -16,6 +16,11 @@ class Parser:
     # Return true if the current token matches.
     def check_token(self, type):
         return type == self.cur_token.type
+    
+
+    def is_token_any(self,type,type_arr):
+        return type in type_arr
+    
 
     # Return true if the next token matches.
     def check_peek(self, type):
@@ -63,10 +68,79 @@ class Parser:
             print("EXPRESSION-STRING")
             self.next_token()
         
+        elif self.check_token(TokenType.IDENTIFIER):
+            if self.cur_token.text in self.definitions:
+                print("EXPRESSION-VARIABLE")
+                self.next_token()
+            else:
+                self.abort(self.cur_token.text + " Undefined.")
         
-
+        elif self.check_token(TokenType.EXPR_END):
+            if len(self.parens) == 0:
+                self.abort("Parentheses are not well formed.")
+            self.parens.pop()
+            self.next_token()
             
+        elif self.check_token(TokenType.EXPR_START):
+            self.parens.append(self.cur_token.text)
+            self.next_token()
+            if self.check_token(TokenType.IF):
+                self.next_token()
+                self.if_exp()
+
+            elif self.check_token(TokenType.QUOTE):
+                self.next_token()
+                self.quote_exp()
+                
+            
+            else:
+                self.abort("Token " + self.cur_token.text + " is not an operator")
+                
+    #(if <test> <consequent> <alternate>) | (if <test> <consequent>), where test,consequent and alternate are expressions
+    def if_exp(self):
+        print("EXPRESSION-IF")
+        num_args = 0
+        while not self.check_token(TokenType.EXPR_END):
+            if self.check_token(TokenType.EOF):
+                self.abort("Parentheses are not well formed.")
+            num_args += 1
+            if num_args > 3:
+                self.abort("Too many arguments in if condition.")
+            self.expression()
+            
+        if num_args < 2 :
+            self.abort("Too few arguments in if condition.")
         
+        if len(self.parens) == 0:
+            self.abort("Parentheses are not well formed.")
+                
+        self.parens.pop()
+        self.next_token()
+        
+    #(quote <datum>)
+    def quote_exp(self):
+        pass
+
+    def is_constant(self):
+        return self.is_token_any(self.cur_token.type,[TokenType.BOOLEAN,TokenType.NUMBER,TokenType.CHAR,TokenType.STRING])
+        
+    # starts from parens
+    # <list> ::= ( <datum>* ) | ( <datum>+ . <datum> )
+    #<datum> ::= <constant> | <symbol> | <list> | <vector>
+    def list(self):
+        #since this is not an expression, a list could potentially be an argument of an exp, therefore store current amount of parens before checking if its a list
+        num_parens = len(self.parens)
+        self.parens.append(self.cur_token.text)
+        self.next_token()
+        while not self.check_token(TokenType.EXPR_END):
+            if self.is_constant():
+                print("CONSTANT")
+            elif self.check_token(TokenType.IDENTIFIER):
+                if not self.cur_token.text in self.definitions:
+                    self.abort(self.cur_token.text + " Undefined")
+                print("SYMBOL")
+            # check if there is a list. Might need to create separate classes for built-in data structures (lists, vectors). Read up on pg 52 of compiler book
+            
             
             
             
