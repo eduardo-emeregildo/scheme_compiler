@@ -1,6 +1,8 @@
 import sys
 from lex import *
-#Todo: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed
+#Todo0: test the quote grammar rule some more to see if it works, add the case in the list rule that accepts pairs (<datnum>+ . <datnum> ) ,add vector type in lexer/parser
+#Todo1: implement list,vector grammar rules
+#Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
     def __init__(self, lexer):
@@ -119,7 +121,33 @@ class Parser:
         
     #(quote <datum>)
     def quote_exp(self):
-        pass
+        print("EXPRESSION-QUOTE")
+        if self.is_constant():
+            print("CONSTANT")
+            self.next_token()
+            
+        elif self.check_token(TokenType.IDENTIFIER):
+            if not self.cur_token.text in self.definitions:
+                self.abort(self.cur_token.text + " Undefined")
+            print("SYMBOL")
+            self.next_token()
+        
+        elif self.check_token(TokenType.EXPR_START):
+            self.list()
+        else: 
+            self.abort(self.cur_token.text + " Is not a valid datnum.")
+        
+        if not self.check_token(TokenType.EXPR_END):
+            self.abort("Incorrect syntax in quote expression. ")
+        if len(self.parens) == 0:
+            self.abort("Parentheses in quote expression not well formed.")
+        self.parens.pop()
+        self.next_token()
+        
+        
+        
+        
+                
 
     def is_constant(self):
         return self.is_token_any(self.cur_token.type,[TokenType.BOOLEAN,TokenType.NUMBER,TokenType.CHAR,TokenType.STRING])
@@ -129,17 +157,30 @@ class Parser:
     #<datum> ::= <constant> | <symbol> | <list> | <vector>
     def list(self):
         #since this is not an expression, a list could potentially be an argument of an exp, therefore store current amount of parens before checking if its a list
-        num_parens = len(self.parens)
+        # num_parens = len(self.parens)
+        print("LIST")
         self.parens.append(self.cur_token.text)
         self.next_token()
         while not self.check_token(TokenType.EXPR_END):
             if self.is_constant():
                 print("CONSTANT")
+                self.next_token()
             elif self.check_token(TokenType.IDENTIFIER):
                 if not self.cur_token.text in self.definitions:
                     self.abort(self.cur_token.text + " Undefined")
                 print("SYMBOL")
-            # check if there is a list. Might need to create separate classes for built-in data structures (lists, vectors). Read up on pg 52 of compiler book
+                self.next_token()
+            elif self.check_token(TokenType.EXPR_START):
+                self.list()
+            # elif self.check_token(TokenType.VECTOR): # Vector case
+            else:
+                self.abort("Not a valid list argument.")
+                
+        if len(self.parens) == 0:
+            self.abort("Parentheses in list are not well formed.")
+        self.parens.pop()
+        self.next_token()
+
             
             
             
