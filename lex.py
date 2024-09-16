@@ -98,6 +98,8 @@ class Lexer:
                     token = Token(self.cur_char,TokenType.CHAR)
                 else:
                     self.abort("Cannot set a character to \0.")
+            elif self.peek() == "(":
+                token = Token(self.cur_char,TokenType.HASH)
             else: 
                 self.abort("Illegal character after the #." + self.peek())
         #numbers
@@ -162,6 +164,8 @@ TokenType = Enum(
         ("EXPR_END" , 3),
         #for making pairs
         ("DOT" , 4),
+        #for vector purposes
+        ("HASH",5),
         
         #Operators
         ("PLUS" , 201),

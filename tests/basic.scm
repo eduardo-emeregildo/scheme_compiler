@@ -10,3 +10,7 @@
 EQ?(
 EQ
 (lambda x 21)
+#(1 2 3)
+
+(quote (1 2() (3 (3 #t))))
+(quote (3 . (1 2 "hellooo" )))
