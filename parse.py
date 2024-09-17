@@ -1,6 +1,6 @@
 import sys
 from lex import *
-#Todo0: write logic for lambda expressions
+#Todo0: implement call pattern and body grammar rules to implement definition grammar rule, test the definition rule, then implement lambda expressions :D
 
 #Todo1: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed
 
@@ -11,7 +11,7 @@ class Parser:
         self.lexer = lexer
         self.cur_token = None
         self.peek_token = None
-        self.definitions = {}
+        self.definitions = set()
         #parens will be a stack to easily keep track of parens
         self.parens = []
         self.next_token()
@@ -95,10 +95,20 @@ class Parser:
             elif self.check_token(TokenType.QUOTE):
                 self.next_token()
                 self.quote_exp()
-                
             
+            elif self.check_token(TokenType.LAMBDA):
+                self.next_token()
+                self.lambda_exp()
+            
+            elif self.check_token(TokenType.DEFINE):
+                self.next_token()
+                self.definition_exp()
+                
             else:
                 self.abort("Token " + self.cur_token.text + " is not an operator")
+                
+        else:
+            self.abort("Token " + self.cur_token.text + " is not a valid expression")
                 
     #(if <test> <consequent> <alternate>) | (if <test> <consequent>), where test,consequent and alternate are expressions
     def if_exp(self):
@@ -131,6 +141,72 @@ class Parser:
             self.abort("Parentheses in quote expression not well formed.")
         self.parens.pop()
         self.next_token()
+        
+    #(lambda <bound var list> <body>)
+    def lambda_exp(self):
+        print("EXPRESSION-LAMBDA")
+    
+    #<bound var list> ::= <variable> | (<variable>*) | (<variable>+ . <variable>)
+    def bound_var_list(self):
+        print("BOUND-VAR-LIST")
+        if self.check_token(TokenType.IDENTIFIER):
+            print("VARIABLE")
+            self.next_token()
+        elif self.check_token(TokenType.EXPR_START):
+            num_parens = len(self.parens)
+            self.parens.append(self.cur_token.text)
+            token_count = 0
+            self.next_token()
+            
+            while not self.check_token(TokenType.EXPR_END):
+                if self.check_token(TokenType.DOT):
+                    print("DOT")
+                    if token_count < 1:
+                        self.abort("Incorrect syntax in creating a pair of variables. Requires one or more variables before the " + self.cur_token.text + " token.")
+                    self.next_token()
+                    self.match(TokenType.IDENTIFIER)
+                    print("VARIABLE")
+                    if not self.check_token(TokenType.EXPR_END):
+                        self.abort("Incorrect syntax after the" + self.cur_token.text + " token in bound var list.")
+                    break
+                
+                elif self.check_token(TokenType.IDENTIFIER):
+                    print("VARIABLE")
+                    self.next_token()
+                    token_count += 1
+                else:
+                    self.abort("Incorrect syntax in varlist of lambda expression.")
+            #no nesting in this grammar rule so no need to check stack 
+            self.parens.pop()
+            self.next_token()
+            
+        else:
+            self.abort("Incorrect syntax in lambda expression, " + self.cur_token.text + " not a valid variable list.")
+      
+    # <definition> ::= (define <variable> <expression>) | (define <call pattern> <body>)
+    #mapping the variable to the evaluation of the expression will be handled in the emitter
+    def definition_exp(self):
+        print("EXPRESSION-DEFINE")
+        if self.check_token(TokenType.IDENTIFIER):
+            print("VARIABLE")
+            self.definitions.add(self.cur_token.text)
+            self.next_token()
+            self.expression()
+        elif self.check_token(TokenType.EXPR_START):
+            pass # here add the call pattern and body methods
+        else:
+            self.abort("Incorrect syntax in definition expression")
+    
+      # <call pattern> ::= (<pattern> <variable>*) | (<pattern> <variable>* . <variable>), where pattern is either a variable or a <call pattern>
+    def call_pattern(self):
+        print("CALL_PATTERN")
+        num_parens = len(self.parens)
+        self.parens.append(self.cur_token.text)
+        #continue here
+        
+        
+    def body(self):
+        print("BODY")
         
     def is_constant(self):
         return self.is_token_any(self.cur_token.type,[TokenType.BOOLEAN,TokenType.NUMBER,TokenType.CHAR,TokenType.STRING])
@@ -192,8 +268,8 @@ class Parser:
             self.next_token()
             
         elif self.check_token(TokenType.IDENTIFIER):
-            if not self.cur_token.text in self.definitions:
-                self.abort(self.cur_token.text + " Undefined")
+            # if not self.cur_token.text in self.definitions:
+            #     self.abort(self.cur_token.text + " Undefined")
             print("SYMBOL")
             self.next_token()
         
