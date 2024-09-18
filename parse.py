@@ -1,6 +1,6 @@
 import sys
 from lex import *
-#Todo0: implement call pattern and body grammar rules to implement definition grammar rule, test the definition rule, then implement lambda expressions :D
+#Todo0: continue testing definition grammar rule, implement lambda expressions :D
 
 #Todo1: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed
 
@@ -103,7 +103,7 @@ class Parser:
                 self.definition_exp()
                 
             else:
-                self.abort("Token " + self.cur_token.text + " is not an operator")
+                self.abort("Token " + str(self.cur_token.text) + " is not an operator")
                 
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
@@ -191,7 +191,8 @@ class Parser:
             self.next_token()
             self.expression()
         elif self.check_token(TokenType.EXPR_START):
-            pass # here add the call pattern and body methods
+            self.call_pattern()# here add the call pattern and body methods
+            self.body()
         else:
             self.abort("Incorrect syntax in definition expression")
     
@@ -229,12 +230,19 @@ class Parser:
         else:
             self.abort("Incorrect syntax for call pattern.")
         
-     # <body> ::= <definition>* <sequence>
-     # the definition are the local variables declared which will be usable in the sequence. This is the equivalent of creating a variable inside of a function in other programming languages.   
+     
+     # the definition are the local variables declared which will be usable in the sequence. This is the equivalent of creating a variable inside of a function in other programming languages.
+     # <body> ::= <definition>* <sequence>   
     def body(self):
         print("BODY")
-        #Process all definitions first. then process sequence with self.expression(). These definitions have local scope when used in a lamdba expression
-        
+        #Process all definitions first. then process sequence with self.expression()
+        while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):    
+            self.parens.append(self.cur_token.text)
+            self.next_token()
+            self.next_token()
+            self.definition_exp()
+        self.expression()
+            
     def is_constant(self):
         return self.is_token_any(self.cur_token.type,[TokenType.BOOLEAN,TokenType.NUMBER,TokenType.CHAR,TokenType.STRING])
         
