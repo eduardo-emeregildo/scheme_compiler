@@ -11,7 +11,8 @@ class Parser:
         self.lexer = lexer
         self.cur_token = None
         self.peek_token = None
-        self.definitions = set()
+        #scoping will be implemented at a later stage
+        # self.definitions = set()
         #parens will be a stack to easily keep track of parens
         self.parens = []
         self.next_token()
@@ -73,11 +74,8 @@ class Parser:
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
-            if self.cur_token.text in self.definitions:
-                print("EXPRESSION-VARIABLE")
-                self.next_token()
-            else:
-                self.abort(self.cur_token.text + " Undefined.")
+            print("EXPRESSION-VARIABLE")
+            self.next_token()
         
         elif self.check_token(TokenType.EXPR_END):
             if len(self.parens) == 0:
@@ -184,12 +182,12 @@ class Parser:
             self.abort("Incorrect syntax in lambda expression, " + self.cur_token.text + " not a valid variable list.")
       
     # <definition> ::= (define <variable> <expression>) | (define <call pattern> <body>)
+    # the define with the call pattern syntax essentially defines a function. The first arg in call pattern is function name and rest are the names of its args
     #mapping the variable to the evaluation of the expression will be handled in the emitter
     def definition_exp(self):
         print("EXPRESSION-DEFINE")
         if self.check_token(TokenType.IDENTIFIER):
             print("VARIABLE")
-            self.definitions.add(self.cur_token.text)
             self.next_token()
             self.expression()
         elif self.check_token(TokenType.EXPR_START):
@@ -197,16 +195,45 @@ class Parser:
         else:
             self.abort("Incorrect syntax in definition expression")
     
-      # <call pattern> ::= (<pattern> <variable>*) | (<pattern> <variable>* . <variable>), where pattern is either a variable or a <call pattern>
+      # <call pattern> ::= (<pattern> <variable>*) | (<pattern> <variable>* . <variable>), where pattern ::= variable | <call pattern>
     def call_pattern(self):
         print("CALL_PATTERN")
         num_parens = len(self.parens)
         self.parens.append(self.cur_token.text)
-        #continue here
+        self.next_token()
+        if self.check_token(TokenType.IDENTIFIER):
+            print("PATTERN")
+            self.next_token()
+            while not self.check_token(TokenType.EXPR_END):
+                if self.check_token(TokenType.DOT):
+                    print("DOT")
+                    self.next_token()
+                    self.match(TokenType.IDENTIFIER) 
+                    break
+                
+                elif self.check_token(TokenType.IDENTIFIER):
+                    print("VARIABLE")
+                    self.next_token()
+                
+                else:
+                    self.abort(self.cur_token.text + " is not an identifier.")
+            
+            if len(self.parens) != 1 + num_parens:
+                self.abort("Parentheses in call pattern are not well formed.")
+            self.parens.pop()
+            self.next_token()
+            
+        elif self.check_token(TokenType.EXPR_START):
+            self.call_pattern()
+            
+        else:
+            self.abort("Incorrect syntax for call pattern.")
         
-        
+     # <body> ::= <definition>* <sequence>
+     # the definition are the local variables declared which will be usable in the sequence. This is the equivalent of creating a variable inside of a function in other programming languages.   
     def body(self):
         print("BODY")
+        #Process all definitions first. then process sequence with self.expression(). These definitions have local scope when used in a lamdba expression
         
     def is_constant(self):
         return self.is_token_any(self.cur_token.type,[TokenType.BOOLEAN,TokenType.NUMBER,TokenType.CHAR,TokenType.STRING])
@@ -268,8 +295,6 @@ class Parser:
             self.next_token()
             
         elif self.check_token(TokenType.IDENTIFIER):
-            # if not self.cur_token.text in self.definitions:
-            #     self.abort(self.cur_token.text + " Undefined")
             print("SYMBOL")
             self.next_token()
         
