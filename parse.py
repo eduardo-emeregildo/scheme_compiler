@@ -1,7 +1,6 @@
 import sys
 from lex import *
-#Todo0: continue testing definition grammar rule, implement lambda expressions :D
-
+#Todo0: implement cond expressions. Have to add keyword to lexer, i forgot it
 #Todo1: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed
 
 #somewhere down the line implement special functions in vector/list, such as vector-ref for example
@@ -34,7 +33,7 @@ class Parser:
     # Try to match current token. If not, error. Advances the current token.
     def match(self, type):
         if not self.check_token(type):
-            self.abort("Expected " + type.name + ", got " + self.cur_token.type)
+            self.abort("Expected " + type.name + ", got " + self.cur_token.type.name)
         self.next_token()
         
 
@@ -83,6 +82,11 @@ class Parser:
             self.parens.pop()
             self.next_token()
             
+        elif self.check_token(TokenType.QUOTE_SYMBOL):
+            print("EXPRESSION-QUOTE-SYMBOL")
+            self.next_token()
+            self.datnum()
+            
         elif self.check_token(TokenType.EXPR_START):
             self.parens.append(self.cur_token.text)
             self.next_token()
@@ -101,6 +105,16 @@ class Parser:
             elif self.check_token(TokenType.DEFINE):
                 self.next_token()
                 self.definition_exp()
+                
+            elif self.check_token(TokenType.AND):
+                self.next_token()
+                self.and_exp()
+                
+            elif self.check_token(TokenType.OR):
+                self.next_token()
+                self.or_exp()
+            
+            #Procedure call grammar rule will be the last one implemented here
                 
             else:
                 self.abort("Token " + str(self.cur_token.text) + " is not an operator")
@@ -143,7 +157,25 @@ class Parser:
     #(lambda <bound var list> <body>)
     def lambda_exp(self):
         print("EXPRESSION-LAMBDA")
+        self.bound_var_list()
+        self.body()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
     
+    def and_exp(self):
+        print("EXPRESION-AND")
+        while not self.check_token(TokenType.EXPR_END):
+            self.expression()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
+        
+    def or_exp(self):
+        print("EXPRESION-OR")
+        while not self.check_token(TokenType.EXPR_END):
+            self.expression()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
+        
     #<bound var list> ::= <variable> | (<variable>*) | (<variable>+ . <variable>)
     def bound_var_list(self):
         print("BOUND-VAR-LIST")
@@ -151,7 +183,6 @@ class Parser:
             print("VARIABLE")
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
-            num_parens = len(self.parens)
             self.parens.append(self.cur_token.text)
             token_count = 0
             self.next_token()
@@ -186,6 +217,7 @@ class Parser:
     #mapping the variable to the evaluation of the expression will be handled in the emitter
     def definition_exp(self):
         print("EXPRESSION-DEFINE")
+        num_parens = len(self.parens) - 1
         if self.check_token(TokenType.IDENTIFIER):
             print("VARIABLE")
             self.next_token()
@@ -195,6 +227,11 @@ class Parser:
             self.body()
         else:
             self.abort("Incorrect syntax in definition expression")
+            
+        self.match(TokenType.EXPR_END)
+        if len(self.parens) != 1 + num_parens:
+            self.abort("Parentheses are not well formed.")
+        self.parens.pop()
     
       # <call pattern> ::= (<pattern> <variable>*) | (<pattern> <variable>* . <variable>), where pattern ::= variable | <call pattern>
     def call_pattern(self):
@@ -209,7 +246,9 @@ class Parser:
                 if self.check_token(TokenType.DOT):
                     print("DOT")
                     self.next_token()
-                    self.match(TokenType.IDENTIFIER) 
+                    self.match(TokenType.IDENTIFIER)
+                    if not self.check_token(TokenType.EXPR_END):
+                        self.abort("Parentheses in call pattern not well formed.") 
                     break
                 
                 elif self.check_token(TokenType.IDENTIFIER):
