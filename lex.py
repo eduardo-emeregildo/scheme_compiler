@@ -200,6 +200,7 @@ TokenType = Enum(
         ("LET", 318),
         ("IF",319),
         ("COND", 320),
+        ("ELSE", 321),
         
         #OPERANDS/Datatypes
         ("BOOLEAN" , 401),

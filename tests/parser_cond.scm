@@ -1,0 +1,5 @@
+(cond ((and 1) (or 2)) (1 2) (else '(10 11)))
+(cond (else 1))
+(cond)
+(cond ((and #t #t) 1))
+(cond ((and 1) (or 2)) (1 2))

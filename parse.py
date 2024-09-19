@@ -1,6 +1,6 @@
 import sys
 from lex import *
-#Todo0: implement cond expressions. Have to add keyword to lexer, i forgot it
+#Todo0: implement case and let
 #Todo1: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed
 
 #somewhere down the line implement special functions in vector/list, such as vector-ref for example
@@ -75,13 +75,7 @@ class Parser:
         elif self.check_token(TokenType.IDENTIFIER):
             print("EXPRESSION-VARIABLE")
             self.next_token()
-        
-        elif self.check_token(TokenType.EXPR_END):
-            if len(self.parens) == 0:
-                self.abort("Parentheses are not well formed.")
-            self.parens.pop()
-            self.next_token()
-            
+                    
         elif self.check_token(TokenType.QUOTE_SYMBOL):
             print("EXPRESSION-QUOTE-SYMBOL")
             self.next_token()
@@ -113,6 +107,10 @@ class Parser:
             elif self.check_token(TokenType.OR):
                 self.next_token()
                 self.or_exp()
+            
+            elif self.check_token(TokenType.COND):
+                self.next_token()
+                self.cond_exp()
             
             #Procedure call grammar rule will be the last one implemented here
                 
@@ -175,6 +173,55 @@ class Parser:
             self.expression()
         self.match(TokenType.EXPR_END)
         self.parens.pop()
+        
+    # (cond <cond clause>*) | (cond <cond clause>* (else <sequence>))
+    def cond_exp(self):
+        print("EXPRESSION-COND")
+        #first, handle case where there are 0 cond clauses and no else. basically exp is: (cond)
+        if self.check_token(TokenType.EXPR_END):
+            self.parens.pop()
+            self.next_token()
+
+        # no cond clause but an else clause, so (cond (else <sequence>))
+        elif self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
+            self.else_rule()
+            self.match(TokenType.EXPR_END)
+            self.parens.pop()
+            
+        # one or more cond clauses and an optional else at the end
+        else:
+            if not self.check_token(TokenType.EXPR_START):
+                self.abort("Incorrect syntax in cond expression. Expected (, got " + str(self.cur_token.text))
+
+            while not self.check_token(TokenType.EXPR_END):
+                if self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
+                    self.else_rule()
+                    break
+                
+                self.cond_clause()
+            self.match(TokenType.EXPR_END)
+            self.parens.pop()
+
+    # <cond clause> ::= (<test> <sequence>) , removed the usage of => syntax in cond clause that was defined in the bnf,I dont think this syntax is used anymore. Also sequence will be implemented as just one expression, not 1 or more. although in r5rs one or more exp is valid scheme, it always takes the right most expression and ignores the rest, which is confusing
+    def cond_clause(self):
+        print("COND-CLAUSE")
+        self.match(TokenType.EXPR_START)
+        self.parens.append("(")
+        self.expression()
+        self.expression()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
+   
+    # (else <sequence>)     
+    def else_rule(self):
+        #no need to add and remove parens from stack since this else rule is self contained and checks for start and end parens.
+        print("ELSE")
+        self.match(TokenType.EXPR_START)
+        self.match(TokenType.ELSE)
+        self.expression()
+        self.match(TokenType.EXPR_END)
+        
+        
         
     #<bound var list> ::= <variable> | (<variable>*) | (<variable>+ . <variable>)
     def bound_var_list(self):
