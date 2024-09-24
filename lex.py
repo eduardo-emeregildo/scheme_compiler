@@ -7,6 +7,13 @@ class Lexer:
         self.cur_char = ''
         self.cur_pos = -1
         self.source_len = len(source)
+        #for the keywords that have special characters in them, so enum wont accept them as names
+        self.special_chars = {
+            "LET*": TokenType.LETSTAR,
+            "EQV?": TokenType.EQV,
+            "EQUAL?" : TokenType.EQUAL,
+            "EQ?" : TokenType.EQ
+        }
         self.next_char()
         
         
@@ -143,11 +150,15 @@ class Lexer:
                 peek = self.peek()
                 
             token_text = self.source[start : self.cur_pos + 1]
-            keyword = Token.check_if_keyword(token_text.upper())
-            if keyword == None:
-                token = Token(token_text,TokenType.IDENTIFIER)
+            token_text_upper = token_text.upper()
+            if token_text_upper in self.special_chars:
+                token = Token(token_text_upper,self.special_chars[token_text_upper])
             else:
-                token = Token(token_text.upper(),keyword)
+                keyword = Token.check_if_keyword(token_text_upper)
+                if keyword == None:
+                    token = Token(token_text,TokenType.IDENTIFIER)
+                else:
+                    token = Token(token_text_upper,keyword)
             
         else:
             self.abort("Unknown Token: " + self.cur_char)
@@ -193,15 +204,17 @@ TokenType = Enum(
         ("AND" , 311),
         ("OR" , 312),
         ("NOT" , 313),
-        ("EQ?" , 314),
-        ("EQV?" , 315),
-        ("EQUAL?" , 316),
+        ("EQ" , 314),
+        ("EQV" , 315),
+        ("EQUAL" , 316),
         ("LAMBDA", 317),
         ("LET", 318),
         ("IF",319),
         ("COND", 320),
         ("ELSE", 321),
         ("CASE", 322),
+        ("LETSTAR",323),
+        ("LETREC", 324),
         
         #OPERANDS/Datatypes
         ("BOOLEAN" , 401),

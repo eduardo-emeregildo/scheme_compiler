@@ -16,3 +16,4 @@ EQ
 (quote (3 . (1 2 "hellooo" )))
 (else 1 2 3)
 (case x)
+(eq? eqv? LET* EQUAL?)

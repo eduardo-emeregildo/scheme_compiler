@@ -1,6 +1,6 @@
 import sys
 from lex import *
-#Todo0: implement let expression
+#Todo0: test the lets some more,do rec, set!,etc, change match method so it tells you from which expression it was called in the error message
 #Todo1: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed and has garbage collection
 
 #somewhere down the line implement special functions in vector/list, such as vector-ref for example
@@ -115,6 +115,18 @@ class Parser:
             elif self.check_token(TokenType.CASE):
                 self.next_token()
                 self.case_exp()
+                
+            elif self.check_token(TokenType.LET):
+                self.next_token()
+                self.let_exp()
+            
+            elif self.check_token(TokenType.LETSTAR):
+                self.next_token()
+                self.let_star_exp()
+            
+            elif self.check_token(TokenType.LETREC):
+                self.next_token()
+                self.letrec_exp()
             
             #Procedure call grammar rule will be the last one implemented here
                 
@@ -229,6 +241,54 @@ class Parser:
                 self.case_clause()
             self.match(TokenType.EXPR_END)
             self.parens.pop()
+    
+    # (let (<binding spec>*) <body>) | (let <variable> (<binding spec>*) <body>) 
+    def let_exp(self):
+        print("EXPRESSION-LET")
+        if self.check_token(TokenType.IDENTIFIER):
+            print("VARIABLE")
+            self.next_token()
+        self.match(TokenType.EXPR_START)
+        while not self.check_token(TokenType.EXPR_END):
+            self.binding_spec()
+        self.next_token()
+        self.body()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
+    
+    # (let* (<binding spec>*) <body>)
+    def let_star_exp(self):
+        print("EXPRESSION-LET*")
+        self.match(TokenType.EXPR_START)
+        while not self.check_token(TokenType.EXPR_END):
+            self.binding_spec()
+        self.next_token()
+        self.body()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
+        
+    # (letrec (<binding spec>*) <body>)
+    def letrec_exp(self):
+        print("EXPRESSION-LETREC")
+        self.match(TokenType.EXPR_START)
+        while not self.check_token(TokenType.EXPR_END):
+            self.binding_spec()
+        self.next_token()
+        self.body()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
+        
+    #<binding spec> ::= (<variable> <expression>)  
+    def binding_spec(self):
+        print("BINDING-SPEC")
+        self.match(TokenType.EXPR_START)
+        self.match(TokenType.IDENTIFIER)
+        print("VARIABLE")
+        self.expression()
+        self.match(TokenType.EXPR_END)
+        
+        
+        
             
     # <cond clause> ::= (<test> <sequence>), sequence will be implemented as just one expression, not 1 or more. although in r5rs one or more exp is valid scheme, it always takes the right most expression and ignores the rest, which is confusing
     def cond_clause(self):
