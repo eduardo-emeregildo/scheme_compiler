@@ -12,8 +12,8 @@
       | (cond <cond clause>* (else <sequence>))
       | (and <expression>*)
       | (or <expression>*)
-      | (case <case clause>*)
-      | (case <case clause>* (else <sequence>))
+      | (case <expression> <case clause>*)
+      | (case <expression> <case clause>* (else <sequence>))
       | (let (<binding spec>*) <body>)
       | (let <variable> (<binding spec>*) <body>)
       | (let* (<binding spec>*) <body>)
@@ -34,7 +34,7 @@
 
   <quotation> ::= '<datum> | (quote <datum>)
   <body> ::= <definition>* <sequence>
-  <sequence> ::= <expression>+
+  <sequence> ::= <expression>
 
   <definition> ::= (define <variable> <expression>)
       | (define <call pattern> <body>)
@@ -51,7 +51,7 @@
   <consequent> ::= <expression>
   <alternate> ::= <expression>
 
-  <cond clause> ::= (<test> <sequence>) | (<test> => <expression>)
+  <cond clause> ::= (<test> <sequence>)
 
   <case clause> ::= ((<datum>*) <sequence>)
 
