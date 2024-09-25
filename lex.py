@@ -12,7 +12,8 @@ class Lexer:
             "LET*": TokenType.LETSTAR,
             "EQV?": TokenType.EQV,
             "EQUAL?" : TokenType.EQUAL,
-            "EQ?" : TokenType.EQ
+            "EQ?" : TokenType.EQ,
+            "SET!": TokenType.SETEXCLAM
         }
         self.next_char()
         
@@ -215,6 +216,11 @@ TokenType = Enum(
         ("CASE", 322),
         ("LETSTAR",323),
         ("LETREC", 324),
+        ("REC",325),
+        ("SETEXCLAM",326),
+        ("BEGIN",327),
+        ("DELAY",328),
+        ("DO",329),
         
         #OPERANDS/Datatypes
         ("BOOLEAN" , 401),

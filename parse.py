@@ -1,6 +1,6 @@
 import sys
 from lex import *
-#Todo0: test the lets some more,do rec, set!,etc, change match method so it tells you from which expression it was called in the error message
+#Todo0: write quasiquotation and finally procedure call rules, change match method so it tells you from which expression it was called in the error message
 #Todo1: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed and has garbage collection
 
 #somewhere down the line implement special functions in vector/list, such as vector-ref for example
@@ -127,6 +127,35 @@ class Parser:
             elif self.check_token(TokenType.LETREC):
                 self.next_token()
                 self.letrec_exp()
+                
+            elif self.check_token(TokenType.SETEXCLAM):
+                self.next_token()
+                self.setexclam_exp()
+            
+            elif self.check_token(TokenType.REC):
+                self.next_token()
+                self.rec_exp()
+                
+            #(begin <expression>)
+            elif self.check_token(TokenType.BEGIN):
+                self.next_token()
+                print("EXPRESSION-BEGIN")
+                self.expression()
+                self.match(TokenType.EXPR_END)
+                self.parens.pop()
+                
+            # (delay <expression>)
+            elif self.check_token(TokenType.DELAY):
+                self.next_token()
+                print("EXPRESSION-DELAY")
+                self.expression()
+                self.match(TokenType.EXPR_END)
+                self.parens.pop()
+            
+            elif self.check_token(TokenType.DO):
+                self.next_token()
+                self.do_exp()
+                
             
             #Procedure call grammar rule will be the last one implemented here
                 
@@ -277,6 +306,60 @@ class Parser:
         self.body()
         self.match(TokenType.EXPR_END)
         self.parens.pop()
+
+    # (set! <variable> <expression>)
+    def setexclam_exp(self):
+        print("EXPRESSION-SET!")
+        self.match(TokenType.IDENTIFIER)
+        print("VARIABLE")
+        self.expression()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
+        
+    #(rec <variable> <expression>)
+    def rec_exp(self):
+        print("EXPRESSION-REC")
+        self.match(TokenType.IDENTIFIER)
+        print("VARIABLE")
+        self.expression()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
+        
+    # (do (<iteration spec>*) (<end test> <sequence>+) <expression>*)
+    def do_exp(self):
+        print("EXPRESSION-DO")
+        self.match(TokenType.EXPR_START)
+        while not self.check_token(TokenType.EXPR_END):
+            self.iteration_spec()
+        self.next_token()
+        self.end_test()
+        while not self.check_token(TokenType.EXPR_END):
+            self.expression()
+        self.parens.pop()
+        self.next_token()
+        
+        
+    
+    # <iteration spec> ::= (<variable> <init> <step>), init and step are expressions
+    def iteration_spec(self):
+        print("ITERATION-SPEC")
+        self.match(TokenType.EXPR_START)
+        self.match(TokenType.IDENTIFIER)
+        print("VARIABLE")
+        self.expression()
+        self.expression()
+        self.match(TokenType.EXPR_END)
+
+    # (<end test> <sequence>+) , <end test> is an expression
+    def end_test(self):
+        print("END-TEST")
+        self.match(TokenType.EXPR_START)
+        self.expression()
+        self.expression()
+        while not self.check_token(TokenType.EXPR_END):
+            self.expression()
+        self.next_token()
+        
         
     #<binding spec> ::= (<variable> <expression>)  
     def binding_spec(self):

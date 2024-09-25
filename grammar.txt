@@ -21,7 +21,6 @@
       | (rec <variable> <expression>)
       | (set! <variable> <expression>)
       | (begin <sequence>)
-      | (sequence <sequence>)
       | (do (<iteration spec>*) (<end test> <sequence>+) <expression>*)
       | (delay <expression>)
       | <quasiquotation>
