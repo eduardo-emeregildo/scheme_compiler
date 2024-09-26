@@ -168,8 +168,10 @@ class Parser:
             else:
                 # self.abort("Token " + str(self.cur_token.text) + " is not an operator")
                 print("EXPRESSION-PROCEDURECALL")
+                print("OPERATOR")
                 self.expression()
                 while not self.check_token(TokenType.EXPR_END):
+                    print("OPERAND")
                     self.expression()
                 self.parens.pop()
                 self.next_token()
