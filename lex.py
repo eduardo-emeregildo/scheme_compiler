@@ -13,7 +13,9 @@ class Lexer:
             "EQV?": TokenType.EQV,
             "EQUAL?" : TokenType.EQUAL,
             "EQ?" : TokenType.EQ,
-            "SET!": TokenType.SETEXCLAM
+            "SET!": TokenType.SETEXCLAM,
+            "UNQUOTE-SPLICING" : TokenType.UNQUOTESPLICING
+            
         }
         self.next_char()
         
@@ -221,6 +223,9 @@ TokenType = Enum(
         ("BEGIN",327),
         ("DELAY",328),
         ("DO",329),
+        ("QUASIQUOTE",330),
+        ("UNQUOTE", 331),
+        ("UNQUOTESPLICING",332),
         
         #OPERANDS/Datatypes
         ("BOOLEAN" , 401),

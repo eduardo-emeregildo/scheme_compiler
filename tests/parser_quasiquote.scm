@@ -1,0 +1,5 @@
+(quasiquote #((unquote '(#t #f)) 2 3))
+(quasiquote #(5 6 7))
+(quasiquote (1 2 (unquote 2)))
+(quasiquote (1 2 3))
+(quasiquote (1 2 3 #((unquote 21) 6 7)))

@@ -1,7 +1,9 @@
 import sys
 from lex import *
-#Todo0: write quasiquotation and finally procedure call rules, change match method so it tells you from which expression it was called in the error message
+#Todo0: test quasiquote some more,finally handle procedure call rule, change match method so it tells you from which expression it was called in the error message
 #Todo1: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed and has garbage collection
+
+# use https://docs.racket-lang.org/reference/quasiquote.html for quasiquote info/ examples. quasiquote is used when you want to create lists/vectors but you want some of the elements to be evaluated, i.e. you want to treat some elements as expressions 
 
 #somewhere down the line implement special functions in vector/list, such as vector-ref for example
 # Parser object keeps track of current token and checks if the code matches the grammar.
@@ -155,6 +157,10 @@ class Parser:
             elif self.check_token(TokenType.DO):
                 self.next_token()
                 self.do_exp()
+                
+            elif self.check_token(TokenType.QUASIQUOTE):
+                self.next_token()
+                self.quasiquote_exp()
                 
             
             #Procedure call grammar rule will be the last one implemented here
@@ -337,9 +343,15 @@ class Parser:
             self.expression()
         self.parens.pop()
         self.next_token()
+
+    # (quasiquote <datnum>) , but datnum is handled differently here. It must accept unquote and unquote-splicing keywords
+    #remember for the emitter that for unquote, expr must evaluate to a constant, and for unquote-splicing, expr must eval to a list/vector
+    def quasiquote_exp(self):
+        print("EXPRESSION-QUASIQUOTE")
+        self.quasiquote_datnum()
+        self.match(TokenType.EXPR_END)
+        self.parens.pop()
         
-        
-    
     # <iteration spec> ::= (<variable> <init> <step>), init and step are expressions
     def iteration_spec(self):
         print("ITERATION-SPEC")
@@ -369,10 +381,7 @@ class Parser:
         print("VARIABLE")
         self.expression()
         self.match(TokenType.EXPR_END)
-        
-        
-        
-            
+ 
     # <cond clause> ::= (<test> <sequence>), sequence will be implemented as just one expression, not 1 or more. although in r5rs one or more exp is valid scheme, it always takes the right most expression and ignores the rest, which is confusing
     def cond_clause(self):
         print("COND-CLAUSE")
@@ -403,10 +412,6 @@ class Parser:
         self.expression()
         self.match(TokenType.EXPR_END)
         
-    
-        
-        
-        
     #<bound var list> ::= <variable> | (<variable>*) | (<variable>+ . <variable>)
     def bound_var_list(self):
         print("BOUND-VAR-LIST")
@@ -429,7 +434,6 @@ class Parser:
                     if not self.check_token(TokenType.EXPR_END):
                         self.abort("Incorrect syntax after the" + self.cur_token.text + " token in bound var list.")
                     break
-                
                 elif self.check_token(TokenType.IDENTIFIER):
                     print("VARIABLE")
                     self.next_token()
@@ -481,22 +485,17 @@ class Parser:
                     if not self.check_token(TokenType.EXPR_END):
                         self.abort("Parentheses in call pattern not well formed.") 
                     break
-                
                 elif self.check_token(TokenType.IDENTIFIER):
                     print("VARIABLE")
                     self.next_token()
-                
                 else:
                     self.abort(self.cur_token.text + " is not an identifier.")
-            
             if len(self.parens) != 1 + num_parens:
                 self.abort("Parentheses in call pattern are not well formed.")
             self.parens.pop()
             self.next_token()
-            
         elif self.check_token(TokenType.EXPR_START):
-            self.call_pattern()
-            
+            self.call_pattern() 
         else:
             self.abort("Incorrect syntax for call pattern.")
         
@@ -518,7 +517,7 @@ class Parser:
         
     # starts from parens
     # <list> ::= ( <datum>* ) | ( <datum>+ . <datum> )
-    def list(self):
+    def list(self,is_quasi = False):
         #since this is not an expression, a list could potentially be deep within an exp, therefore store current amount of parens before processing the list
         print("LIST")
         num_parens = len(self.parens)
@@ -532,23 +531,20 @@ class Parser:
                 if token_count < 1:
                     self.abort(" Creating a pair requires one or more datnums before the " + self.cur_token.text + " token.")
                 self.next_token()
-                self.datnum()
+                self.datnum() if not is_quasi else self.quasiquote_datnum()
                 if not self.check_token(TokenType.EXPR_END):
                     self.abort("Incorrect syntax for making pairs.")
-                break
-                
+                break    
             else:
-                self.datnum()
+                self.datnum() if not is_quasi else self.quasiquote_datnum()
                 token_count += 1
-            
-
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses in list are not well formed.")
         self.parens.pop()
         self.next_token()
     
     # <vector> ::= #( <datum>* ), starts from (
-    def vector(self):
+    def vector(self,is_quasi = False):
         if not self.check_token(TokenType.EXPR_START):
             self.abort("Incorrect syntax for vector.")
         print("VECTOR")
@@ -557,31 +553,58 @@ class Parser:
         self.next_token()
         
         while not self.check_token(TokenType.EXPR_END):
-            self.datnum()
+            if self.check_token(TokenType.EXPR_START) and (self.check_peek(TokenType.UNQUOTE) or self.check_peek(TokenType.UNQUOTESPLICING)):
+                if not is_quasi:
+                    self.abort("UNQUOTE and UNQUOTE-SPLICING only valid in quasiquote expression.")
+                self.next_token()
+                self.next_token()
+                self.expression()
+                self.match(TokenType.EXPR_END)
+            else:
+                self.datnum() if not is_quasi else self.quasiquote_datnum()
         
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses in list are not well formed.")
         self.parens.pop()
         self.next_token()
-        
-
     #<datum> ::= <constant> | <symbol> | <list> | <vector>
     def datnum(self):
         print("DATNUM")
         if self.is_constant():
             print("CONSTANT")
             self.next_token()
-            
         elif self.check_token(TokenType.IDENTIFIER):
             print("SYMBOL")
             self.next_token()
-        
         elif self.check_token(TokenType.EXPR_START):
-            self.list()
-            
+            self.list()  
         elif self.check_token(TokenType.HASH):
             self.next_token()
             self.vector()
-        
         else:
             self.abort(self.cur_token.text + " Is not a valid datnum.")
+    
+    # (quasiquote <datnum>) , but datnum is handled differently here. It must accept unquote and unquote-splicing keywords
+    # (unquote expr) , (unquote-splicing expr)
+    def quasiquote_datnum(self):
+        print("QUASIDATNUM")
+        if self.is_constant():
+            print("CONSTANT")
+            self.next_token()   
+        elif self.check_token(TokenType.IDENTIFIER):
+            print("SYMBOL")
+            self.next_token()
+        elif self.check_token(TokenType.EXPR_START):
+            if self.check_peek(TokenType.UNQUOTE) or self.check_peek(TokenType.UNQUOTESPLICING):
+                self.next_token()
+                self.next_token()
+                self.expression()
+                self.match(TokenType.EXPR_END)
+            else:
+                self.list(True)       
+        elif self.check_token(TokenType.HASH):
+            self.next_token()
+            self.vector(True)     
+        else:
+            self.abort(self.cur_token.text + " Is not a valid datnum.")
+        
