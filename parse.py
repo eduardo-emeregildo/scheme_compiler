@@ -1,6 +1,6 @@
 import sys
 from lex import *
-#Todo0: test quasiquote some more,finally handle procedure call rule, change match method so it tells you from which expression it was called in the error message
+#Todo0: test quasiquote/procedure call more, start emitter (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
 #Todo1: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed and has garbage collection
 
 # use https://docs.racket-lang.org/reference/quasiquote.html for quasiquote info/ examples. quasiquote is used when you want to create lists/vectors but you want some of the elements to be evaluated, i.e. you want to treat some elements as expressions 
@@ -162,11 +162,19 @@ class Parser:
                 self.next_token()
                 self.quasiquote_exp()
                 
-            
-            #Procedure call grammar rule will be the last one implemented here
-                
+
+            #<procedure call> ::= (<operator> <operand>*)
+            #in the emitter, the first expression must evaluate to a valid operator
             else:
-                self.abort("Token " + str(self.cur_token.text) + " is not an operator")
+                # self.abort("Token " + str(self.cur_token.text) + " is not an operator")
+                print("EXPRESSION-PROCEDURECALL")
+                self.expression()
+                while not self.check_token(TokenType.EXPR_END):
+                    self.expression()
+                self.parens.pop()
+                self.next_token()
+                
+                
                 
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
