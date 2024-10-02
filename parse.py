@@ -1,15 +1,16 @@
 import sys
 from lex import *
-#Todo0: test quasiquote/procedure call more, start emitter (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
-#Todo1: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser. then add syntax analysis. Keep in mind that Scheme is dynamically typed and has garbage collection
-
-# use https://docs.racket-lang.org/reference/quasiquote.html for quasiquote info/ examples. quasiquote is used when you want to create lists/vectors but you want some of the elements to be evaluated, i.e. you want to treat some elements as expressions 
+#Todo0: start emitter. implement emitting the simple expression of just a constant.  (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
+#Todo1: implement scoping to be able to evaluate the variable expression and to be able to proceed.
+#Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser.
 
 #somewhere down the line implement special functions in vector/list, such as vector-ref for example
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
-    def __init__(self, lexer):
+    def __init__(self, lexer,emitter):
         self.lexer = lexer
+        self.emitter = emitter
+        #instead of having symbol set declared here, later down the line will use the Environment class in emit.py to implement different environments aka scoping. More info on pg 192 of crafting interpreters book
         self.cur_token = None
         self.peek_token = None
         #scoping will be implemented at a later stage
@@ -57,8 +58,11 @@ class Parser:
             self.expression()
             
     def expression(self):
+        
+        if self.check_token(TokenType.NEWLINE):
+            self.next_token()
         #<constant> ::= <boolean> | <number> | <character> | <string>
-        if self.check_token(TokenType.NUMBER):
+        elif self.check_token(TokenType.NUMBER):
             print("EXPRESSION-NUMBER")
             self.next_token()
         

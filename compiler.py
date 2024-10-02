@@ -1,5 +1,6 @@
 from lex import *
 from parse import *
+from emit import *
 import sys
 
 def main():
@@ -9,11 +10,8 @@ def main():
     source = f.read()
     f.close()
 
-    lexer = Lexer(source)
-    parser = Parser(lexer)
-    parser.program()
-    print("Parsing finished")
-    
+
+    #lexer driver code    
     # # print(lexer.source_len)
     # token = lexer.get_token()
     # while token.type != TokenType.EOF:
@@ -21,6 +19,22 @@ def main():
     #     print(token.type,token.text)
     #     # lexer.next_char()
     #     token = lexer.get_token()
+    
+    #parser driver code
+    # lexer = Lexer(source)
+    # parser = Parser(lexer)
+    # parser.program()
+    # print("Parsing finished")
+    
+    #emitter driver code
+    lexer = Lexer(source)
+    emitter = Emitter("out.asm")
+    parser = Parser(lexer, emitter)
+
+    parser.program() # Start the parser.
+    emitter.writeFile() # Write the output to file.
+    print("Compiling completed.")
+    
 
             
 main()
