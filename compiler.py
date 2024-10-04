@@ -2,6 +2,7 @@ from lex import *
 from parse import *
 from emit import *
 import sys
+import os
 
 def main():
     if len(sys.argv) != 2:
@@ -33,6 +34,8 @@ def main():
 
     parser.program() # Start the parser.
     emitter.writeFile() # Write the output to file.
+    os.system("nasm -f elf64 -o out.o out.asm")
+    os.system("ld -o out out.o")
     print("Compiling completed.")
     
 

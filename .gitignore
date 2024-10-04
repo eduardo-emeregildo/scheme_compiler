@@ -1,2 +1,6 @@
 __pycache__
 /assembly
+out.asm
+out.o
+out
+compiler_notes.txt

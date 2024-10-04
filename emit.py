@@ -1,22 +1,26 @@
-# Emitter object keeps track of the generated code and outputs it.
+# Emitter object keeps track of the generated start_code and outputs it.
+#footer might be needed for the data segment
 class Emitter:
     def __init__(self, fullPath):
         self.fullPath = fullPath
-        self.header = ""
-        self.code = ""
-
-    def emit(self, code):
-        self.code += code
-
-    def emitLine(self, code):
-        self.code += code + '\n'
-
-    def headerLine(self, code):
-        self.header += code + '\n'
-
+        self.data_section = "section .data\n"
+        self.text_section = "section .text\nglobal _start\n"
+        self.start_code = "_start:\n"
+        self.functions = ""
+        
+        
+    def emit_data_section(self,code):
+        self.data_section += code + '\n'
+    
+    def emit_start_section(self,code):
+        self.start_code += code + '\n'
+    
+    def emit_function(self,code):
+        self.functions += code + '\n'    
+        
     def writeFile(self):
         with open(self.fullPath, 'w') as outputFile:
-            outputFile.write(self.header + self.code)
+            outputFile.write(self.data_section + self.text_section + self.start_code + self.functions)
             
             
             

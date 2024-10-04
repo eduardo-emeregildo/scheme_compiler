@@ -1,6 +1,6 @@
 import sys
 from lex import *
-#Todo0: start emitter. implement emitting the simple expression of just a constant.  (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
+#Todo0: work on emitting definition rule and scoping  (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
 #Todo1: implement scoping to be able to evaluate the variable expression and to be able to proceed.
 #Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser.
 
@@ -56,6 +56,7 @@ class Parser:
         #Parse all expressions in the program
         while not self.check_token(TokenType.EOF):
             self.expression()
+        self.emitter.emit_start_section("mov rax, 60\nmov rdi, 0\nsyscall")
             
     def expression(self):
         
@@ -64,18 +65,22 @@ class Parser:
         #<constant> ::= <boolean> | <number> | <character> | <string>
         elif self.check_token(TokenType.NUMBER):
             print("EXPRESSION-NUMBER")
+            self.emitter.emit_start_section("nop")
             self.next_token()
         
         elif self.check_token(TokenType.CHAR):
             print("EXPRESSION-CHAR")
+            self.emitter.emit_start_section("nop")
             self.next_token()
             
         elif self.check_token(TokenType.BOOLEAN):
             print("EXPRESSION-BOOLEAN")
+            self.emitter.emit_start_section("nop")
             self.next_token()
 
         elif self.check_token(TokenType.STRING):
             print("EXPRESSION-STRING")
+            self.emitter.emit_start_section("nop")
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
