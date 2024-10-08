@@ -1,6 +1,11 @@
 import sys
 from lex import *
-#Todo0: work on emitting definition rule and scoping  (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
+from symbol_table import *
+#Todo0: Fix bug that redefining an identifier writes it again in the assembly. This will be solved after implementing the spaghetti stack. Whenever the root environment (i.e. global env) receives an update, update data section instead of writing. work on emitting definition rule and scoping. 
+# (https://levelup.gitconnected.com/how-python-represents-integers-using-bignum-f8f0574d0d6b). Scheme implementations dont have fixed length
+# https://www.cs.cmu.edu/Groups/AI/util/html/cltl/clm/node17.html , explains how lisp handles having arbitrarily large ints, with fixnums and bignums
+# https://www.cs.rpi.edu/academics/courses/fall00/ai/scheme/reference/schintro-v14/schintro_93.html -> how scheme implements list
+# (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
 #Todo1: implement scoping to be able to evaluate the variable expression and to be able to proceed.
 #Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser.
 
@@ -10,12 +15,11 @@ class Parser:
     def __init__(self, lexer,emitter):
         self.lexer = lexer
         self.emitter = emitter
-        #instead of having symbol set declared here, later down the line will use the Environment class in emit.py to implement different environments aka scoping. More info on pg 192 of crafting interpreters book
+        #store last result of an expression so be able to reference it. store as an identifier class. if previous exp doesnt return snything set to None
+        self.last_exp_res = None
         self.cur_token = None
         self.peek_token = None
-        #scoping will be implemented at a later stage
-        # self.definitions = set()
-        #parens will be a stack to easily keep track of parens
+        self.definitions = {}
         self.parens = []
         self.next_token()
         self.next_token()
@@ -23,6 +27,9 @@ class Parser:
     # Return true if the current token matches.
     def check_token(self, type):
         return type == self.cur_token.type
+    
+    def set_last_exp_res(self,typeof,val):
+        self.last_exp_res = Identifier(typeof,val)
     
 
     def is_token_any(self,type,type_arr):
@@ -58,40 +65,69 @@ class Parser:
             self.expression()
         self.emitter.emit_start_section("mov rax, 60\nmov rdi, 0\nsyscall")
             
-    def expression(self):
-        
+    def expression(self): 
         if self.check_token(TokenType.NEWLINE):
             self.next_token()
         #<constant> ::= <boolean> | <number> | <character> | <string>
         elif self.check_token(TokenType.NUMBER):
             print("EXPRESSION-NUMBER")
-            self.emitter.emit_start_section("nop")
+            # self.emitter.emit_start_section("nop")
+            if isinstance(self.cur_token.text,int):
+                self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
+            else:
+                self.set_last_exp_res(IdentifierType.FLOAT,str(self.cur_token.text))
             self.next_token()
         
         elif self.check_token(TokenType.CHAR):
             print("EXPRESSION-CHAR")
-            self.emitter.emit_start_section("nop")
+            # self.emitter.emit_start_section("nop")
+            self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
             self.next_token()
             
         elif self.check_token(TokenType.BOOLEAN):
             print("EXPRESSION-BOOLEAN")
-            self.emitter.emit_start_section("nop")
+            # self.emitter.emit_start_section("nop")
+            self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
             self.next_token()
 
         elif self.check_token(TokenType.STRING):
             print("EXPRESSION-STRING")
-            self.emitter.emit_start_section("nop")
+            # self.emitter.emit_start_section("nop")
+            self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
+            if not self.cur_token.text in self.definitions:
+                self.abort("Identifier "+ self.cur_token.text + " not defined.")
             print("EXPRESSION-VARIABLE")
+            # self.emitter.emit_start_section("nop")
+            
+            #this will go in print statement
+            # ident_name = self.cur_token.text
+            # self.emitter.emit_data_section(ident_name + ":")
+            # ident_type = definitions[self.cur_token.text].typeof
+            
+            # #for each of these, define them correctly in the data segment
+            # if ident_type == IdentifierType.INT:
+            #     pass
+            # elif ident_type == IdentifierType.FLOAT:
+            #     pass
+            # elif ident_type == IdentifierType.CHAR:
+            #     pass
+            # elif ident_type == IdentifierType.STR:
+            #     pass
+            # elif ident_type == IdentifierType.BOOL:
+            #     pass
+            # #right now missing list,vector and function since compiler cant process these things yet
+            # self.emitter.emit_start_section("mov rax, 1\nmov rdi, 1\nmov rsi,${self.cur_token.text}\n")
+            
             self.next_token()
                     
         elif self.check_token(TokenType.QUOTE_SYMBOL):
             print("EXPRESSION-QUOTE-SYMBOL")
             self.next_token()
             self.datnum()
-            
+
         elif self.check_token(TokenType.EXPR_START):
             self.parens.append(self.cur_token.text)
             self.next_token()
@@ -185,8 +221,7 @@ class Parser:
                 self.parens.pop()
                 self.next_token()
                 
-                
-                
+                 
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
                 
@@ -471,11 +506,15 @@ class Parser:
     #mapping the variable to the evaluation of the expression will be handled in the emitter
     def definition_exp(self):
         print("EXPRESSION-DEFINE")
+        ident_name = None
         num_parens = len(self.parens) - 1
         if self.check_token(TokenType.IDENTIFIER):
             print("VARIABLE")
+            ident_name = self.cur_token.text
             self.next_token()
             self.expression()
+            self.definitions[ident_name] = Identifier(self.last_exp_res.typeof,self.last_exp_res.value)
+
         elif self.check_token(TokenType.EXPR_START):
             self.call_pattern()# here add the call pattern and body methods
             self.body()
@@ -486,7 +525,21 @@ class Parser:
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses are not well formed.")
         self.parens.pop()
-    
+         #here might have to add a check to see the scope of define before
+        ident_type = self.last_exp_res.typeof  
+        if ident_type == IdentifierType.INT:
+            self.emitter.emit_data_section(ident_name+ ":\n" + "dq " + self.last_exp_res.value)
+        elif ident_type == IdentifierType.FLOAT:
+            self.emitter.emit_data_section(ident_name+ ":\n" + "dq " + self.last_exp_res.value)
+        elif ident_type == IdentifierType.CHAR:
+            self.emitter.emit_data_section(ident_name+ ":\n" + "db '" + self.last_exp_res.value[-1] + "'")
+        elif ident_type == IdentifierType.STR:
+            self.emitter.emit_data_section(ident_name+ ":\n" + "db " + self.last_exp_res.value + ", 0")
+        elif ident_type == IdentifierType.BOOLEAN:
+            self.emitter.emit_data_section(ident_name+ ":\n" + "db " + '1' if self.last_exp_res.value == '#t' else '0')
+        # this will eventually accept list and vector
+        self.last_exp_res = None
+         
       # <call pattern> ::= (<pattern> <variable>*) | (<pattern> <variable>* . <variable>), where pattern ::= variable | <call pattern>
     def call_pattern(self):
         print("CALL_PATTERN")
