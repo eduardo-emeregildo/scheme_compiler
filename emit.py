@@ -1,3 +1,4 @@
+from symbol_table import *
 # Emitter object keeps track of the generated start_code and outputs it.
 #footer might be needed for the data segment
 class Emitter:
@@ -11,6 +12,23 @@ class Emitter:
         
     def emit_data_section(self,code):
         self.data_section += code + '\n'
+        
+    def emit_global_definitions(self,def_dict):
+        for ident_name in def_dict:
+            ident_type = def_dict[ident_name].typeof
+            if ident_type == IdentifierType.INT:
+                self.emit_data_section(ident_name+ ":\n" + "dq " + def_dict[ident_name].value)
+            elif ident_type == IdentifierType.FLOAT:
+                self.emit_data_section(ident_name+ ":\n" + "dq " + def_dict[ident_name].value)
+            elif ident_type == IdentifierType.CHAR:
+                self.emit_data_section(ident_name+ ":\n" + "db '" + def_dict[ident_name].value[-1] + "'")
+            elif ident_type == IdentifierType.STR:
+                self.emit_data_section(ident_name+ ":\n" + "db " + def_dict[ident_name].value + ", 0")
+            elif ident_type == IdentifierType.BOOLEAN:
+                self.emit_data_section(ident_name+ ":\n" + "db " + '1' if def_dict[ident_name].value == '#t' else '0')
+        # this will eventually accept list and vector
+
+            
     
     def emit_start_section(self,code):
         self.start_code += code + '\n'
@@ -23,17 +41,7 @@ class Emitter:
             outputFile.write(self.data_section + self.text_section + self.start_code + self.functions)
             
             
-            
-class Environment:
-    def __init__(self):
-        #environment is global scope. New environments will be nested dictionaries. This way you have a way to traverse back in scope(i.e. use a global variable from a function's scope). Any variables that are more deeply nested than the current environment will be out of scope and thus not checked.
-        #Best approach may be to implement a spaghetti stack, with each node having a dictionary of variables declared in that scope. 
-        self.environment = {}
+
         
-        def add_node(self,parent):
-            pass
-        
-        def find_ancestor(self,node):
-            pass
     
 

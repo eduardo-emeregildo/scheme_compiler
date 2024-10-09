@@ -1,10 +1,12 @@
 import sys
 from lex import *
+from emit import *
 from symbol_table import *
-#Todo0: Fix bug that redefining an identifier writes it again in the assembly. This will be solved after implementing the spaghetti stack. Whenever the root environment (i.e. global env) receives an update, update data section instead of writing. work on emitting definition rule and scoping. 
+
+#Todo0: have define expression accept list and vectors globally.Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 # (https://levelup.gitconnected.com/how-python-represents-integers-using-bignum-f8f0574d0d6b). Scheme implementations dont have fixed length
-# https://www.cs.cmu.edu/Groups/AI/util/html/cltl/clm/node17.html , explains how lisp handles having arbitrarily large ints, with fixnums and bignums
 # https://www.cs.rpi.edu/academics/courses/fall00/ai/scheme/reference/schintro-v14/schintro_93.html -> how scheme implements list
+# https://bernsteinbear.com/blog/compiling-a-lisp-0/
 # (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
 #Todo1: implement scoping to be able to evaluate the variable expression and to be able to proceed.
 #Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser.
@@ -19,7 +21,7 @@ class Parser:
         self.last_exp_res = None
         self.cur_token = None
         self.peek_token = None
-        self.definitions = {}
+        self.definitions = Environment()
         self.parens = []
         self.next_token()
         self.next_token()
@@ -63,6 +65,7 @@ class Parser:
         #Parse all expressions in the program
         while not self.check_token(TokenType.EOF):
             self.expression()
+        self.emitter.emit_global_definitions(self.definitions.symbol_table)
         self.emitter.emit_start_section("mov rax, 60\nmov rdi, 0\nsyscall")
             
     def expression(self): 
@@ -97,7 +100,7 @@ class Parser:
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
-            if not self.cur_token.text in self.definitions:
+            if not self.cur_token.text in self.definitions.symbol_table:
                 self.abort("Identifier "+ self.cur_token.text + " not defined.")
             print("EXPRESSION-VARIABLE")
             # self.emitter.emit_start_section("nop")
@@ -513,7 +516,7 @@ class Parser:
             ident_name = self.cur_token.text
             self.next_token()
             self.expression()
-            self.definitions[ident_name] = Identifier(self.last_exp_res.typeof,self.last_exp_res.value)
+            self.definitions.add_definition(ident_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))  
 
         elif self.check_token(TokenType.EXPR_START):
             self.call_pattern()# here add the call pattern and body methods
@@ -525,19 +528,6 @@ class Parser:
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses are not well formed.")
         self.parens.pop()
-         #here might have to add a check to see the scope of define before
-        ident_type = self.last_exp_res.typeof  
-        if ident_type == IdentifierType.INT:
-            self.emitter.emit_data_section(ident_name+ ":\n" + "dq " + self.last_exp_res.value)
-        elif ident_type == IdentifierType.FLOAT:
-            self.emitter.emit_data_section(ident_name+ ":\n" + "dq " + self.last_exp_res.value)
-        elif ident_type == IdentifierType.CHAR:
-            self.emitter.emit_data_section(ident_name+ ":\n" + "db '" + self.last_exp_res.value[-1] + "'")
-        elif ident_type == IdentifierType.STR:
-            self.emitter.emit_data_section(ident_name+ ":\n" + "db " + self.last_exp_res.value + ", 0")
-        elif ident_type == IdentifierType.BOOLEAN:
-            self.emitter.emit_data_section(ident_name+ ":\n" + "db " + '1' if self.last_exp_res.value == '#t' else '0')
-        # this will eventually accept list and vector
         self.last_exp_res = None
          
       # <call pattern> ::= (<pattern> <variable>*) | (<pattern> <variable>* . <variable>), where pattern ::= variable | <call pattern>
