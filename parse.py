@@ -4,7 +4,7 @@ from emit import *
 from environment import *
 from scheme_list import *
 
-#Todo0: write quotation rule(first 'constant,then list),have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,list etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
+#Todo0: write quotation rule(test flat lists more,make sure empty list is correctly processed, handle nested lists, pairs in lists,then vectors),have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,list etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
 #One approach is to have EmitInt,EmitFloat etc classes, and the purpose of these classes is to handle the emitting for each Identifier type.
 # .Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 # (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
@@ -17,7 +17,8 @@ class Parser:
     def __init__(self, lexer,emitter):
         self.lexer = lexer
         self.emitter = emitter
-        #store last result of an expression as an identifier class. if previous exp doesnt return snything set to None
+        #store last result of an expression as an identifier class.For lists it will store a ListNode if previous exp doesnt return snything set to None
+        #this feels a little sloppy
         self.last_exp_res = None
         self.cur_token = None
         self.peek_token = None
@@ -77,10 +78,7 @@ class Parser:
     
     def evaluate_symbol(self):
         self.set_last_exp_res(IdentifierType.SYMBOL,self.cur_token.text)
-    
-    def evaluate_list(self):
-        pass
-    
+        
     def evaluate_vector(self):
         pass
         
@@ -137,7 +135,7 @@ class Parser:
         elif self.check_token(TokenType.QUOTE_SYMBOL):
             print("EXPRESSION-QUOTE-SYMBOL")
             self.next_token()
-            self.datnum()
+            self.datum()
 
         elif self.check_token(TokenType.EXPR_START):
             self.parens.append(self.cur_token.text)
@@ -260,7 +258,7 @@ class Parser:
     #(quote <datum>)
     def quote_exp(self):
         print("EXPRESSION-QUOTE")
-        self.datnum()        
+        self.datum()        
         if not self.check_token(TokenType.EXPR_END):
             self.abort("Incorrect syntax in quote expression. ")
         if len(self.parens) == 0:
@@ -409,11 +407,11 @@ class Parser:
         self.parens.pop()
         self.next_token()
 
-    # (quasiquote <datnum>) , but datnum is handled differently here. It must accept unquote and unquote-splicing keywords
+    # (quasiquote <datum>) , but datum is handled differently here. It must accept unquote and unquote-splicing keywords
     #remember for the emitter that for unquote, expr must evaluate to a constant, and for unquote-splicing, expr must eval to a list/vector
     def quasiquote_exp(self):
         print("EXPRESSION-QUASIQUOTE")
-        self.quasiquote_datnum()
+        self.quasiquote_datum()
         self.match(TokenType.EXPR_END)
         self.parens.pop()
         
@@ -463,7 +461,7 @@ class Parser:
         self.match(TokenType.EXPR_START)
         self.match(TokenType.EXPR_START)
         while not self.check_token(TokenType.EXPR_END):
-            self.datnum()
+            self.datum()
         self.match(TokenType.EXPR_END)
         self.expression()
         self.match(TokenType.EXPR_END)
@@ -594,23 +592,29 @@ class Parser:
         self.parens.append(self.cur_token.text)
         token_count = 0
         self.next_token()
-
+        first = ListNode()
+        cur_node = first
         while not self.check_token(TokenType.EXPR_END):
             if self.check_token(TokenType.DOT):
                 print("DOT")
                 if token_count < 1:
-                    self.abort(" Creating a pair requires one or more datnums before the " + self.cur_token.text + " token.")
+                    self.abort(" Creating a pair requires one or more datums before the " + self.cur_token.text + " token.")
                 self.next_token()
-                self.datnum() if not is_quasi else self.quasiquote_datnum()
+                self.datum() if not is_quasi else self.quasiquote_datum()
                 if not self.check_token(TokenType.EXPR_END):
                     self.abort("Incorrect syntax for making pairs.")
                 break    
             else:
-                self.datnum() if not is_quasi else self.quasiquote_datnum()
+                self.datum() if not is_quasi else self.quasiquote_datum()
+                cur_node.set_data(self.last_exp_res)
+                cur_node.set_next(ListNode() if not self.check_token(TokenType.EXPR_END) else None)
+                cur_node = cur_node.next
+                
                 token_count += 1
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses in list are not well formed.")
         self.parens.pop()
+        self.set_last_exp_res(IdentifierType.LIST,first)
         self.next_token()
     
     # <vector> ::= #( <datum>* ), starts from (
@@ -631,15 +635,15 @@ class Parser:
                 self.expression()
                 self.match(TokenType.EXPR_END)
             else:
-                self.datnum() if not is_quasi else self.quasiquote_datnum()
+                self.datum() if not is_quasi else self.quasiquote_datum()
         
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses in list are not well formed.")
         self.parens.pop()
         self.next_token()
     #<datum> ::= <constant> | <symbol> | <list> | <vector>
-    def datnum(self):
-        print("DATNUM")
+    def datum(self):
+        print("DATUM")
         if self.is_constant():
             print("CONSTANT")
             self.evaluate_constant()
@@ -654,12 +658,12 @@ class Parser:
             self.next_token()
             self.vector()
         else:
-            self.abort(self.cur_token.text + " Is not a valid datnum.")
+            self.abort(self.cur_token.text + " Is not a valid datum.")
     
-    # (quasiquote <datnum>) , but datnum is handled differently here. It must accept unquote and unquote-splicing keywords
+    # (quasiquote <datum>) , but datum is handled differently here. It must accept unquote and unquote-splicing keywords
     # (unquote expr) , (unquote-splicing expr)
-    def quasiquote_datnum(self):
-        print("QUASIDATNUM")
+    def quasiquote_datum(self):
+        print("QUASIDATUM")
         if self.is_constant():
             print("CONSTANT")
             self.next_token()   
@@ -678,5 +682,5 @@ class Parser:
             self.next_token()
             self.vector(True)     
         else:
-            self.abort(self.cur_token.text + " Is not a valid datnum.")
+            self.abort(self.cur_token.text + " Is not a valid datum.")
         

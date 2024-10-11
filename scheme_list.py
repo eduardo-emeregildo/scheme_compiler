@@ -1,9 +1,13 @@
 from environment import *
 class ListNode():
-    #data holds Identifier class, next holds another ListNode
+    #data holds Identifier class, next holds another ListNode or None to denote end of list
     def __init__(self,data = None, next = None):
         self.data = data
-        self.next = next 
+        self.next = next
+        
+        
+    def set_data(self,data):
+        self.data = data 
         
     def set_next(self,next_node):
         self.next = next_node
@@ -16,8 +20,7 @@ class ListNode():
     
     #for debugging purposes(only prints 1d list for now)
     def print(self):
-        print(self.data.value)
-        cur_node = self.next
+        cur_node = self
         while cur_node is not None:
             print(cur_node.data.value)
             cur_node = cur_node.next
