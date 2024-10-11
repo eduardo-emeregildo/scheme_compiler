@@ -1,7 +1,7 @@
 from lex import *
 from parse import *
 from emit import *
-from symbol_table import *
+from environment import *
 import sys
 import os
 

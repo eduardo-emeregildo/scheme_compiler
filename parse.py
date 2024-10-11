@@ -1,12 +1,12 @@
 import sys
 from lex import *
 from emit import *
-from symbol_table import *
+from environment import *
+from scheme_list import *
 
-#Todo0: have define expression accept list and vectors globally.Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
-# (https://levelup.gitconnected.com/how-python-represents-integers-using-bignum-f8f0574d0d6b). Scheme implementations dont have fixed length
-# https://www.cs.rpi.edu/academics/courses/fall00/ai/scheme/reference/schintro-v14/schintro_93.html -> how scheme implements list
-# https://bernsteinbear.com/blog/compiling-a-lisp-0/
+#Todo0: write quotation rule(first 'constant,then list),have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,list etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
+#One approach is to have EmitInt,EmitFloat etc classes, and the purpose of these classes is to handle the emitting for each Identifier type.
+# .Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 # (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
 #Todo1: implement scoping to be able to evaluate the variable expression and to be able to proceed.
 #Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser.
@@ -17,7 +17,7 @@ class Parser:
     def __init__(self, lexer,emitter):
         self.lexer = lexer
         self.emitter = emitter
-        #store last result of an expression so be able to reference it. store as an identifier class. if previous exp doesnt return snything set to None
+        #store last result of an expression as an identifier class. if previous exp doesnt return snything set to None
         self.last_exp_res = None
         self.cur_token = None
         self.peek_token = None
@@ -56,6 +56,33 @@ class Parser:
 
     def abort(self, message):
         sys.exit("Error. " + message)
+    
+    
+    def evaluate_constant(self):
+        if self.cur_token.type == TokenType.NUMBER:
+            if isinstance(self.cur_token.text,int):
+                self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
+            else: 
+                self.set_last_exp_res(IdentifierType.FLOAT,str(self.cur_token.text))
+                
+        elif self.cur_token.type == TokenType.BOOLEAN:
+            self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
+        elif self.cur_token.type == TokenType.CHAR:
+            self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
+        elif self.cur_token.type == TokenType.STRING:
+            self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
+        else:
+            self.abort("Calling evaluate_constant(). current token is not a constant") 
+                
+    
+    def evaluate_symbol(self):
+        self.set_last_exp_res(IdentifierType.SYMBOL,self.cur_token.text)
+    
+    def evaluate_list(self):
+        pass
+    
+    def evaluate_vector(self):
+        pass
         
         
     def program(self):
@@ -103,27 +130,8 @@ class Parser:
             if not self.cur_token.text in self.definitions.symbol_table:
                 self.abort("Identifier "+ self.cur_token.text + " not defined.")
             print("EXPRESSION-VARIABLE")
-            # self.emitter.emit_start_section("nop")
-            
-            #this will go in print statement
-            # ident_name = self.cur_token.text
-            # self.emitter.emit_data_section(ident_name + ":")
-            # ident_type = definitions[self.cur_token.text].typeof
-            
-            # #for each of these, define them correctly in the data segment
-            # if ident_type == IdentifierType.INT:
-            #     pass
-            # elif ident_type == IdentifierType.FLOAT:
-            #     pass
-            # elif ident_type == IdentifierType.CHAR:
-            #     pass
-            # elif ident_type == IdentifierType.STR:
-            #     pass
-            # elif ident_type == IdentifierType.BOOL:
-            #     pass
-            # #right now missing list,vector and function since compiler cant process these things yet
-            # self.emitter.emit_start_section("mov rax, 1\nmov rdi, 1\nmov rsi,${self.cur_token.text}\n")
-            
+            cur_ident = self.definitions.find_definition(self.cur_token.text)
+            self.set_last_exp_res(cur_ident.typeof,cur_ident.value)        
             self.next_token()
                     
         elif self.check_token(TokenType.QUOTE_SYMBOL):
@@ -634,9 +642,11 @@ class Parser:
         print("DATNUM")
         if self.is_constant():
             print("CONSTANT")
+            self.evaluate_constant()
             self.next_token()
         elif self.check_token(TokenType.IDENTIFIER):
             print("SYMBOL")
+            self.evaluate_symbol()
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
             self.list()  

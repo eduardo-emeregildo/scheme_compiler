@@ -1,4 +1,4 @@
-from symbol_table import *
+from environment import *
 # Emitter object keeps track of the generated start_code and outputs it.
 #footer might be needed for the data segment
 class Emitter:
@@ -26,7 +26,7 @@ class Emitter:
                 self.emit_data_section(ident_name+ ":\n" + "db " + def_dict[ident_name].value + ", 0")
             elif ident_type == IdentifierType.BOOLEAN:
                 self.emit_data_section(ident_name+ ":\n" + "db " + '1' if def_dict[ident_name].value == '#t' else '0')
-        # this will eventually accept list and vector
+        # this will eventually accept list and vector (dont think symbol should emit anything since it doesnt evaluate, idk though )
 
             
     
