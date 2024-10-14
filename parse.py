@@ -4,7 +4,7 @@ from emit import *
 from environment import *
 from scheme_list import *
 
-#Todo0: write quotation rule(test flat lists more,make sure empty list is correctly processed, handle nested lists, pairs in lists,then vectors),have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,list etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
+#Todo0: write quotation rule(evaluate pairs in lists,then vectors),have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,list etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
 #One approach is to have EmitInt,EmitFloat etc classes, and the purpose of these classes is to handle the emitting for each Identifier type.
 # .Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 # (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
@@ -17,7 +17,7 @@ class Parser:
     def __init__(self, lexer,emitter):
         self.lexer = lexer
         self.emitter = emitter
-        #store last result of an expression as an identifier class.For lists it will store a ListNode if previous exp doesnt return snything set to None
+        #store last result of an expression as an identifier class.For lists it will store a ListNode as value field if previous exp doesnt return snything set to None
         #this feels a little sloppy
         self.last_exp_res = None
         self.cur_token = None
@@ -615,6 +615,7 @@ class Parser:
             self.abort("Parentheses in list are not well formed.")
         self.parens.pop()
         self.set_last_exp_res(IdentifierType.LIST,first)
+        first.print()
         self.next_token()
     
     # <vector> ::= #( <datum>* ), starts from (

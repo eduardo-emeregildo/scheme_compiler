@@ -21,4 +21,5 @@ b
 '#\x
 '"yeooo"
 'a
-'(1 2 3 #t "hallo" x)
+'(1 2 3 (7 8) #t "hallo" x)
+'()
