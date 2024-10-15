@@ -594,6 +594,7 @@ class Parser:
         self.next_token()
         first = ListNode()
         cur_node = first
+        prev = first
         while not self.check_token(TokenType.EXPR_END):
             if self.check_token(TokenType.DOT):
                 print("DOT")
@@ -601,20 +602,41 @@ class Parser:
                     self.abort(" Creating a pair requires one or more datums before the " + self.cur_token.text + " token.")
                 self.next_token()
                 self.datum() if not is_quasi else self.quasiquote_datum()
+                
                 if not self.check_token(TokenType.EXPR_END):
                     self.abort("Incorrect syntax for making pairs.")
+                cur_node.set_cdr(self.last_exp_res)
                 break    
             else:
                 self.datum() if not is_quasi else self.quasiquote_datum()
-                cur_node.set_data(self.last_exp_res)
-                cur_node.set_next(ListNode() if not self.check_token(TokenType.EXPR_END) else None)
-                cur_node = cur_node.next
                 
+                if self.check_token(TokenType.DOT):
+                    # handles things like '(1 . 2), which in this case will output a pair
+                    if token_count == 0:
+                        first = Pair(self.last_exp_res,None)
+                        self.next_token()
+                        self.datum() if not is_quasi else self.quasiquote_datum()
+                        first.set_cdr(self.last_exp_res)
+                        break
+                        
+                    else:
+                        prev.set_next(Pair(self.last_exp_res,None))
+                        cur_node = prev.next
+                    
+                else:
+                    cur_node.set_data(self.last_exp_res)
+                    cur_node.set_next(ListNode() if not self.check_token(TokenType.EXPR_END) else None)
+                    prev = cur_node
+                    cur_node = cur_node.next
                 token_count += 1
+                
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses in list are not well formed.")
         self.parens.pop()
-        self.set_last_exp_res(IdentifierType.LIST,first)
+        if isinstance(first,ListNode):
+            self.set_last_exp_res(IdentifierType.LIST,first)
+        else:
+            self.set_last_exp_res(IdentifierType.PAIR,first)
         first.print()
         self.next_token()
     

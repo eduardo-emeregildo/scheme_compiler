@@ -11,6 +11,7 @@ class IdentifierType(Enum):
     FUNCTION = 7
     #an identifier that you dont evaluate. Ex would be if you do 'x, x is a symbol and we dont eval. an Identifier of this type would have the symbol name as the value
     SYMBOL = 8
+    PAIR = 9
 
 class Identifier:
     #might need to add a third field which is offset from the stack. Since local vars will be on the stack, the offset amt is needed
