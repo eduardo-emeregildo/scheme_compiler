@@ -4,7 +4,7 @@ from emit import *
 from environment import *
 from scheme_list import *
 
-#Todo0: write quotation rule(evaluate pairs in lists,then vectors),have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,list etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
+#Todo0: write quotation rule(tests the new list method more, get started on vectors),have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,list etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
 #One approach is to have EmitInt,EmitFloat etc classes, and the purpose of these classes is to handle the emitting for each Identifier type.
 # .Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 # (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
@@ -17,7 +17,7 @@ class Parser:
     def __init__(self, lexer,emitter):
         self.lexer = lexer
         self.emitter = emitter
-        #store last result of an expression as an identifier class.For lists it will store a ListNode as value field if previous exp doesnt return snything set to None
+        #store last result of an expression as an identifier class.For pairs ans lists will store pair as value field. if previous exp doesnt return anything set to None
         #this feels a little sloppy
         self.last_exp_res = None
         self.cur_token = None
@@ -78,6 +78,9 @@ class Parser:
     
     def evaluate_symbol(self):
         self.set_last_exp_res(IdentifierType.SYMBOL,self.cur_token.text)
+        
+    def evaluate_pair(self,pair_obj):
+        self.set_last_exp_res(IdentifierType.PAIR,pair_obj)
         
     def evaluate_vector(self):
         pass
@@ -592,9 +595,8 @@ class Parser:
         self.parens.append(self.cur_token.text)
         token_count = 0
         self.next_token()
-        first = ListNode()
+        first = Pair()
         cur_node = first
-        prev = first
         while not self.check_token(TokenType.EXPR_END):
             if self.check_token(TokenType.DOT):
                 print("DOT")
@@ -608,36 +610,19 @@ class Parser:
                 cur_node.set_cdr(self.last_exp_res)
                 break    
             else:
-                self.datum() if not is_quasi else self.quasiquote_datum()
-                
-                if self.check_token(TokenType.DOT):
-                    # handles things like '(1 . 2), which in this case will output a pair
-                    if token_count == 0:
-                        first = Pair(self.last_exp_res,None)
-                        self.next_token()
-                        self.datum() if not is_quasi else self.quasiquote_datum()
-                        first.set_cdr(self.last_exp_res)
-                        break
-                        
-                    else:
-                        prev.set_next(Pair(self.last_exp_res,None))
-                        cur_node = prev.next
-                    
-                else:
-                    cur_node.set_data(self.last_exp_res)
-                    cur_node.set_next(ListNode() if not self.check_token(TokenType.EXPR_END) else None)
-                    prev = cur_node
-                    cur_node = cur_node.next
+                self.datum() if not is_quasi else self.quasiquote_datum()                
+                cur_node.set_car(self.last_exp_res)
+                if not self.check_token(TokenType.DOT):
+                    cur_node.set_cdr(Identifier(IdentifierType.PAIR,Pair()) if not self.check_token(TokenType.EXPR_END) else None)
+                    cur_node = cur_node.get_cdr_value()
                 token_count += 1
                 
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses in list are not well formed.")
         self.parens.pop()
-        if isinstance(first,ListNode):
-            self.set_last_exp_res(IdentifierType.LIST,first)
-        else:
-            self.set_last_exp_res(IdentifierType.PAIR,first)
-        first.print()
+        self.evaluate_pair(first)
+        # print("PRINTING LIST:")
+        # first.print()
         self.next_token()
     
     # <vector> ::= #( <datum>* ), starts from (
