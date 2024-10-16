@@ -4,7 +4,7 @@ from emit import *
 from environment import *
 from scheme_list import *
 
-#Todo0: write quotation rule(tests the new list method more, get started on vectors),have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,list etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
+#Todo0: have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,pair etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
 #One approach is to have EmitInt,EmitFloat etc classes, and the purpose of these classes is to handle the emitting for each Identifier type.
 # .Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 # (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
@@ -81,9 +81,10 @@ class Parser:
         
     def evaluate_pair(self,pair_obj):
         self.set_last_exp_res(IdentifierType.PAIR,pair_obj)
-        
-    def evaluate_vector(self):
-        pass
+    
+    #Python lists will be used to represent  
+    def evaluate_vector(self,vector_obj):
+        self.set_last_exp_res(IdentifierType.VECTOR,vector_obj)
         
         
     def program(self):
@@ -633,7 +634,7 @@ class Parser:
         num_parens = len(self.parens)
         self.parens.append(self.cur_token.text)
         self.next_token()
-        
+        vector = []
         while not self.check_token(TokenType.EXPR_END):
             if self.check_token(TokenType.EXPR_START) and (self.check_peek(TokenType.UNQUOTE) or self.check_peek(TokenType.UNQUOTESPLICING)):
                 if not is_quasi:
@@ -644,10 +645,14 @@ class Parser:
                 self.match(TokenType.EXPR_END)
             else:
                 self.datum() if not is_quasi else self.quasiquote_datum()
+                vector.append(self.last_exp_res)
         
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses in list are not well formed.")
         self.parens.pop()
+        self.evaluate_vector(vector)
+        # print("PRINTING VECTOR:")
+        # [print(ident.typeof,ident.value) for ident in vector]
         self.next_token()
     #<datum> ::= <constant> | <symbol> | <list> | <vector>
     def datum(self):

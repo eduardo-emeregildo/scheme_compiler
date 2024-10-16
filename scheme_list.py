@@ -25,8 +25,8 @@ class Pair():
             return
         return self.car.value
     
-    def is_object(self,ident_type):
-        return ident_type in [IdentifierType.PAIR,IdentifierType.VECTOR]
+    def is_pair(self,ident_type):
+        return ident_type == IdentifierType.PAIR
     
     def get_cdr(self):
         return self.cdr
@@ -41,14 +41,14 @@ class Pair():
             print("Empty List: ()")
             return
         # print("PRINTING PAIR:")
-        if self.is_object(self.car.typeof):
+        if self.is_pair(self.car.typeof):
             self.car.value.print()
         else:
             print(self.car.value)
             
         if self.cdr is None:
             return
-        if self.is_object(self.cdr.typeof):
+        if self.is_pair(self.cdr.typeof):
             self.cdr.value.print()
         else:
             print(self.cdr.value)
