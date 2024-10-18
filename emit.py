@@ -1,6 +1,17 @@
 from environment import *
 # Emitter object keeps track of the generated start_code and outputs it.
 #footer might be needed for the data segment
+#If i run into performance issues modify functions to use less concatenations or to concat by putting strs in a list and calling .join
+
+ident_type_to_word = {
+    IdentifierType.INT : "dq",
+    IdentifierType.FLOAT : "dq",
+    IdentifierType.STR : "db",
+    IdentifierType.SYMBOL: "db",
+    IdentifierType.CHAR: "db",
+    IdentifierType.BOOLEAN: "db" 
+}
+
 class Emitter:
     def __init__(self, fullPath):
         self.fullPath = fullPath
@@ -12,21 +23,74 @@ class Emitter:
         
     def emit_data_section(self,code):
         self.data_section += code + '\n'
+    
+    
+    def emit_data_label(self,label):
+        self.emit_data_section(label + ":")
+    
+    #if ident_name is "", will omit the label and just output for example dq 10, instead of x:\n\tdq 10. Think of it as an anonymous var
+    def global_const_instruction(self,ident_obj,ident_name = ""):
+
+        ident_type = ident_obj.typeof
+        if ident_type == IdentifierType.INT or ident_type == IdentifierType.FLOAT:
+            return f"{f'{ident_name}:\n\t' if len(ident_name) != 0 else "\t"}dq {ident_obj.value}"
+        elif ident_type == IdentifierType.CHAR:
+            return f"{f'{ident_name}:\n\t' if len(ident_name) != 0 else "\t"}db '{ident_obj.value[-1]}'"
+        elif ident_type == IdentifierType.STR:
+            return f"{f'{ident_name}:\n\t' if len(ident_name) != 0 else "\t"}db {ident_obj.value}, 0"
+        elif ident_type == IdentifierType.SYMBOL:
+            return f"{f'{ident_name}:\n\t' if len(ident_name) != 0 else "\t"}db '{ident_obj.value}', 0"
+        elif ident_type == IdentifierType.BOOLEAN:
+            return f"{f'{ident_name}:\n\t' if len(ident_name) != 0 else "\t"}db {'1' if ident_obj.value =='#t' else '0'}"
+
+    #offset is how many bytes from beginning you are in  
+    def emit_global_pair_body(self,label,pair_obj,offset = 0):
+        emitted_elts = []
+
+        #the pair_obj represents the empty list. both the car and cdr are set to 0x0
+        if pair_obj.car is None and pair_obj.cdr is None:
+            return "\tdb 0x0\n\tdb 0x0\n"
+        #the car of the pair_obj is the empty list
+        if pair_obj.car is None:
+            emitted_elts.append("db 0x0")
+        elif pair_obj.car.typeof == IdentifierType.PAIR:
+            pass
+        elif pair_obj.car.typeof == IdentifierType.VECTOR:
+            pass
+        else:
+            #list elt is a constant
+            emitted_elts.append(self.global_const_instruction(pair_obj.car))
+        #now handle the cdr
+        
+        if pair_obj.cdr is None:
+            emitted_elts.append("db 0x0")
+        elif pair_obj.cdr.typeof == IdentifierType.PAIR:
+            #this is the crucial case. This is when we're dealing with a list.
+            # the address to the next pair has to be stored.
+            # After that a recursive call is needed to compute the emitted elts of the pair, given the offset  
+            pass
+        elif pair_obj.car.typeof == IdentifierType.VECTOR:
+            pass
+        else:
+            emitted_elts.append(self.global_const_instruction(pair_obj.cdr))
+        
+        self.emit_data_section('\n'.join(emitted_elts))
+            
+            
+    def emit_global_pair(self,label,pair_obj):
+        self.emit_data_label(label)
+        self.emit_global_pair_body(label,pair_obj)
         
     def emit_global_definitions(self,def_dict):
+        emitted_definitions = []
         for ident_name in def_dict:
             ident_type = def_dict[ident_name].typeof
-            if ident_type == IdentifierType.INT:
-                self.emit_data_section(ident_name+ ":\n" + "dq " + def_dict[ident_name].value)
-            elif ident_type == IdentifierType.FLOAT:
-                self.emit_data_section(ident_name+ ":\n" + "dq " + def_dict[ident_name].value)
-            elif ident_type == IdentifierType.CHAR:
-                self.emit_data_section(ident_name+ ":\n" + "db '" + def_dict[ident_name].value[-1] + "'")
-            elif ident_type == IdentifierType.STR:
-                self.emit_data_section(ident_name+ ":\n" + "db " + def_dict[ident_name].value + ", 0")
-            elif ident_type == IdentifierType.BOOLEAN:
-                self.emit_data_section(ident_name+ ":\n" + "db " + '1' if def_dict[ident_name].value == '#t' else '0')
-        # this will eventually accept list and vector (dont think symbol should emit anything since it doesnt evaluate, idk though )
+            if ident_type in ident_type_to_word:
+                emitted_definitions.append(self.global_const_instruction(def_dict[ident_name],ident_name))
+            elif ident_type == IdentifierType.PAIR:
+                self.emit_global_pair(ident_name,def_dict[ident_name].value)                
+        # this will eventually accept list and vector (symbol type is currently being emitted, this could be subject to change)
+        self.emit_data_section('\n'.join(emitted_definitions))
 
             
     

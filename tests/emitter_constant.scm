@@ -4,6 +4,7 @@
 (define a 5.3)
 (define b #t)
 (define x 6)
+(define h 'ws)
 x
 y
 z

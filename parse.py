@@ -4,8 +4,7 @@ from emit import *
 from environment import *
 from scheme_list import *
 
-#Todo0: have define expression accept list and vectors globally.A lot of emitting depends on what type an expression evaluates to (str,int,float,pair etc.) Try to refactor code so that i have dont have to write if else stmts over and over(like i did in emit_global_definitions). abstract classes prob needed
-#One approach is to have EmitInt,EmitFloat etc classes, and the purpose of these classes is to handle the emitting for each Identifier type.
+#Todo0: finish emit_global_pair_body in emit.py.  Make sure to correctly compute the offset + deal with nested lists/pairs
 # .Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 # (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
 #Todo1: implement scoping to be able to evaluate the variable expression and to be able to proceed.
@@ -526,7 +525,7 @@ class Parser:
             ident_name = self.cur_token.text
             self.next_token()
             self.expression()
-            self.definitions.add_definition(ident_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))  
+            self.definitions.add_definition(ident_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
 
         elif self.check_token(TokenType.EXPR_START):
             self.call_pattern()# here add the call pattern and body methods

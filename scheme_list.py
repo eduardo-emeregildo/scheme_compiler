@@ -2,8 +2,9 @@ from environment import *
 class Pair():
     #Pair class used to represent pairs and lists.
     # car and cdr are both either Identifier Objects or None
-    # car = None indicates empty list
+    # car = None indicates empty list as car elt
     # cdr = None indicates end of list
+    #The EMPTY LIST is indicated when both card and cdr are None
     # if cdr has IdentifierType.PAIR, this is basically a list, since you have a nested pair here
     #A list is a pair whose cdr is also pair. This is how to check if obj is a list or pair: by checking the IdentifierType of the cdr
 
@@ -37,11 +38,13 @@ class Pair():
         return self.cdr.value
     
     def print(self):
-        if self.car is None:
-            print("Empty List: ()")
+        if self.car is None and self.cdr is None:
+            print("This is an empty list")
             return
+        if self.car is None:
+            print("The car of the pair is empty list: ()")
         # print("PRINTING PAIR:")
-        if self.is_pair(self.car.typeof):
+        elif self.is_pair(self.car.typeof):
             self.car.value.print()
         else:
             print(self.car.value)

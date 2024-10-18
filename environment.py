@@ -23,7 +23,7 @@ class Identifier:
         self.typeof = new_type
         self.value = new_value
 
-#Below This is how lexical scoping will be handled. symbol_table is a dictionary that will store Identifier objects, detailing what type it is ands its value 
+#Below This is how lexical scoping will be handled. symbol_table is a dictionary that will store Identifier objects, with the key being the identifier name, detailing what type it is ands its value 
 # Parent will hold its parent Environment. The global environment is the environment with null parent      
 class Environment:
     def __init__(self,parent = None):
