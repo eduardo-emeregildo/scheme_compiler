@@ -8,6 +8,7 @@
 (define test '(1 2 3))
 (define nested_list '(1 2 (3 4)))
 (define mixed_elts '(1 #t "yarr" 4))
+(define vec '#(1 2 #f "yarr" x (3 4)))
 x
 y
 z

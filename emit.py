@@ -43,11 +43,20 @@ class Emitter:
         elif ident_type == IdentifierType.BOOLEAN:
             return f"{f'{ident_name}:\n\t' if len(ident_name) != 0 else "\t"}db {'1' if ident_obj.value =='#t' else '0'}"
     
-    def global_vector_body_asm(self,vector_obj):
-        pass
+    def global_vector_body_asm(self,label,vector_obj):
+        emitted_elts = []
+        offset = 0
+        for ident_obj in vector_obj:
+            if ident_obj.typeof == IdentifierType.PAIR:
+                emitted_elts.append(self.global_pair_body_asm(label,ident_obj.value,offset))
+            elif ident_obj.typeof == IdentifierType.VECTOR:
+                emitted_elts.append(self.global_vector_body_asm(label,ident_obj.value))
+            else:
+                emitted_elts.append(self.global_const_asm(ident_obj))
                 
+            offset += ident_obj.get_size()
+        return '\n'.join(emitted_elts)
             
-
     #offset is how many bytes from label the pair will be written at  
     def global_pair_body_asm(self,label,pair_obj,offset = 0):
         emitted_elts = []
@@ -60,9 +69,8 @@ class Emitter:
             emitted_elts.append("db 0x0")
         elif pair_obj.car.typeof == IdentifierType.PAIR:
             emitted_elts.append(self.global_pair_body_asm(label,pair_obj.car.value,offset))
-            # self.global_pair_body_asm(label,pair_obj.car,offset)
         elif pair_obj.car.typeof == IdentifierType.VECTOR:
-            pass
+            emitted_elts.append(self.global_vector_body_asm(label,pair_obj.car.value))
         else:
             #list elt is a constant
             emitted_elts.append(self.global_const_asm(pair_obj.car))
@@ -76,7 +84,7 @@ class Emitter:
             emitted_elts.append(f"\tdq {label} + {str(next_pair_offset)}")
             emitted_elts.append(self.global_pair_body_asm(label,pair_obj.cdr.value,next_pair_offset))
         elif pair_obj.car.typeof == IdentifierType.VECTOR:
-            pass
+            emitted_elts.append(self.global_vector_body_asm(label,pair_obj.car.value))
         else:
             emitted_elts.append(self.global_const_asm(pair_obj.cdr))
         return '\n'.join(emitted_elts)
@@ -86,6 +94,10 @@ class Emitter:
         self.emit_data_label(label)
         self.emit_data_section(self.global_pair_body_asm(label,pair_obj))
         
+    def emit_global_vector(self,label,vector_obj):
+        self.emit_data_label(label)
+        self.emit_data_section(self.global_vector_body_asm(label,vector_obj))
+        
     def emit_global_definitions(self,def_dict):
         emitted_definitions = []
         for ident_name in def_dict:
@@ -93,8 +105,10 @@ class Emitter:
             if ident_type in ident_type_to_word:
                 emitted_definitions.append(self.global_const_asm(def_dict[ident_name],ident_name))
             elif ident_type == IdentifierType.PAIR:
-                self.emit_global_pair(ident_name,def_dict[ident_name].value)                
-        # this will eventually accept list and vector (symbol type is currently being emitted, this could be subject to change)
+                self.emit_global_pair(ident_name,def_dict[ident_name].value)
+            elif ident_type == IdentifierType.VECTOR:
+                self.emit_global_vector(ident_name,def_dict[ident_name].value)             
+        # symbol type is currently being emitted, this could be subject to change
         self.emit_data_section('\n'.join(emitted_definitions))
 
             

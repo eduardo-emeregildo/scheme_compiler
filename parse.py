@@ -3,9 +3,9 @@ from lex import *
 from emit import *
 from environment import *
 from scheme_list import *
-#Todo0: write global_vector_body_asm. After this use the function in global_pair_body_asm so lists can emit vectors as a list element. Also use function to emit
-# expressions like (define x '#(1 2 3 21))
+#Todo0: tests define some more so it emits the correct asm for all cases. Work on define exp to set an identifier = to another. After this, work on defining functions(define <call pattern> <body>).
 
+#Note: define currently doesnt handle setting vars to functions. Deal with this after vector 
 # Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 # (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
 #Todo1: implement scoping to be able to evaluate the variable expression and to be able to proceed.
