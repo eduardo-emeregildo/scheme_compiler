@@ -22,6 +22,39 @@ class Identifier:
     def update(self,new_type,new_value):
         self.typeof = new_type
         self.value = new_value
+    
+    #returns size in bytes that value will take up in memory.
+    def get_size(self):
+        if self.typeof == IdentifierType.INT or self.typeof == IdentifierType.FLOAT:
+            return 8
+        elif self.typeof == IdentifierType.STR:
+            return len(self.value) - 1
+        elif self.typeof == IdentifierType.BOOLEAN or self.typeof == IdentifierType.CHAR:
+            return 1
+        elif self.typeof == IdentifierType.SYMBOL or self.typeof == IdentifierType.FUNCTION:
+            return len(self.value) + 1
+        elif self.typeof == IdentifierType.PAIR:
+            sum = 0
+            if self.value.is_empty_list():
+                return 2
+            if self.value.car is None:
+                sum += 1
+            else:
+                sum += self.value.car.get_size()
+            # now handle cdr
+            if self.value.cdr is None:
+                sum += 1
+            else:
+                if self.value.cdr.typeof == IdentifierType.PAIR:
+                    #for pointer to next
+                    sum += 8
+                sum += self.value.cdr.get_size()
+            return sum
+        elif self.typeof == IdentifierType.VECTOR:
+            sum = 0
+            for ident in self.value:
+                sum += ident.get_size()
+            return sum
 
 #Below This is how lexical scoping will be handled. symbol_table is a dictionary that will store Identifier objects, with the key being the identifier name, detailing what type it is ands its value 
 # Parent will hold its parent Environment. The global environment is the environment with null parent      

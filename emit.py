@@ -29,7 +29,7 @@ class Emitter:
         self.emit_data_section(label + ":")
     
     #if ident_name is "", will omit the label and just output for example dq 10, instead of x:\n\tdq 10. Think of it as an anonymous var
-    def global_const_instruction(self,ident_obj,ident_name = ""):
+    def global_const_asm(self,ident_obj,ident_name = ""):
 
         ident_type = ident_obj.typeof
         if ident_type == IdentifierType.INT or ident_type == IdentifierType.FLOAT:
@@ -42,51 +42,56 @@ class Emitter:
             return f"{f'{ident_name}:\n\t' if len(ident_name) != 0 else "\t"}db '{ident_obj.value}', 0"
         elif ident_type == IdentifierType.BOOLEAN:
             return f"{f'{ident_name}:\n\t' if len(ident_name) != 0 else "\t"}db {'1' if ident_obj.value =='#t' else '0'}"
+    
+    def global_vector_body_asm(self,vector_obj):
+        pass
+                
+            
 
-    #offset is how many bytes from beginning you are in  
-    def emit_global_pair_body(self,label,pair_obj,offset = 0):
+    #offset is how many bytes from label the pair will be written at  
+    def global_pair_body_asm(self,label,pair_obj,offset = 0):
         emitted_elts = []
-
         #the pair_obj represents the empty list. both the car and cdr are set to 0x0
-        if pair_obj.car is None and pair_obj.cdr is None:
+        # if pair_obj.car is None and pair_obj.cdr is None:
+        if pair_obj.is_empty_list():
             return "\tdb 0x0\n\tdb 0x0\n"
         #the car of the pair_obj is the empty list
         if pair_obj.car is None:
             emitted_elts.append("db 0x0")
         elif pair_obj.car.typeof == IdentifierType.PAIR:
-            pass
+            emitted_elts.append(self.global_pair_body_asm(label,pair_obj.car.value,offset))
+            # self.global_pair_body_asm(label,pair_obj.car,offset)
         elif pair_obj.car.typeof == IdentifierType.VECTOR:
             pass
         else:
             #list elt is a constant
-            emitted_elts.append(self.global_const_instruction(pair_obj.car))
+            emitted_elts.append(self.global_const_asm(pair_obj.car))
+            
         #now handle the cdr
-        
         if pair_obj.cdr is None:
-            emitted_elts.append("db 0x0")
+            emitted_elts.append("\tdb 0x0")
         elif pair_obj.cdr.typeof == IdentifierType.PAIR:
-            #this is the crucial case. This is when we're dealing with a list.
-            # the address to the next pair has to be stored.
-            # After that a recursive call is needed to compute the emitted elts of the pair, given the offset  
-            pass
+            #dealing with a list. write asm for the ptr to cdr, and asm for the cdr itself
+            next_pair_offset = pair_obj.car.get_size() + offset + 8
+            emitted_elts.append(f"\tdq {label} + {str(next_pair_offset)}")
+            emitted_elts.append(self.global_pair_body_asm(label,pair_obj.cdr.value,next_pair_offset))
         elif pair_obj.car.typeof == IdentifierType.VECTOR:
             pass
         else:
-            emitted_elts.append(self.global_const_instruction(pair_obj.cdr))
-        
-        self.emit_data_section('\n'.join(emitted_elts))
+            emitted_elts.append(self.global_const_asm(pair_obj.cdr))
+        return '\n'.join(emitted_elts)
             
             
     def emit_global_pair(self,label,pair_obj):
         self.emit_data_label(label)
-        self.emit_global_pair_body(label,pair_obj)
+        self.emit_data_section(self.global_pair_body_asm(label,pair_obj))
         
     def emit_global_definitions(self,def_dict):
         emitted_definitions = []
         for ident_name in def_dict:
             ident_type = def_dict[ident_name].typeof
             if ident_type in ident_type_to_word:
-                emitted_definitions.append(self.global_const_instruction(def_dict[ident_name],ident_name))
+                emitted_definitions.append(self.global_const_asm(def_dict[ident_name],ident_name))
             elif ident_type == IdentifierType.PAIR:
                 self.emit_global_pair(ident_name,def_dict[ident_name].value)                
         # this will eventually accept list and vector (symbol type is currently being emitted, this could be subject to change)

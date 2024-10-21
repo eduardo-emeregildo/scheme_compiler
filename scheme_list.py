@@ -17,6 +17,9 @@ class Pair():
         
     def set_cdr(self,cdr):
         self.cdr = cdr
+        
+    def is_empty_list(self):
+        return self.car is None and self.cdr is None
     
     def get_car(self):
         return self.car
@@ -61,6 +64,11 @@ class Pair():
 # b = Pair(Identifier(IdentifierType.INT,"1"),Identifier(IdentifierType.INT,"2"))
 # print("PRINTING A: '(1 2 3)")
 # a.print()
+# a_ident_obj = Identifier(IdentifierType.PAIR,a)
+# b_ident_obj = Identifier(IdentifierType.PAIR,b)
+# print("length of a in bytes is: ",a_ident_obj.get_size())
 # print("PRINTING B: (cons 1 2)")
 # b.print()
-
+# print("length of b in bytes is: ",b_ident_obj.get_size())
+# c = Identifier(IdentifierType.VECTOR,[Identifier(IdentifierType.INT,"1"),Identifier(IdentifierType.STR,'"yes"'),Identifier(IdentifierType.BOOLEAN,"#f")])
+# print("getting size of vector c. Should be 13. Is: ", c.get_size())

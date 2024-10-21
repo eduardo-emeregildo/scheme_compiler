@@ -3,9 +3,10 @@ from lex import *
 from emit import *
 from environment import *
 from scheme_list import *
+#Todo0: write global_vector_body_asm. After this use the function in global_pair_body_asm so lists can emit vectors as a list element. Also use function to emit
+# expressions like (define x '#(1 2 3 21))
 
-#Todo0: finish emit_global_pair_body in emit.py.  Make sure to correctly compute the offset + deal with nested lists/pairs
-# .Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
+# Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 # (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
 #Todo1: implement scoping to be able to evaluate the variable expression and to be able to proceed.
 #Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser.
