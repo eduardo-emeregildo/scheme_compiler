@@ -3,12 +3,11 @@ from lex import *
 from emit import *
 from environment import *
 from scheme_list import *
-#Todo0: tests define some more so it emits the correct asm for all cases. Work on define exp to set an identifier = to another. After this, work on defining functions(define <call pattern> <body>).
+#Todo0: refactor emitter to use Generator classes and GeneratorFactory,work on defining functions(define <call pattern> <body>).
 
+#Todo1: implement the beginnings of the built in library. start with +,-,*,/ later along the line implement list/vector procedures and equivalence tests 
 #Note: define currently doesnt handle setting vars to functions. Deal with this after vector 
 # Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
-# (figure out how to handle +,-,*,/). I think they will be built in procedures. change match method so it tells you from which expression it was called in the error message
-#Todo1: implement scoping to be able to evaluate the variable expression and to be able to proceed.
 #Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser.
 
 #somewhere down the line implement special functions in vector/list, such as vector-ref for example
@@ -95,7 +94,7 @@ class Parser:
         while not self.check_token(TokenType.EOF):
             self.expression()
         self.emitter.emit_global_definitions(self.definitions.symbol_table)
-        self.emitter.emit_start_section("mov rax, 60\nmov rdi, 0\nsyscall")
+        self.emitter.emit_start_section("\tmov rax, 60\n\tmov rdi, 0\n\tsyscall")
             
     def expression(self): 
         if self.check_token(TokenType.NEWLINE):
