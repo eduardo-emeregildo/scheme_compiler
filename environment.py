@@ -22,6 +22,9 @@ class Identifier:
     def update(self,new_type,new_value):
         self.typeof = new_type
         self.value = new_value
+        
+    def is_compound_type(self):
+        return self.typeof == IdentifierType.PAIR or self.typeof == IdentifierType.VECTOR
     
     #returns size in bytes that value will take up in memory.
     def get_size(self):

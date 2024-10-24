@@ -1,5 +1,5 @@
 from environment import *
-from global_var_generator import *
+from generation import *
 # Emitter object keeps track of the generated start_code and outputs it.
 #footer might be needed for the data segment
 #If i run into performance issues modify functions to use less concatenations or to concat by putting strs in a list and calling .join
@@ -23,16 +23,20 @@ class Emitter:
         
     def emit_global_definitions(self,def_dict):
         emitted_definitions = []
+        factory = GeneratorFactory()
         for ident_name in def_dict:
-            ident_type = def_dict[ident_name].typeof
-            if ident_type in ident_type_to_word:
-                emitted_definitions.append(generate_const(def_dict[ident_name],ident_name))
-            elif ident_type == IdentifierType.PAIR:
-                emitted_definitions.append(generate_label(ident_name))
-                emitted_definitions.append(generate_pair_body(ident_name,def_dict[ident_name].value))
-            elif ident_type == IdentifierType.VECTOR:
-                emitted_definitions.append(generate_label(ident_name))
-                emitted_definitions.append(generate_vector_body(ident_name,def_dict[ident_name].value))        
+            type_generator = factory.create_generator(def_dict[ident_name],0,ident_name)
+            emitted_definitions.append(f"{ident_name}:")
+            emitted_definitions.append(type_generator.generate_global_var())
+            # ident_type = def_dict[ident_name].typeof
+            # if ident_type in IDENT_TYPE_TO_WORD:
+            #     emitted_definitions.append(generate_const(def_dict[ident_name],ident_name))
+            # elif ident_type == IdentifierType.PAIR:
+            #     emitted_definitions.append(generate_label(ident_name))
+            #     emitted_definitions.append(generate_pair_body(ident_name,def_dict[ident_name].value))
+            # elif ident_type == IdentifierType.VECTOR:
+            #     emitted_definitions.append(generate_label(ident_name))
+            #     emitted_definitions.append(generate_vector_body(ident_name,def_dict[ident_name].value))        
         # symbol type is currently being emitted, this could be subject to change
         self.emit_data_section('\n'.join(emitted_definitions))
             
