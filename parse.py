@@ -3,9 +3,12 @@ from lex import *
 from emit import *
 from environment import *
 from scheme_list import *
-#Todo0: refactor emitter to use Generator classes and GeneratorFactory,work on defining functions(define <call pattern> <body>).
+from function import *
+#when i get back, test that extract_exp works correctly(Leaves self.cur_token in the right place after it finishes)
+#Todo0: work on defining functions(define <call pattern> <body>). work on self.body(). First support functions that accept and return values that are going to be on the stack(int,float,char,boolean)
+#Todo1: implement the beginnings of the built in library(native functions). start with +,-,*,/,cons,append, and printing(with c++ libs for asm) later along the line implement more list/vector procedures and equivalence tests
+#Todo2: Add string,symbol,list,vector and function to be allocated on the heap. Once this is working, implement gc to be able to manage memory on the heap.
 
-#Todo1: implement the beginnings of the built in library. start with +,-,*,/ later along the line implement list/vector procedures and equivalence tests 
 #Note: define currently doesnt handle setting vars to functions. Deal with this after vector 
 # Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
 #Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser.
@@ -21,7 +24,8 @@ class Parser:
         self.last_exp_res = None
         self.cur_token = None
         self.peek_token = None
-        self.definitions = Environment()
+        self.global_environment = Environment()
+        self.cur_environment = self.global_environment
         self.parens = []
         self.next_token()
         self.next_token()
@@ -59,32 +63,33 @@ class Parser:
     
     
     def evaluate_constant(self):
-        if self.cur_token.type == TokenType.NUMBER:
-            if isinstance(self.cur_token.text,int):
-                self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
-            else: 
-                self.set_last_exp_res(IdentifierType.FLOAT,str(self.cur_token.text))
-                
-        elif self.cur_token.type == TokenType.BOOLEAN:
-            self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
-        elif self.cur_token.type == TokenType.CHAR:
-            self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
-        elif self.cur_token.type == TokenType.STRING:
-            self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
-        else:
-            self.abort("Calling evaluate_constant(). current token is not a constant") 
-                
-    
+        match self.cur_token.type:
+            case TokenType.NUMBER:
+                if isinstance(self.cur_token.text,int):
+                    self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
+                else: 
+                    self.set_last_exp_res(IdentifierType.FLOAT,str(self.cur_token.text))
+            case TokenType.BOOLEAN:
+                self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
+            case TokenType.CHAR:
+                self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
+            case TokenType.STRING:
+                self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
+            case _:
+                self.abort("Calling evaluate_constant(). current token is not a constant") 
+                                
     def evaluate_symbol(self):
         self.set_last_exp_res(IdentifierType.SYMBOL,self.cur_token.text)
         
     def evaluate_pair(self,pair_obj):
         self.set_last_exp_res(IdentifierType.PAIR,pair_obj)
     
+    def evaluate_function(self,function_obj):
+        self.set_last_exp_res(IdentifierType.FUNCTION,function_obj)
+    
     #Python lists will be used to represent  
     def evaluate_vector(self,vector_obj):
         self.set_last_exp_res(IdentifierType.VECTOR,vector_obj)
-        
         
     def program(self):
         print("Program")
@@ -93,7 +98,7 @@ class Parser:
         #Parse all expressions in the program
         while not self.check_token(TokenType.EOF):
             self.expression()
-        self.emitter.emit_global_definitions(self.definitions.symbol_table)
+        self.emitter.emit_global_definitions(self.global_environment.symbol_table)
         self.emitter.emit_start_section("\tmov rax, 60\n\tmov rdi, 0\n\tsyscall")
             
     def expression(self): 
@@ -102,7 +107,6 @@ class Parser:
         #<constant> ::= <boolean> | <number> | <character> | <string>
         elif self.check_token(TokenType.NUMBER):
             print("EXPRESSION-NUMBER")
-            # self.emitter.emit_start_section("nop")
             if isinstance(self.cur_token.text,int):
                 self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
             else:
@@ -111,27 +115,24 @@ class Parser:
         
         elif self.check_token(TokenType.CHAR):
             print("EXPRESSION-CHAR")
-            # self.emitter.emit_start_section("nop")
             self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
             self.next_token()
             
         elif self.check_token(TokenType.BOOLEAN):
             print("EXPRESSION-BOOLEAN")
-            # self.emitter.emit_start_section("nop")
             self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
             self.next_token()
 
         elif self.check_token(TokenType.STRING):
             print("EXPRESSION-STRING")
-            # self.emitter.emit_start_section("nop")
             self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
-            if not self.cur_token.text in self.definitions.symbol_table:
+            if not self.cur_token.text in self.cur_environment.symbol_table:
                 self.abort("Identifier "+ self.cur_token.text + " not defined.")
             print("EXPRESSION-VARIABLE")
-            cur_ident = self.definitions.find_definition(self.cur_token.text)
+            cur_ident = self.cur_environment.find_definition(self.cur_token.text)
             self.set_last_exp_res(cur_ident.typeof,cur_ident.value)        
             self.next_token()
                     
@@ -236,7 +237,27 @@ class Parser:
                  
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
-                
+      
+    #returns a string which contains the next expression. used to extract body of a function
+    #This method does not check if the expression has correct syntax(racket doesnt either), the error will occur will the function gets called
+    def extract_exp(self) -> str:
+        open_paren_count = 0
+        exp = []
+        if self.check_token(TokenType.EXPR_START):
+            open_paren_count += 1
+            exp.append(self.cur_token.text)
+            self.next_token()
+            while open_paren_count != 0:
+                exp.append(self.cur_token.text)
+                if self.check_token(TokenType.EXPR_START):
+                    open_paren_count += 1
+                elif self.check_token(TokenType.EXPR_END):
+                    open_paren_count -= 1
+                self.next_token()
+        else:
+            exp.append(self.cur_token.text)
+            self.next_token()   
+        return ''.join(exp)    
     #(if <test> <consequent> <alternate>) | (if <test> <consequent>), where test,consequent and alternate are expressions
     def if_exp(self):
         print("EXPRESSION-IF")
@@ -515,8 +536,8 @@ class Parser:
       
     # <definition> ::= (define <variable> <expression>) | (define <call pattern> <body>)
     # the define with the call pattern syntax essentially defines a function. The first arg in call pattern is function name and rest are the names of its args
-    #mapping the variable to the evaluation of the expression will be handled in the emitter
-    def definition_exp(self):
+    #returns name of definition
+    def definition_exp(self) -> str:
         print("EXPRESSION-DEFINE")
         ident_name = None
         num_parens = len(self.parens) - 1
@@ -525,11 +546,15 @@ class Parser:
             ident_name = self.cur_token.text
             self.next_token()
             self.expression()
-            self.definitions.add_definition(ident_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
+            self.cur_environment.add_definition(ident_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
 
         elif self.check_token(TokenType.EXPR_START):
-            self.call_pattern()# here add the call pattern and body methods
-            self.body()
+            function = Function()
+            self.call_pattern(function)
+            self.body(function)
+            self.evaluate_function(function)
+            ident_name = function.get_name()
+            self.cur_environment.add_definition(ident_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         else:
             self.abort("Incorrect syntax in definition expression")
             
@@ -537,16 +562,17 @@ class Parser:
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses are not well formed.")
         self.parens.pop()
-        self.last_exp_res = None
+        return ident_name
          
-      # <call pattern> ::= (<pattern> <variable>*) | (<pattern> <variable>* . <variable>), where pattern ::= variable | <call pattern>
-    def call_pattern(self):
+    # <call pattern> ::= (<pattern> <variable>*) | (<pattern> <variable>* . <variable>), where pattern ::= variable | <call pattern>
+    def call_pattern(self,function):
         print("CALL_PATTERN")
         num_parens = len(self.parens)
         self.parens.append(self.cur_token.text)
         self.next_token()
         if self.check_token(TokenType.IDENTIFIER):
             print("PATTERN")
+            function.set_name(self.cur_token.text)
             self.next_token()
             while not self.check_token(TokenType.EXPR_END):
                 if self.check_token(TokenType.DOT):
@@ -558,6 +584,7 @@ class Parser:
                     break
                 elif self.check_token(TokenType.IDENTIFIER):
                     print("VARIABLE")
+                    function.add_param(self.cur_token.text)
                     self.next_token()
                 else:
                     self.abort(self.cur_token.text + " is not an identifier.")
@@ -570,17 +597,18 @@ class Parser:
         else:
             self.abort("Incorrect syntax for call pattern.")
         
-     
-     # the definition are the local variables declared which will be usable in the sequence. This is the equivalent of creating a variable inside of a function in other programming languages.
-     # <body> ::= <definition>* <sequence>   
-    def body(self):
+    # the definition are the local variables declared (within the function) which will be usable in the sequence.
+    # <body> ::= <definition>* <sequence>   
+    def body(self,function):
         print("BODY")
         #Process all definitions first. then process sequence with self.expression()
-        while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):    
+        while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):  
             self.parens.append(self.cur_token.text)
             self.next_token()
             self.next_token()
-            self.definition_exp()
+            definition_name = self.definition_exp()
+            function.add_local_definition(definition_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
+        #extract function body
         self.expression()
             
     def is_constant(self):

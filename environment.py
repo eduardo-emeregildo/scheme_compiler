@@ -71,6 +71,9 @@ class Environment:
     
     def remove_definition(self,ident_name):
         del self.symbol_table[ident_name]
+    
+    def is_global(self):
+        return self.parent is None
         
         
     def find_definition(self,ident_name):  

@@ -28,16 +28,6 @@ class Emitter:
             type_generator = factory.create_generator(def_dict[ident_name],0,ident_name)
             emitted_definitions.append(f"{ident_name}:")
             emitted_definitions.append(type_generator.generate_global_var())
-            # ident_type = def_dict[ident_name].typeof
-            # if ident_type in IDENT_TYPE_TO_WORD:
-            #     emitted_definitions.append(generate_const(def_dict[ident_name],ident_name))
-            # elif ident_type == IdentifierType.PAIR:
-            #     emitted_definitions.append(generate_label(ident_name))
-            #     emitted_definitions.append(generate_pair_body(ident_name,def_dict[ident_name].value))
-            # elif ident_type == IdentifierType.VECTOR:
-            #     emitted_definitions.append(generate_label(ident_name))
-            #     emitted_definitions.append(generate_vector_body(ident_name,def_dict[ident_name].value))        
-        # symbol type is currently being emitted, this could be subject to change
         self.emit_data_section('\n'.join(emitted_definitions))
             
     def emit_start_section(self,code):
