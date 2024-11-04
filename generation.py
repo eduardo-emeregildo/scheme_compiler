@@ -4,6 +4,10 @@ from scheme_list import *
 import sys
 #these clases will handle the generation of asm code for various types depending on scope.
 #there is one generator class per IdentifierType
+
+#if procedure has more than six args, they'll be on the stack
+LINUX_CALLING_CONVENTION = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
+
 class Generator(ABC):
     @abstractmethod
     def generate_global_var(self):
@@ -54,7 +58,7 @@ class IntGenerator(Generator):
         return f"\tdq {self.ident_obj.value}"
 
     def generate_local_var(self):
-        print("generating local int var(stack)")
+        return "generating local int var(stack)"
         
 class FloatGenerator(Generator):
     def __init__(self,ident_obj,offset,ident_name = ""):        
@@ -66,7 +70,7 @@ class FloatGenerator(Generator):
         return f"\tdq {self.ident_obj.value}"
 
     def generate_local_var(self):
-        print("generating local float var(stack)")
+        return "generating local float var(stack)"
 
 class CharGenerator(Generator):
     def __init__(self,ident_obj,offset,ident_name = ""):        
@@ -78,7 +82,7 @@ class CharGenerator(Generator):
         return f"\tdb '{self.ident_obj.value[-1]}'"
 
     def generate_local_var(self):
-        print("generating local char var(stack)")
+        return "generating local char var(stack)"
         
 class StringGenerator(Generator):
     def __init__(self,ident_obj,offset,ident_name = ""):        
@@ -90,7 +94,7 @@ class StringGenerator(Generator):
         return f"\tdb {self.ident_obj.value}, 0"
 
     def generate_local_var(self):
-        print("generating local string var(stack)")
+        return "generating local string var(stack)"
 
 class BooleanGenerator(Generator):
     def __init__(self,ident_obj,offset,ident_name = ""):        
@@ -102,7 +106,7 @@ class BooleanGenerator(Generator):
         return f"\tdb {'1' if self.ident_obj.value =='#t' else '0'}"
 
     def generate_local_var(self):
-        print("generating local boolean var(stack)")
+        return "generating local boolean var(stack)"
 
 class SymbolGenerator(Generator):
     def __init__(self,ident_obj,offset,ident_name = ""):        
@@ -114,7 +118,7 @@ class SymbolGenerator(Generator):
         return f"\tdb '{self.ident_obj.value}', 0"
 
     def generate_local_var(self):
-        print("generating local symbol var(stack)")
+        return "generating local symbol var(stack)"
 
 class PairGenerator(Generator):
     def __init__(self,ident_obj,offset,ident_name = ""):        
@@ -153,7 +157,7 @@ class PairGenerator(Generator):
         return '\n'.join(asm_instructions)
             
     def generate_local_var(self):
-        print("generating local pair var(stack)")
+        return "generating local pair var(stack)"
         
 class VectorGenerator(Generator):
     def __init__(self,ident_obj,offset,ident_name = ""):        
@@ -175,7 +179,7 @@ class VectorGenerator(Generator):
         return '\n'.join(asm_instructions)
     
     def generate_local_var(self):
-        print("generating local vector var(stack)")
+        return "generating local vector var(stack)"
 
 class FunctionGenerator(Generator):
     def __init__(self,ident_obj,offset,ident_name = ""):        
@@ -184,7 +188,45 @@ class FunctionGenerator(Generator):
         self.offset = offset
     
     def generate_global_var(self):
-        print("generating global function var")
+        asm_instructions = ["\tpush rbp","\tmov rbp,rsp"]
+        
+        func = self.ident_obj.value
+        param_offsets = []
+        local_defs_offsets = []
+        #first add params to the stack in order
+        for i,param in enumerate(func.param_list):
+            offset = 0
+            if i > 5:
+                offset = f"+{(i - 5) * 8}"
+                # offset = (i - 5) * 8
+                param_offsets.append(offset)
+            else:
+                offset = f"-{(i + 1) * 8}"
+                param_offsets.append(offset) 
+                asm_instructions.append(f"\tmov QWORD [rbp{offset}, {LINUX_CALLING_CONVENTION[i]}]")
+        print(param_offsets)
+        # now add all definitions in body(local_defs) they will continue from where params left off.
+        offset = -56 if len(param_offsets) > 5 else -(len(param_offsets) + 1) * 8
+        print(offset)
+        print(func.local_definitions)
+        for definition in func.local_definitions:
+            local_defs_offsets.append(f"{offset}")
+            #here you have to process the define, aka emit some code to set the define to rax
+            # this is where the runtime will come in, call the function in the runtime to set result in rax.
+            # fill the args for function in runtime here(after i make it)
+            asm_instructions.append(f"\tmov QWORD [rbp{offset}, rax]")
+            offset -= 8
+        print("Local_def offsets:", local_defs_offsets)
+            
+            
+            
+            
+        
+        
+        
+        #epilogue
+        asm_instructions.append("\tpop rbp\n\tret")
+        return '\n'.join(asm_instructions)
 
     def generate_local_var(self):
-        print("generating local function var(stack)")
+        return "generating local function var(stack)"

@@ -1,0 +1,5 @@
+;(define (yeo x) (+ 21 x 22))
+;(define x 3)
+;(define (monkey) (define x 3) 2)
+;(define (yar) (define x 3)(define y 4) (cons 1 2))
+(define (get-param one two tree) (define x 1) (define y 2) one)

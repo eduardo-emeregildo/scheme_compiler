@@ -4,9 +4,10 @@ from emit import *
 from environment import *
 from scheme_list import *
 from function import *
-#when i get back, test that extract_exp works correctly(Leaves self.cur_token in the right place after it finishes)
+#Begin writing the runtime.Specifically, write the part that the asm will call for say (define x 5). Remember that I am using a tagging system for types.. then use the runtime to in global_definitions
+
 #Todo0: work on defining functions(define <call pattern> <body>). work on self.body(). First support functions that accept and return values that are going to be on the stack(int,float,char,boolean)
-#Todo1: implement the beginnings of the built in library(native functions). start with +,-,*,/,cons,append, and printing(with c++ libs for asm) later along the line implement more list/vector procedures and equivalence tests
+#Todo1: implement the beginnings of the built in library(native functions). start with +,-,*,/,cons,append, and printing(with c libs for asm) later along the line implement more list/vector procedures and equivalence tests. All these builtin functions will be made in c and will be part of the target program's runtime environment. The asm will call to these functions.
 #Todo2: Add string,symbol,list,vector and function to be allocated on the heap. Once this is working, implement gc to be able to manage memory on the heap.
 
 #Note: define currently doesnt handle setting vars to functions. Deal with this after vector 
@@ -20,7 +21,6 @@ class Parser:
         self.lexer = lexer
         self.emitter = emitter
         #store last result of an expression as an identifier class.For pairs ans lists will store pair as value field. if previous exp doesnt return anything set to None
-        #this feels a little sloppy
         self.last_exp_res = None
         self.cur_token = None
         self.peek_token = None
@@ -219,8 +219,6 @@ class Parser:
             elif self.check_token(TokenType.QUASIQUOTE):
                 self.next_token()
                 self.quasiquote_exp()
-                
-
             #<procedure call> ::= (<operator> <operand>*)
             #in the emitter, the first expression must evaluate to a valid operator
             else:
@@ -238,26 +236,33 @@ class Parser:
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
       
-    #returns a string which contains the next expression. used to extract body of a function
+    #returns a string which contains the next expression. used to extract body of a function. self.cur_token will be set to next char after exp
     #This method does not check if the expression has correct syntax(racket doesnt either), the error will occur will the function gets called
     def extract_exp(self) -> str:
         open_paren_count = 0
         exp = []
         if self.check_token(TokenType.EXPR_START):
+            if self.check_peek(TokenType.EXPR_END):
+                self.abort("Empty expression in body.")
             open_paren_count += 1
-            exp.append(self.cur_token.text)
+            exp.append(str(self.cur_token.text))
             self.next_token()
             while open_paren_count != 0:
-                exp.append(self.cur_token.text)
+                exp.append(str(self.cur_token.text))
                 if self.check_token(TokenType.EXPR_START):
                     open_paren_count += 1
                 elif self.check_token(TokenType.EXPR_END):
                     open_paren_count -= 1
+                elif self.check_token(TokenType.EOF):
+                    self.abort("Incorrect syntax in body. Parentheses not well formed.")
                 self.next_token()
+        elif self.check_token(TokenType.EXPR_END):
+            self.abort("No expression in body")
         else:
-            exp.append(self.cur_token.text)
-            self.next_token()   
-        return ''.join(exp)    
+            exp.append(str(self.cur_token.text))
+            self.next_token()
+        return ' '.join(exp)
+      
     #(if <test> <consequent> <alternate>) | (if <test> <consequent>), where test,consequent and alternate are expressions
     def if_exp(self):
         print("EXPRESSION-IF")
@@ -609,7 +614,8 @@ class Parser:
             definition_name = self.definition_exp()
             function.add_local_definition(definition_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         #extract function body
-        self.expression()
+        function.add_to_body(self.extract_exp())
+        # self.expression()
             
     def is_constant(self):
         return self.is_token_any(self.cur_token.type,[TokenType.BOOLEAN,TokenType.NUMBER,TokenType.CHAR,TokenType.STRING])
