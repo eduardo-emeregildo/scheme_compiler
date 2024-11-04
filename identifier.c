@@ -79,7 +79,6 @@ bool is_char(long item){
 void abort_message(char *error_message){
     printf("Error. %s",error_message);
     exit(EXIT_FAILURE);
-
 }
 
 void check_int_range(long num){
@@ -90,16 +89,12 @@ void check_int_range(long num){
 
 long make_tagged_int(long num){
     check_int_range(num);
-    // printf("Before tagging: %#018lx\n",num);
-    // printf("After tagging: %#018lx\n",(num << 1) + 1);
     return (num << 1) + 1;
-   
 }
 
 long untag_int(long num){
     //checks msb to see if number is negative
     //can do this with the bit mask 0x8000000000000000
-
     if((num & 0x8000000000000000) == 0){
         return (num >> 1);
     } else{
@@ -115,20 +110,21 @@ void* make_tagged_ptr(size_t num_bytes){
     return p;
 }
 
-long make_tagged_bool(long boolean){
-
-}
-long make_tagged_char(long character){
-
+long make_tagged_bool(bool boolean){
+    return ((long)boolean << 3) | 0x2;
 }
 
-// removes tag for bool,char,int. Since ptrs tag is 000, no need to do anything here
+long make_tagged_char(char character){
+    return ((long)character << 3) | 0x4;
+}
+
+// removes tag for bool,char ONLY. int is handled differently, and we leave ptrs alone
 long remove_tag(long tagged_item){
-
+    return tagged_item >> 3;
 }
+
 
 int main(){
-
     TagType var = TAG_CHAR;
     printf("%d\n",var);
     long test = 0x000000004;
@@ -146,6 +142,24 @@ int main(){
     long untagged_int = untag_int(tag_int_test);
     printf("TAGGED INT IS NOW: %ld\t IN HEX ITS: %#018lx\n",tag_int_test,tag_int_test);
     printf("UNTAGGING THE INT NOW GIVES: %ld\t IN HEX ITS: %#018lx\n",untagged_int,untagged_int);
-    
+    long bool_test = make_tagged_bool(true);
+    long untagged_bool = remove_tag(bool_test);
+    printf("TAGGED BOOL IS NOW: %ld\t IN HEX ITS: %#018lx\n",bool_test,bool_test);
+    printf("UNTAGGED BOOL IS NOW: %ld\t IN HEX ITS: %#018lx\n",untagged_bool,untagged_bool);
+    char input_char = 'A';
+    long char_test = make_tagged_char(input_char);
+    long untagged_char = remove_tag(char_test);
+    printf("TAGGED CHAR IS NOW: %ld\t IN HEX ITS: %#018lx\n",char_test,char_test);
+    printf("UNTAGGED CHAR IS NOW: %ld\t IN ASCII ITS: %c\n",untagged_char,(char)untagged_char);
+
+    //testing functions that check the tag
+    long res_array[] = {tag_int_test,bool_test,char_test,addr};
+    int length = sizeof(res_array) / sizeof(res_array[0]);
+    for(int i = 0; i < length; i++ ){
+        printf("%d\n",is_int(res_array[i]));
+        printf("%d\n",is_ptr(res_array[i]));
+        printf("%d\n",is_bool(res_array[i]));
+        printf("%d\n\n",is_char(res_array[i]));
+    }
     return 0;
 }
