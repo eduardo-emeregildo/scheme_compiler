@@ -1,11 +1,13 @@
-// gcc -o identifier identifier.c
-//the goal (to start) is to deal with (define x 5)
+// gcc -Wall -o identifier identifier.c
+
+//Todo: work on making heap objects. i.e. implement make_string,make_double,make_pair,make_vector,make_function,make_symbol
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 
 //signed 64 bit int: [-2^63,2^63 - 1]
 // for signed 63 bit int: [-2^62, 2^62 - 1]
@@ -15,7 +17,7 @@ typedef enum{
    VAL_CHAR,
    VAL_STR,
    VAL_INT,
-   VAL_FLOAT,
+   VAL_DOUBLE,
    VAL_BOOLEAN,
    VAL_PAIR,
    VAL_VECTOR,
@@ -24,33 +26,28 @@ typedef enum{
 
 } ValueType;
 
-
 // this is for boxed types on the heap
 typedef struct{
     ValueType type;
     union{
-        char *str;
-        double floating_point;
-        // these might be ptrs to structs instead. For now leave as this.
-        void *pair;
+        struct Str *str;
+        double _double;
+        struct Pair *pair;
         void *vector;
         void *function;
         void * symbol;
     } as;
 } Value;
 
-typedef enum{
-    TAG_PTR = 0x0,
-    TAG_INT = 0x1,
-    TAG_BOOL = 0x2,
-    TAG_CHAR = 0x3
-    
 
-} TagType;
-
-struct List{
+struct Pair{
     Value car;
     Value cdr;
+};
+
+struct Str{
+    int length;
+    char* chars; 
 };
 
 struct Vector{
@@ -102,8 +99,8 @@ long untag_int(long num){
     }
 }
 
-void* make_tagged_ptr(size_t num_bytes){
-    void *p = malloc(num_bytes);
+Value* make_tagged_ptr(){
+    Value *p = (Value *)malloc(sizeof(Value));
     if (p == NULL){
         abort_message("Ran out of memory or tried to malloc with negative bytes.");
     }
@@ -123,10 +120,34 @@ long remove_tag(long tagged_item){
     return tagged_item >> 3;
 }
 
+//////////////////////////////////////////// Heap Objs Below ////////////////////////////////////////////
+// make_string,make_pair,make_vector,make_function,make_symbol
+Value *make_double(double num){
+    Value *ptr_val = make_tagged_ptr();
+    ptr_val->type = VAL_DOUBLE;
+    ptr_val->as._double = num;
+    return ptr_val;
+}
+
+Value *make_string(char *str){
+    // malloc the necessary bytes. set to ptr
+    // create the boxed type: [VAL_STR | ptr to string struct]
+    // make ptr point to the boxed
+    Value *ptr_val = make_tagged_ptr();
+    size_t string_length = strlen(str);
+    ptr_val->type = VAL_STR;
+    struct Str *str_obj = (struct Str *)malloc(sizeof(struct Str));
+    if (str_obj == NULL){
+        abort_message("Ran out of memory.");
+    }    
+    str_obj->length = string_length;
+    str_obj->chars = malloc(string_length);
+    strncpy(str_obj->chars,str,string_length);
+    ptr_val->as.str = str_obj;
+    return ptr_val;
+}
 
 int main(){
-    TagType var = TAG_CHAR;
-    printf("%d\n",var);
     long test = 0x000000004;
     printf("is_int test: %d\n",is_int(test));
     printf("is_ptr test: %d\n",is_ptr(test));
@@ -134,8 +155,7 @@ int main(){
     printf("is_char test: %d\n",is_char(test));
     printf("Max Int is: %ld\n",MAX_SCHEME_INT);
     printf("Min Int is: %ld\n",MIN_SCHEME_INT);
-    int yes  = 1;
-    void *addr = make_tagged_ptr(yes);
+    Value *addr = make_tagged_ptr();
     printf("ADDRESS IS: %p\n", addr);
 
     long tag_int_test = make_tagged_int(0x873);
@@ -161,5 +181,23 @@ int main(){
         printf("%d\n",is_bool(res_array[i]));
         printf("%d\n\n",is_char(res_array[i]));
     }
+    Value *double_on_heap = make_double(25.2);
+    printf("%lf\n", double_on_heap->as._double);
+    printf("Address of value_type: %p\n", double_on_heap);
+
+    char a[5] = "hello";
+    char *b = "hello";
+    char *c = malloc(5);
+    printf("Size is: %ld\n",strlen(a));
+    printf("Size is: %ld\n",strlen(b));
+    printf("%c\n",a[0]);
+    printf("%c\n",b[3]);
+    printf("b is: %s\n",b);
+    strncpy(c,b,5);
+    printf("c is: %s\n",b);
+    Value *str_on_heap = make_string("a");
+    printf("STRING ON HEAP TYPE: %d\n",str_on_heap->type);
+    printf("STRING ON HEAP LENGTH: %d\n",str_on_heap->as.str->length);
+    printf("STRING ON HEAP CONTENTS: %s\n",str_on_heap->as.str->chars);
     return 0;
 }
