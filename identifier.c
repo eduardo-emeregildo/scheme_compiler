@@ -1,9 +1,8 @@
 // gcc -Wall -o identifier identifier.c
 
-//now that make_val_pair is done, make a function that creates lists using
-//this function
+// After this, test make_value_vector
 
-//Todo: work on making heap objects. i.e. implement: make_value_pair,make_vector,make_function,make_symbol
+//Todo: work on making heap objects. i.e. implement: make_vector,make_function,make_symbol
 //Todo: remove the magic numbers in make_tagged_x functions. Make an enum instead
 // at some point figure out which functions need to be inline
 #include <stdio.h>
@@ -38,7 +37,7 @@ typedef struct{
         struct Str *str;
         double _double;
         struct Pair *pair;
-        void *vector;
+        struct Vector *vector;
         void *function;
         void * symbol;
         // int empty_list;
@@ -89,10 +88,11 @@ void abort_message(char *error_message){
     exit(EXIT_FAILURE);
 }
 
-void check_int_range(long num){
-    if (num > MAX_SCHEME_INT || num < MIN_SCHEME_INT){
-        abort_message("Integer out of range");
-    }
+void check_int_range(long num)
+{
+        if (num > MAX_SCHEME_INT || num < MIN_SCHEME_INT) {
+                abort_message("Integer out of range");
+        }
 }
 
 long make_tagged_int(long num){
@@ -118,17 +118,20 @@ Value* make_tagged_ptr(){
     return p;
 }
 
-long make_tagged_bool(bool boolean){
-    return ((long)boolean << 3) | 0x2;
+long make_tagged_bool(bool boolean)
+{
+        return ((long)boolean << 3) | 0x2;
 }
 
-long make_tagged_char(char character){
-    return ((long)character << 3) | 0x4;
+long make_tagged_char(char character)
+{
+        return ((long)character << 3) | 0x4;
 }
 
 // removes tag for bool,char ONLY. int is handled differently, and we leave ptrs alone
-long remove_tag(long tagged_item){
-    return tagged_item >> 3;
+long remove_tag(long tagged_item)
+{
+        return tagged_item >> 3;
 }
 
 
@@ -183,14 +186,21 @@ struct Pair *allocate_pair()
        return pair_obj; 
 }
 
+struct Vector *allocate_vector()
+{
+        struct Vector *vec_obj = (struct Vector *)malloc(sizeof(struct Vector));
+        validate_ptr(vec_obj);
+        return vec_obj;
+}
 
 //////////////////////////////////////////// Heap Objs Below ////////////////////////////////////////////
 // make_value_string,make_value_pair,make_vector,make_function,make_symbol
-Value *make_value_double(double num){
-    Value *ptr_value_double = make_tagged_ptr();
-    ptr_value_double->type = VAL_DOUBLE;
-    ptr_value_double->as._double = num;
-    return ptr_value_double;
+Value *make_value_double(double num)
+{
+        Value *ptr_value_double = make_tagged_ptr();
+        ptr_value_double->type = VAL_DOUBLE;
+        ptr_value_double->as._double = num;
+        return ptr_value_double;
 }
 
 Value *make_value_string(char *str){
@@ -248,7 +258,7 @@ if only cdr.type = empty list, then that is the end of the list.
 I could make it so that the last elt's cdr points to [VAL_EMPTY | 0], 
 but this would allocate an extra 16 bytes for each list. 
 */
-Value *make_value_list(Value **value_obj_array,size_t len)
+Value *make_value_list(Value **value_obj_array, size_t len)
 {
         Value *cur_value_obj;
         for(size_t i = 0; i < len ; i++) {
@@ -262,11 +272,28 @@ Value *make_value_list(Value **value_obj_array,size_t len)
                 }
                 cur_value_obj = make_tagged_ptr();
                 cur_value_obj->type = VAL_PAIR;
-                cur_value_obj->as.pair = pair_obj;            
+                cur_value_obj->as.pair = pair_obj;
         }
         return cur_value_obj;
 }
 
+/*
+
+takes in an array of value ptrs(already allocated on heap) and size.
+Returns a value obj with type VAL_VECTOR and a pointer to the obj
+Should I really pass in an array of Value ptrs? 
+*/
+Value *make_value_vector(Value **value_obj_array, size_t len)
+{
+        Value *ptr_value_vector = make_tagged_ptr(); 
+        ptr_value_vector->type = VAL_VECTOR;
+        struct Vector *vector_obj = allocate_vector();
+        vector_obj->size = len;
+        vector_obj->items = *value_obj_array;
+        ptr_value_vector->as.vector = vector_obj;
+        return ptr_value_vector;
+
+}
 int main(){
     long test = 0x000000004;
     printf("is_int test: %d\n",is_int(test));
