@@ -1,6 +1,8 @@
 // gcc -Wall -o identifier identifier.c
 
-//rewrite make_value_vector
+//Todo: write some helper functions to help make the args for make_value_list/vector
+// start with the helper for make_value_vector
+
 //Todo: work on making heap objects. i.e. implement: make_vector,make_function,make_symbol
 //Todo: remove the magic numbers in make_tagged_x functions. Make an enum instead
 // at some point figure out which functions need to be inline
@@ -60,7 +62,7 @@ struct Str{
 
 struct Vector{
     int size;
-    Value *items;
+    Value **items;
 };
 
 //pass either the 64 bit val or the 64 bit addr(for pointers)
@@ -116,13 +118,6 @@ Value *make_tagged_ptr(size_t num_value_objects){
     return p;
 }
 
-//this function will be useful when im creating lsts,vects and need to call
-//this function from python to create the params for make_value_list/vector
-Value **make_value_ptr_arr(size_t num_ptrs)
-{
-        Value *ptr_arr[num_ptrs];
-        return ptr_arr;
-}
 long make_tagged_bool(bool boolean)
 {
         return ((long)boolean << 3) | 0x2;
@@ -200,11 +195,31 @@ struct Pair *allocate_pair(Value *car_val,Value *cdr_val)
         return pair_obj; 
 }
 
-struct Vector *allocate_vector()
+//takes in array of vector ptrs that are already allocated to the heap.
+struct Vector *allocate_vector(Value **vec_elts,size_t size)
 {
         struct Vector *vec_obj = (struct Vector *)malloc(sizeof(struct Vector));
         validate_ptr(vec_obj);
+        vec_obj->size = size;
+        vec_obj->items = vec_elts;
         return vec_obj;
+}
+
+//set_ith_value and create_value_ptr_arr are helpers for the params of make_value_list/vector
+
+// given an array of value ptrs and a ptr to a Value obj, set the ith position in array to this ptr
+//Careful if index is beyond size of arra of value ptrs
+void set_ith_value(Value **value_obj_array,Value *elt,size_t index)
+{
+        value_obj_array[index] = elt;
+}
+
+Value **create_val_ptr_arr(size_t length)
+{
+        Value **val_ptr_arr = (Value **)malloc(sizeof(Value **));
+        *val_ptr_arr = (Value *)malloc(sizeof(Value *) * length);
+        return val_ptr_arr;
+
 }
 
 
@@ -264,26 +279,23 @@ Value *make_value_list(Value **value_obj_array, size_t len)
                 if((i != last_item_index)) {
                         cur_pair->cdr = make_value_pair(allocate_pair(NULL,NULL));
                         cur_pair = cur_pair->cdr->as.pair;
-                }
-                
+                }        
         }
         ptr_value_list->as.pair = head;
         return ptr_value_list;
 }
 
 /*
-
-takes in an array of value ptrs(already allocated on heap) and size.
-Returns a value obj with type VAL_VECTOR and a pointer to the obj
-Should I really pass in an array of Value ptrs? 
+takes in an array of value ptrs and creates creates a vector object out of these. 
+On the python side, when parsing say #(1 2 3), it will first parse the whole thing
+to figure out the length, then allocate the correct arr of value objects.
 */
 Value *make_value_vector(Value **value_obj_array, size_t len)
 {
+        
         Value *ptr_value_vector = make_tagged_ptr(1); 
         ptr_value_vector->type = VAL_VECTOR;
-        struct Vector *vector_obj = allocate_vector();
-        vector_obj->size = len;
-        vector_obj->items = *value_obj_array;
+        struct Vector *vector_obj = allocate_vector(value_obj_array,len);
         ptr_value_vector->as.vector = vector_obj;
         return ptr_value_vector;
 
@@ -313,100 +325,20 @@ int main()
                 }
         }
 
+        printf("NOW TESTING VECTORS:\n");
+        Value *vec = make_value_vector(input_for_list,3);
+        printf("%ld\n",untag_int(vec->as.vector->items[0]->as.tagged_type));
+        printf("%ld\n",untag_int(vec->as.vector->items[1]->as.tagged_type));
+        printf("%ld\n",untag_int(vec->as.vector->items[2]->as.tagged_type));
+        printf("Making a vector the way python will do it:\n");
+        // #(1 2 3)
+        Value **input_for_vec = create_val_ptr_arr(3);
+        set_ith_value(input_for_vec,car,0);
+        set_ith_value(input_for_vec,cdr,1);
+        set_ith_value(input_for_vec,third,2);
+        vec = make_value_vector(input_for_vec,3);
+        printf("%ld\n",untag_int(vec->as.vector->items[0]->as.tagged_type));
+        printf("%ld\n",untag_int(vec->as.vector->items[1]->as.tagged_type));
+        printf("%ld\n",untag_int(vec->as.vector->items[2]->as.tagged_type));
         return 0;
 }
-
-// int main(){
-//     long test = 0x000000004;
-//     printf("is_int test: %d\n",is_int(test));
-//     printf("is_ptr test: %d\n",is_ptr(test));
-//     printf("is_bool test: %d\n",is_bool(test));
-//     printf("is_char test: %d\n",is_char(test));
-//     printf("Max Int is: %ld\n",MAX_SCHEME_INT);
-//     printf("Min Int is: %ld\n",MIN_SCHEME_INT);
-//     Value *addr = make_tagged_ptr();
-//     printf("ADDRESS IS: %p\n", addr);
-
-//     long tag_int_test = make_tagged_int(0x873);
-//     long untagged_int = untag_int(tag_int_test);
-//     printf("TAGGED INT IS NOW: %ld\t IN HEX ITS: %#018lx\n",tag_int_test,tag_int_test);
-//     printf("UNTAGGING THE INT NOW GIVES: %ld\t IN HEX ITS: %#018lx\n",untagged_int,untagged_int);
-//     long bool_test = make_tagged_bool(true);
-//     long untagged_bool = remove_tag(bool_test);
-//     printf("TAGGED BOOL IS NOW: %ld\t IN HEX ITS: %#018lx\n",bool_test,bool_test);
-//     printf("UNTAGGED BOOL IS NOW: %ld\t IN HEX ITS: %#018lx\n",untagged_bool,untagged_bool);
-//     char input_char = 'A';
-//     long char_test = make_tagged_char(input_char);
-//     long untagged_char = remove_tag(char_test);
-//     printf("TAGGED CHAR IS NOW: %ld\t IN HEX ITS: %#018lx\n",char_test,char_test);
-//     printf("UNTAGGED CHAR IS NOW: %ld\t IN ASCII ITS: %c\n",untagged_char,(char)untagged_char);
-
-//     //testing functions that check the tag
-//     long res_array[] = {tag_int_test,bool_test,char_test,addr};
-//     int length = sizeof(res_array) / sizeof(res_array[0]);
-//     for(int i = 0; i < length; i++ ){
-//         printf("%d\n",is_int(res_array[i]));
-//         printf("%d\n",is_ptr(res_array[i]));
-//         printf("%d\n",is_bool(res_array[i]));
-//         printf("%d\n\n",is_char(res_array[i]));
-//     }
-//     Value *double_on_heap = make_value_double(25.2);
-//     printf("%lf\n", double_on_heap->as._double);
-//     printf("Address of value_type: %p\n", double_on_heap);
-
-//     char a[5] = "hello";
-//     char *b = "hello";
-//     char *c = malloc(5);
-//     printf("Size is: %ld\n",strlen(a));
-//     printf("Size is: %ld\n",strlen(b));
-//     printf("%c\n",a[0]);
-//     printf("%c\n",b[3]);
-//     printf("b is: %s\n",b);
-//     strncpy(c,b,5);
-//     printf("c is: %s\n",b);
-//     Value *str_on_heap = make_value_string("a");
-//     printf("STRING ON HEAP TYPE: %d\n",str_on_heap->type);
-//     printf("STRING ON HEAP LENGTH: %d\n",str_on_heap->as.str->length);
-//     printf("STRING ON HEAP CONTENTS: %s\n",str_on_heap->as.str->chars);
-
-//     Value *int_on_heap = make_value_int(4);
-//     Value *int2_on_heap = make_value_int(5);
-//     printf("INT ON HEAP TYPE: %d\n",int_on_heap->type);
-//     printf("INT ON HEAP VAL: %ld\n",untag_int(int_on_heap->as.tagged_type));
-
-//     Value *pair_on_heap = make_value_pair(int_on_heap,int2_on_heap);
-//     printf("PAIR ON HEAP TYPE: %d\n",pair_on_heap->type);
-//     printf("PAIR ON HEAP CAR: %ld\n",untag_int(pair_on_heap->as.pair->car.as.tagged_type));
-//     printf("PAIR ON HEAP CDR: %ld\n",untag_int(pair_on_heap->as.pair->cdr.as.tagged_type));
-
-//         //testing that make_value_list handles nested lists.
-//         Value *first_elt = make_value_int(3);
-//         Value *second_elt = make_value_int(2);
-//         Value *third_elt = make_value_int(1);
-
-//         // arrays get decayed to ptrs, so this is a double ptr.
-//         Value *input_for_list[4] = {first_elt,second_elt,pair_on_heap,third_elt};
-//         printf("First elt type: %d\n", input_for_list[0]->type);
-
-//     Value *lst = make_value_list(input_for_list,4);
-//     struct Pair *cur = lst->as.pair;
-//     while(cur->cdr.type != VAL_EMPTY_LIST){
-
-//         if(cur->car.type == VAL_PAIR) {
-//                 //print the pair
-//                 struct Pair *nested_pair = cur->car.as.pair;
-//                 printf("Printing pair:\n");
-//                 printf("car: %ld\n",untag_int(nested_pair->car.as.tagged_type));
-//                 printf("cdr: %ld\n",untag_int(nested_pair->cdr.as.tagged_type));
-//         }
-
-//         else {
-//                 printf("%ld\n",untag_int(cur->car.as.tagged_type));
-//         }
-//         cur = cur->cdr.as.pair;
-//         if(cur->cdr.type == VAL_EMPTY_LIST){
-//                 printf("%ld\n",untag_int(cur->car.as.tagged_type));
-//         }
-//     }
-//     return 0;
-// }
