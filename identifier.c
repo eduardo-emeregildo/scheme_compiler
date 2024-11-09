@@ -1,11 +1,11 @@
 // gcc -Wall -o identifier identifier.c
 
-//Todo: write some helper functions to help make the args for make_value_list/vector
-// start with the helper for make_value_vector
+// see if i can do the same change that i did to vector and make_value_vector to pairs.
+//Todo0: test make_value_string, then write make_value_symbol. should be the same thing as with string.
+//Todo1: remove the magic numbers in make_tagged_x functions. Make an enum instead
+//Todo2: figure out which functions need to be inline
+//Todo3: start working on the parser so that it emits asm code that calls these functions
 
-//Todo: work on making heap objects. i.e. implement: make_vector,make_function,make_symbol
-//Todo: remove the magic numbers in make_tagged_x functions. Make an enum instead
-// at some point figure out which functions need to be inline
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -62,7 +62,7 @@ struct Str{
 
 struct Vector{
     int size;
-    Value **items;
+    Value *items;
 };
 
 //pass either the 64 bit val or the 64 bit addr(for pointers)
@@ -195,8 +195,8 @@ struct Pair *allocate_pair(Value *car_val,Value *cdr_val)
         return pair_obj; 
 }
 
-//takes in array of vector ptrs that are already allocated to the heap.
-struct Vector *allocate_vector(Value **vec_elts,size_t size)
+//takes in array of vector objects that are already allocated to the heap.
+struct Vector *allocate_vector(Value *vec_elts,size_t size)
 {
         struct Vector *vec_obj = (struct Vector *)malloc(sizeof(struct Vector));
         validate_ptr(vec_obj);
@@ -205,7 +205,7 @@ struct Vector *allocate_vector(Value **vec_elts,size_t size)
         return vec_obj;
 }
 
-//set_ith_value and create_value_ptr_arr are helpers for the params of make_value_list/vector
+//set_ith_value and create_value_ptr_arr are helpers for the params of make_value_list
 
 // given an array of value ptrs and a ptr to a Value obj, set the ith position in array to this ptr
 //Careful if index is beyond size of arra of value ptrs
@@ -222,6 +222,55 @@ Value **create_val_ptr_arr(size_t length)
 
 }
 
+//some experimental setter functions to use less pointers
+Value *make_value_arr(size_t length)
+{
+        Value *val_array = make_tagged_ptr(length);
+        return val_array;
+}
+void set_ith_value_int(Value *val_ptr,long integer,size_t index)
+{
+        val_ptr[index].type = VAL_INT;
+        val_ptr[index].as.tagged_type = make_tagged_int(integer);
+}
+
+void set_ith_value_char(Value *val_ptr,char character,size_t index)
+{
+        val_ptr[index].type = VAL_CHAR;
+        val_ptr[index].as.tagged_type = make_tagged_char(character);
+}
+
+void set_ith_value_bool(Value *val_ptr,bool boolean,size_t index)
+{
+        val_ptr[index].type = VAL_BOOLEAN;
+        val_ptr[index].as.tagged_type = make_tagged_bool(boolean);
+}
+
+void set_ith_value_dbl(Value *val_ptr,double num,size_t index)
+{
+        val_ptr[index].type = VAL_DOUBLE;
+        val_ptr[index].as._double = num;
+}
+
+
+void set_ith_value_str(Value *val_ptr,char *str,size_t index)
+{
+        val_ptr[index].type = VAL_STR;
+        val_ptr[index].as.str = allocate_str(str);
+
+}
+
+void set_ith_value_pair(Value *val_ptr,struct Pair *pair_obj,size_t index)
+{
+        val_ptr[index].type = VAL_PAIR;
+        val_ptr[index].as.pair = pair_obj;
+}
+
+void set_ith_value_vector(Value *val_ptr,struct Vector *vec,size_t index)
+{
+        val_ptr[index].type = VAL_VECTOR;
+        val_ptr[index].as.vector = vec;
+}
 
 // make_value_string,make_value_pair,make_vector,make_function,make_symbol
 // the value ptr given in these functions is the Value ptr that you will write to
@@ -234,13 +283,9 @@ Value *make_value_double(double num)
         return ptr_value_double;
 }
 
-//params a Value * which has already been allocated and a string object
 Value *make_value_string(struct Str *str_obj){
-    // malloc the necessary bytes. set to ptr
-    // create the boxed type: [VAL_STR | ptr to string struct]
-    // make ptr point to the boxed
 
-    Value *ptr_value_string = make_tagged_ptr(1);
+        Value *ptr_value_string = make_tagged_ptr(1);
         ptr_value_string->type = VAL_STR;
         ptr_value_string->as.str = str_obj;
         return ptr_value_string;
@@ -286,19 +331,17 @@ Value *make_value_list(Value **value_obj_array, size_t len)
 }
 
 /*
-takes in an array of value ptrs and creates creates a vector object out of these. 
+takes in an array of value objects and creates a vector object out of these. 
 On the python side, when parsing say #(1 2 3), it will first parse the whole thing
 to figure out the length, then allocate the correct arr of value objects.
 */
-Value *make_value_vector(Value **value_obj_array, size_t len)
+Value *make_value_vector(Value *value_obj_array, size_t len)
 {
-        
         Value *ptr_value_vector = make_tagged_ptr(1); 
         ptr_value_vector->type = VAL_VECTOR;
         struct Vector *vector_obj = allocate_vector(value_obj_array,len);
         ptr_value_vector->as.vector = vector_obj;
         return ptr_value_vector;
-
 }
 
 int main()
@@ -324,21 +367,19 @@ int main()
                         break;
                 }
         }
-
         printf("NOW TESTING VECTORS:\n");
-        Value *vec = make_value_vector(input_for_list,3);
-        printf("%ld\n",untag_int(vec->as.vector->items[0]->as.tagged_type));
-        printf("%ld\n",untag_int(vec->as.vector->items[1]->as.tagged_type));
-        printf("%ld\n",untag_int(vec->as.vector->items[2]->as.tagged_type));
-        printf("Making a vector the way python will do it:\n");
-        // #(1 2 3)
-        Value **input_for_vec = create_val_ptr_arr(3);
-        set_ith_value(input_for_vec,car,0);
-        set_ith_value(input_for_vec,cdr,1);
-        set_ith_value(input_for_vec,third,2);
-        vec = make_value_vector(input_for_vec,3);
-        printf("%ld\n",untag_int(vec->as.vector->items[0]->as.tagged_type));
-        printf("%ld\n",untag_int(vec->as.vector->items[1]->as.tagged_type));
-        printf("%ld\n",untag_int(vec->as.vector->items[2]->as.tagged_type));
+
+        /*
+        this is how calls to this file in python will look when building 
+        an array of vec objects
+        */
+        Value *input_for_vec = make_value_arr(3);
+        set_ith_value_int(input_for_vec,1,0);
+        set_ith_value_int(input_for_vec,2,1);
+        set_ith_value_int(input_for_vec,3,2);
+        Value *vec = make_value_vector(input_for_vec,3);
+        printf("%ld\n", untag_int(vec->as.vector->items[0].as.tagged_type));
+        printf("%ld\n", untag_int(vec->as.vector->items[1].as.tagged_type));
+        printf("%ld\n", untag_int(vec->as.vector->items[2].as.tagged_type));
         return 0;
 }
