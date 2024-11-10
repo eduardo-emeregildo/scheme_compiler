@@ -1,7 +1,5 @@
 // gcc -Wall -o identifier identifier.c
 
-// see if i can do the same change that i did to vector and make_value_vector to pairs.
-//Todo0: test make_value_string, then write make_value_symbol. should be the same thing as with string.
 //Todo1: remove the magic numbers in make_tagged_x functions. Make an enum instead
 //Todo2: figure out which functions need to be inline
 //Todo3: start working on the parser so that it emits asm code that calls these functions
@@ -40,7 +38,6 @@ typedef struct{
         struct Pair *pair;
         struct Vector *vector;
         void *function;
-        void * symbol;
         long tagged_type; // only exists if a elt in lst is int,char,bool
     } as;
 } Value;
@@ -113,7 +110,7 @@ long untag_int(long num){
 Value *make_tagged_ptr(size_t num_value_objects){
     Value *p = (Value *)malloc(sizeof(Value)*num_value_objects);
     if (p == NULL){
-        abort_message("Ran out of memory or tried to malloc with negative bytes.");
+        abort_message("Ran out of memory or tried to allocate negative bytes.");
     }
     return p;
 }
@@ -145,7 +142,7 @@ void validate_ptr(void *ptr)
 /*
 //////////////////////////////////////////// Heap Objs Below ////////////////////////////////////////////
 
-these next functions should only be used for list/vector elements.
+these next 3 functions should only be used for list/vector elements.
 declaring an int,char, or bool that isnt in a vector/list should be done with the
 functions above
 */
@@ -174,15 +171,18 @@ Value *make_value_bool(bool boolean)
         return ptr_value_bool;
 }
 
-//given a character arr allocated on the heap, return ptr to Str object
+/*
+given a character arr, return ptr to Str object. symbol types will also
+use this object
+*/
 struct Str *allocate_str(char *str)
 {
-
         struct Str *str_obj = (struct Str *)malloc(sizeof(struct Str));
         validate_ptr(str_obj);
         size_t length = strlen(str);
+        char *heap_str = (char *)malloc(length); // not mallocing \0
         str_obj->length = length;
-        str_obj->chars = str;
+        str_obj->chars = strncpy(heap_str,str,length);
         return str_obj;
 }
 
@@ -206,6 +206,7 @@ struct Vector *allocate_vector(Value *vec_elts,size_t size)
 }
 
 //set_ith_value and create_value_ptr_arr are helpers for the params of make_value_list
+// these wont be called in asm.
 
 // given an array of value ptrs and a ptr to a Value obj, set the ith position in array to this ptr
 //Careful if index is beyond size of arra of value ptrs
@@ -222,12 +223,7 @@ Value **create_val_ptr_arr(size_t length)
 
 }
 
-//some experimental setter functions to use less pointers
-Value *make_value_arr(size_t length)
-{
-        Value *val_array = make_tagged_ptr(length);
-        return val_array;
-}
+//some helpers to help with creation of vec/lists
 void set_ith_value_int(Value *val_ptr,long integer,size_t index)
 {
         val_ptr[index].type = VAL_INT;
@@ -272,6 +268,20 @@ void set_ith_value_vector(Value *val_ptr,struct Vector *vec,size_t index)
         val_ptr[index].as.vector = vec;
 }
 
+void set_car(struct Pair *pair,Value *car_obj)
+{
+        pair->car = car_obj;
+}
+
+void set_cdr(struct Pair *pair,Value *cdr_obj)
+{
+        pair->cdr = cdr_obj;
+}
+
+struct Pair *make_empty_list()
+{
+        return allocate_pair(NULL,NULL);
+}
 // make_value_string,make_value_pair,make_vector,make_function,make_symbol
 // the value ptr given in these functions is the Value ptr that you will write to
 
@@ -283,15 +293,21 @@ Value *make_value_double(double num)
         return ptr_value_double;
 }
 
-Value *make_value_string(struct Str *str_obj){
-
+Value *make_value_string(struct Str *str_obj)
+{
         Value *ptr_value_string = make_tagged_ptr(1);
         ptr_value_string->type = VAL_STR;
         ptr_value_string->as.str = str_obj;
         return ptr_value_string;
 }
 
-
+Value *make_value_symbol(struct Str *str_obj)
+{
+        Value *ptr_value_symbol = make_tagged_ptr(1);
+        ptr_value_symbol->type = VAL_SYMBOL;
+        ptr_value_symbol->as.str = str_obj;
+        return ptr_value_symbol;
+}
 // takes in  pair obj ptr and returns a value obj of type pair
 Value *make_value_pair(struct Pair *pair_obj)
 {
@@ -307,10 +323,10 @@ returns a Value obj with type pair, as a pair.
 the empty list is denoted by car = NULL. The end of list is denoted by 
 cdr = NULL
 
-ex: for the list '(1 2 3),
-for each element, generate a value obj for this elt. the ptr will be be in rax.
-then this gets put into an array of value ptrs. After each elt in the list is
-processed, pass that array of value ptrs to this function to create the list. 
+this function will be used for testing, the assembly program will basically
+do what this function does but with manual calls. That way theres no need to deal
+with deallocating the array of value ptrs, 
+which is useless after the list is formed
 */
 Value *make_value_list(Value **value_obj_array, size_t len)
 {       
@@ -367,13 +383,39 @@ int main()
                         break;
                 }
         }
+
+        printf("BULDING THE LIST '(4 5 6) THE WAY ASM WILL DO IT:\n");
+        struct Pair *head = make_empty_list();
+        struct Pair *cur = head;
+
+        set_car(cur,make_value_int(4));
+        set_cdr(cur,make_value_pair(make_empty_list()));
+        cur = cur->cdr->as.pair;
+
+        set_car(cur,make_value_int(5));
+        set_cdr(cur,make_value_pair(make_empty_list()));
+        cur = cur->cdr->as.pair;
+
+        set_car(cur,make_value_int(6));
+        //last elt of list so dont touch the cdr.
+        Value *asm_pair = make_value_pair(head);
+
+        cur_pair = asm_pair->as.pair;
+        while (cur_pair->cdr != NULL) {
+                printf("%ld\n",untag_int(cur_pair->car->as.tagged_type));
+                cur_pair = cur_pair->cdr->as.pair;
+                if(cur_pair->cdr == NULL) {
+                        printf("%ld\n",untag_int(cur_pair->car->as.tagged_type));
+                        break;
+                }
+        }
         printf("NOW TESTING VECTORS:\n");
 
         /*
         this is how calls to this file in python will look when building 
         an array of vec objects
         */
-        Value *input_for_vec = make_value_arr(3);
+        Value *input_for_vec = make_tagged_ptr(3);
         set_ith_value_int(input_for_vec,1,0);
         set_ith_value_int(input_for_vec,2,1);
         set_ith_value_int(input_for_vec,3,2);
@@ -381,5 +423,10 @@ int main()
         printf("%ld\n", untag_int(vec->as.vector->items[0].as.tagged_type));
         printf("%ld\n", untag_int(vec->as.vector->items[1].as.tagged_type));
         printf("%ld\n", untag_int(vec->as.vector->items[2].as.tagged_type));
+        printf("NOW TESTING STRINGS:\n");
+        struct Str *str_obj = allocate_str("hello");
+        Value *value_obj_str = make_value_string(str_obj);
+        printf("%d\n",value_obj_str->type);
+        printf("%s\n",value_obj_str->as.str->chars);
         return 0;
 }
