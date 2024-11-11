@@ -1,6 +1,9 @@
 // gcc -Wall -o identifier identifier.c
 
-//Todo1: remove the magic numbers in make_tagged_x functions. Make an enum instead
+//(Done)Todo1: remove the magic numbers in make_tagged_x functions.
+//do one last revision on pairs. Try to make the pair struct be two value objects instead of ptrs.
+//im just concerned that performance will be much worse if pair struct has two pointers.
+
 //Todo2: figure out which functions need to be inline
 //Todo3: start working on the parser so that it emits asm code that calls these functions
 
@@ -15,6 +18,13 @@
 // for signed 63 bit int: [-2^62, 2^62 - 1]
 const long MAX_SCHEME_INT = 0x3fffffffffffffff; 
 const long MIN_SCHEME_INT = 0xc000000000000000;
+
+const unsigned long INT_MASK = 0X1;
+const unsigned long BOOL_MASK = 0x2;
+const unsigned long CHAR_MASK = 0x4;
+const unsigned long TAGGED_TYPE_MASK = 0X7;
+const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
+
 typedef enum{
    VAL_CHAR,
    VAL_STR,
@@ -64,20 +74,20 @@ struct Vector{
 
 //pass either the 64 bit val or the 64 bit addr(for pointers)
 bool is_int(long item){
-    return (item & 0x1) == 1;
+    return (item & INT_MASK) == 1;
 }
 
 bool is_ptr(long item){
-    return (item & 0x7) == 0;
+    return (item & TAGGED_TYPE_MASK) == 0;
 }
 
 bool is_bool(long item){
-    return (item & 0x7) == 2;
+    return (item & TAGGED_TYPE_MASK) == 2;
 }
 
 // a tagged char is stored in 8 bytes so just pass it as a long
 bool is_char(long item){
-    return (item & 0x7) == 4;
+    return (item & TAGGED_TYPE_MASK) == 4;
 }
 
 void abort_message(char *error_message){
@@ -100,10 +110,10 @@ long make_tagged_int(long num){
 long untag_int(long num){
     //checks msb to see if number is negative
     //can do this with the bit mask 0x8000000000000000
-    if((num & 0x8000000000000000) == 0){
+    if((num & IS_NEGATIVE_MASK) == 0){
         return (num >> 1);
     } else{
-        return (num >> 1) | 0x8000000000000000;
+        return (num >> 1) | IS_NEGATIVE_MASK;
     }
 }
 
@@ -117,12 +127,12 @@ Value *make_tagged_ptr(size_t num_value_objects){
 
 long make_tagged_bool(bool boolean)
 {
-        return ((long)boolean << 3) | 0x2;
+        return ((long)boolean << 3) | BOOL_MASK;
 }
 
 long make_tagged_char(char character)
 {
-        return ((long)character << 3) | 0x4;
+        return ((long)character << 3) | CHAR_MASK;
 }
 
 // removes tag for bool,char ONLY. int is handled differently, and we leave ptrs alone
