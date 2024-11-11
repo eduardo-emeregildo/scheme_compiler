@@ -1,9 +1,4 @@
 // gcc -Wall -o identifier identifier.c
-
-//(Done)Todo1: remove the magic numbers in make_tagged_x functions.
-//do one last revision on pairs. Try to make the pair struct be two value objects instead of ptrs.
-//im just concerned that performance will be much worse if pair struct has two pointers.
-
 //Todo2: figure out which functions need to be inline
 //Todo3: start working on the parser so that it emits asm code that calls these functions
 
@@ -25,74 +20,79 @@ const unsigned long CHAR_MASK = 0x4;
 const unsigned long TAGGED_TYPE_MASK = 0X7;
 const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
 
-typedef enum{
-   VAL_CHAR,
-   VAL_STR,
-   VAL_INT,
-   VAL_DOUBLE,
-   VAL_BOOLEAN,
-   VAL_PAIR,
-   VAL_VECTOR,
-   VAL_FUNCTION,
-   VAL_SYMBOL,
-   VAL_EMPTY_LIST
+typedef enum {
+        VAL_CHAR,
+        VAL_STR,
+        VAL_INT,
+        VAL_DOUBLE,
+        VAL_BOOLEAN,
+        VAL_PAIR,
+        VAL_VECTOR,
+        VAL_FUNCTION,
+        VAL_SYMBOL,
+        VAL_EMPTY_LIST
 
 } ValueType;
 
 // this is for boxed types on the heap
-typedef struct{
-    ValueType type;
-    union{
-        struct Str *str;
-        double _double;
-        struct Pair *pair;
-        struct Vector *vector;
-        void *function;
-        long tagged_type; // only exists if a elt in lst is int,char,bool
-    } as;
+typedef struct {
+        ValueType type;
+        union{
+                struct Str *str;
+                double _double;
+                struct Pair *pair;
+                struct Vector *vector;
+                void *function;
+                long tagged_type; // only exists if a elt in lst is int,char,bool
+        } as;
 } Value;
 
 
-// car = NULL denotes the empty list
-// cdr = NULL indicates the end of a list
+// car.type = VAL_EMPTY_LIST denotes the empty list
+// cdr.type = VAL_EMPTY_LIST indicates the end of a list
 // empty list would only be used if one of the list elements is an empty list
 //i.e. '(1 2 () 3)
-struct Pair{
-    Value *car;
-    Value *cdr;
+struct Pair {
+        Value car;
+        Value cdr;
 };
 
-struct Str{
-    int length;
-    char* chars; 
+struct Str {
+        int length;
+        char* chars; 
 };
 
-struct Vector{
-    int size;
-    Value *items;
+struct Vector {
+        int size;
+        Value *items;
 };
 
 //pass either the 64 bit val or the 64 bit addr(for pointers)
-bool is_int(long item){
-    return (item & INT_MASK) == 1;
+bool is_int(long item) 
+{
+        return (item & INT_MASK) == 1;
 }
 
-bool is_ptr(long item){
-    return (item & TAGGED_TYPE_MASK) == 0;
+bool is_ptr(long item)
+{
+        return (item & TAGGED_TYPE_MASK) == 0;
 }
 
-bool is_bool(long item){
-    return (item & TAGGED_TYPE_MASK) == 2;
+bool is_bool(long item)
+{
+        return (item & TAGGED_TYPE_MASK) == 2;
 }
 
 // a tagged char is stored in 8 bytes so just pass it as a long
-bool is_char(long item){
-    return (item & TAGGED_TYPE_MASK) == 4;
+bool is_char(long item)
+{
+        return (item & TAGGED_TYPE_MASK) == 4;
 }
 
-void abort_message(char *error_message){
-    printf("Error. %s",error_message);
-    exit(EXIT_FAILURE);
+void abort_message(char *error_message)
+{
+        printf("Error. %s",error_message);
+        exit(EXIT_FAILURE);
 }
 
 void check_int_range(long num)
@@ -102,19 +102,19 @@ void check_int_range(long num)
         }
 }
 
-long make_tagged_int(long num){
-    check_int_range(num);
-    return (num << 1) + 1;
+long make_tagged_int(long num)
+{
+        check_int_range(num);
+        return (num << 1) + 1;
 }
 
-long untag_int(long num){
-    //checks msb to see if number is negative
-    //can do this with the bit mask 0x8000000000000000
-    if((num & IS_NEGATIVE_MASK) == 0){
-        return (num >> 1);
-    } else{
-        return (num >> 1) | IS_NEGATIVE_MASK;
-    }
+long untag_int(long num)
+{
+        if((num & IS_NEGATIVE_MASK) == 0){
+                return (num >> 1);
+        } else {
+                return (num >> 1) | IS_NEGATIVE_MASK;
+        }
 }
 
 Value *make_tagged_ptr(size_t num_value_objects){
@@ -196,12 +196,13 @@ struct Str *allocate_str(char *str)
         return str_obj;
 }
 
-struct Pair *allocate_pair(Value *car_val,Value *cdr_val) 
+// allocates empty pair
+struct Pair *allocate_pair() 
 {
         struct Pair *pair_obj = (struct Pair *)malloc(sizeof(struct Pair));
         validate_ptr(pair_obj);
-        pair_obj->car = car_val;
-        pair_obj->cdr = cdr_val;
+        pair_obj->car.type = VAL_EMPTY_LIST;
+        pair_obj->cdr.type = VAL_EMPTY_LIST;
         return pair_obj; 
 }
 
@@ -215,25 +216,11 @@ struct Vector *allocate_vector(Value *vec_elts,size_t size)
         return vec_obj;
 }
 
-//set_ith_value and create_value_ptr_arr are helpers for the params of make_value_list
-// these wont be called in asm.
-
-// given an array of value ptrs and a ptr to a Value obj, set the ith position in array to this ptr
-//Careful if index is beyond size of arra of value ptrs
-void set_ith_value(Value **value_obj_array,Value *elt,size_t index)
-{
-        value_obj_array[index] = elt;
-}
-
-Value **create_val_ptr_arr(size_t length)
-{
-        Value **val_ptr_arr = (Value **)malloc(sizeof(Value **));
-        *val_ptr_arr = (Value *)malloc(sizeof(Value *) * length);
-        return val_ptr_arr;
-
-}
-
-//some helpers to help with creation of vec/lists
+/*
+some helpers to help with creation of vec/lists
+set_ith_value_x setters can be used to set a pair struct's car/cdr, if you
+call them with index = 0
+*/
 void set_ith_value_int(Value *val_ptr,long integer,size_t index)
 {
         val_ptr[index].type = VAL_INT;
@@ -258,7 +245,6 @@ void set_ith_value_dbl(Value *val_ptr,double num,size_t index)
         val_ptr[index].as._double = num;
 }
 
-
 void set_ith_value_str(Value *val_ptr,char *str,size_t index)
 {
         val_ptr[index].type = VAL_STR;
@@ -278,22 +264,15 @@ void set_ith_value_vector(Value *val_ptr,struct Vector *vec,size_t index)
         val_ptr[index].as.vector = vec;
 }
 
-void set_car(struct Pair *pair,Value *car_obj)
+Value *get_car_ptr(struct Pair *pair_obj)
 {
-        pair->car = car_obj;
+        return &pair_obj->car;
 }
 
-void set_cdr(struct Pair *pair,Value *cdr_obj)
+Value *get_cdr_ptr(struct Pair *pair_obj)
 {
-        pair->cdr = cdr_obj;
+        return &pair_obj->cdr;
 }
-
-struct Pair *make_empty_list()
-{
-        return allocate_pair(NULL,NULL);
-}
-// make_value_string,make_value_pair,make_vector,make_function,make_symbol
-// the value ptr given in these functions is the Value ptr that you will write to
 
 Value *make_value_double(double num)
 {
@@ -318,7 +297,7 @@ Value *make_value_symbol(struct Str *str_obj)
         ptr_value_symbol->as.str = str_obj;
         return ptr_value_symbol;
 }
-// takes in  pair obj ptr and returns a value obj of type pair
+
 Value *make_value_pair(struct Pair *pair_obj)
 {
         Value *ptr_value_pair = make_tagged_ptr(1);
@@ -328,28 +307,29 @@ Value *make_value_pair(struct Pair *pair_obj)
 }
 
 /* 
-input is an array of value ptrs(that are already alloced on the heap).
+input is an array of value objects(that are already alloced on the heap).
 returns a Value obj with type pair, as a pair.
-the empty list is denoted by car = NULL. The end of list is denoted by 
-cdr = NULL
+the empty list is denoted by car.type = VAL_EMPTY_LIST. 
+The end of list is denoted by cdr = VAL_EMPTY_LIST
 
 this function will be used for testing, the assembly program will basically
 do what this function does but with manual calls. That way theres no need to deal
-with deallocating the array of value ptrs, 
+with deallocating the array of value objects, 
 which is useless after the list is formed
 */
-Value *make_value_list(Value **value_obj_array, size_t len)
+Value *make_value_list(Value *value_obj_array, size_t len)
 {       
         Value *ptr_value_list = make_tagged_ptr(1);   
         ptr_value_list->type = VAL_PAIR;
-        struct Pair *head = allocate_pair(NULL,NULL);
+        struct Pair *head = allocate_pair();
         struct Pair *cur_pair = head;
         size_t last_item_index = len - 1; 
         for(size_t i = 0; i < len; i++) {
                 cur_pair->car = value_obj_array[i];
                 if((i != last_item_index)) {
-                        cur_pair->cdr = make_value_pair(allocate_pair(NULL,NULL));
-                        cur_pair = cur_pair->cdr->as.pair;
+                        cur_pair->cdr.type = VAL_PAIR;
+                        cur_pair->cdr.as.pair = allocate_pair();
+                        cur_pair = cur_pair->cdr.as.pair;
                 }        
         }
         ptr_value_list->as.pair = head;
@@ -372,63 +352,61 @@ Value *make_value_vector(Value *value_obj_array, size_t len)
 
 int main()
 {
-        Value *car = make_value_int(1);
-        Value *cdr = make_value_int(2);
-        printf("%d\n",car->type);
-        printf("%p\n",car);
-        printf("NOW TESTING THE PAIR '(1 . 2)\n");
-        struct Pair *pair = allocate_pair(car,cdr);
-        printf("CAR: %ld\n",untag_int(pair->car->as.tagged_type));
-        printf("CDR: %ld\n",untag_int(pair->cdr->as.tagged_type));
-        printf("NOW TESTING LISTS:\n");
-        Value *third = make_value_int(3);
-        Value *input_for_list[3] = {car,cdr,third};
+        printf("TESTING THE PAIR '(1 . 2)\n");
+        struct Pair *pair_obj = allocate_pair();
+        set_ith_value_int(get_car_ptr(pair_obj),1,0);
+        set_ith_value_int(get_cdr_ptr(pair_obj),2,0);
+        printf("CAR: %ld\n",untag_int(pair_obj->car.as.tagged_type));
+        printf("CDR: %ld\n",untag_int(pair_obj->cdr.as.tagged_type));
+        printf("TESTING MAKE_VALUE_LIST FUNCTION '(3 4 5):\n");
+        Value *input_for_list = make_tagged_ptr(3);
+        set_ith_value_int(input_for_list,3,0);
+        set_ith_value_int(input_for_list,4,1);
+        set_ith_value_int(input_for_list,5,2);
         Value *lst = make_value_list(input_for_list,3);
-        struct Pair *cur_pair = lst->as.pair;
-        while (cur_pair->cdr != NULL) {
-                printf("%ld\n",untag_int(cur_pair->car->as.tagged_type));
-                cur_pair = cur_pair->cdr->as.pair;
-                if(cur_pair->cdr == NULL) {
-                        printf("%ld\n",untag_int(cur_pair->car->as.tagged_type));
+        struct Pair *lst_cur_pair = lst->as.pair;
+        while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+                printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+                lst_cur_pair = lst_cur_pair->cdr.as.pair;
+                if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+                        printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
                         break;
                 }
         }
 
-        printf("BULDING THE LIST '(4 5 6) THE WAY ASM WILL DO IT:\n");
-        struct Pair *head = make_empty_list();
-        struct Pair *cur = head;
+        printf("BUILDING THE LIST '(6 7 8) THE WAY ASM WOULD DO IT:\n");
+        struct Pair *new_pair_obj = allocate_pair();
+        struct Pair *cur = new_pair_obj;
 
-        set_car(cur,make_value_int(4));
-        set_cdr(cur,make_value_pair(make_empty_list()));
-        cur = cur->cdr->as.pair;
+        set_ith_value_int(get_car_ptr(cur),6,0);
+        set_ith_value_pair(get_cdr_ptr(cur),allocate_pair(),0);
+        cur = cur->cdr.as.pair;
 
-        set_car(cur,make_value_int(5));
-        set_cdr(cur,make_value_pair(make_empty_list()));
-        cur = cur->cdr->as.pair;
+        set_ith_value_int(get_car_ptr(cur),7,0);
+        set_ith_value_pair(get_cdr_ptr(cur),allocate_pair(),0);
+        cur = cur->cdr.as.pair;
 
-        set_car(cur,make_value_int(6));
-        //last elt of list so dont touch the cdr.
-        Value *asm_pair = make_value_pair(head);
+        set_ith_value_int(get_car_ptr(cur),8,0);
 
-        cur_pair = asm_pair->as.pair;
-        while (cur_pair->cdr != NULL) {
-                printf("%ld\n",untag_int(cur_pair->car->as.tagged_type));
-                cur_pair = cur_pair->cdr->as.pair;
-                if(cur_pair->cdr == NULL) {
-                        printf("%ld\n",untag_int(cur_pair->car->as.tagged_type));
+        Value *asm_pair = make_value_pair(new_pair_obj);
+        lst_cur_pair = asm_pair->as.pair;
+        while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+                printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+                lst_cur_pair = lst_cur_pair->cdr.as.pair;
+                if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+                        printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
                         break;
                 }
         }
         printf("NOW TESTING VECTORS:\n");
-
         /*
         this is how calls to this file in python will look when building 
         an array of vec objects
         */
         Value *input_for_vec = make_tagged_ptr(3);
-        set_ith_value_int(input_for_vec,1,0);
-        set_ith_value_int(input_for_vec,2,1);
-        set_ith_value_int(input_for_vec,3,2);
+        set_ith_value_int(input_for_vec,3,0);
+        set_ith_value_int(input_for_vec,4,1);
+        set_ith_value_int(input_for_vec,5,2);
         Value *vec = make_value_vector(input_for_vec,3);
         printf("%ld\n", untag_int(vec->as.vector->items[0].as.tagged_type));
         printf("%ld\n", untag_int(vec->as.vector->items[1].as.tagged_type));
