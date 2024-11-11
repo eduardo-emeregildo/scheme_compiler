@@ -1,14 +1,8 @@
-// gcc -Wall -o identifier identifier.c
-//Todo2: figure out which functions need to be inline
-//Todo3: start working on the parser so that it emits asm code that calls these functions
+// gcc -Wall -c -o identifier.o identifier.c
+//Todo: start working on the parser so that it emits asm code that calls these functions
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <stdbool.h>
-#include <math.h>
-#include <string.h>
+
+#include "identifier.h"
 
 // for signed 63 bit int: [-2^62, 2^62 - 1]
 const long MAX_SCHEME_INT = 0x3fffffffffffffff; 
@@ -19,54 +13,6 @@ const unsigned long BOOL_MASK = 0x2;
 const unsigned long CHAR_MASK = 0x4;
 const unsigned long TAGGED_TYPE_MASK = 0X7;
 const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
-
-typedef enum {
-        VAL_CHAR,
-        VAL_STR,
-        VAL_INT,
-        VAL_DOUBLE,
-        VAL_BOOLEAN,
-        VAL_PAIR,
-        VAL_VECTOR,
-        VAL_FUNCTION,
-        VAL_SYMBOL,
-        VAL_EMPTY_LIST
-
-} ValueType;
-
-// this is for boxed types on the heap
-typedef struct {
-        ValueType type;
-        union{
-                struct Str *str;
-                double _double;
-                struct Pair *pair;
-                struct Vector *vector;
-                void *function;
-                long tagged_type; // only exists if a elt in lst is int,char,bool
-        } as;
-} Value;
-
-
-// car.type = VAL_EMPTY_LIST denotes the empty list
-// cdr.type = VAL_EMPTY_LIST indicates the end of a list
-// empty list would only be used if one of the list elements is an empty list
-//i.e. '(1 2 () 3)
-struct Pair {
-        Value car;
-        Value cdr;
-};
-
-struct Str {
-        int length;
-        char* chars; 
-};
-
-struct Vector {
-        int size;
-        Value *items;
-};
-
 //pass either the 64 bit val or the 64 bit addr(for pointers)
 bool is_int(long item) 
 {
@@ -117,12 +63,13 @@ long untag_int(long num)
         }
 }
 
-Value *make_tagged_ptr(size_t num_value_objects){
-    Value *p = (Value *)malloc(sizeof(Value)*num_value_objects);
-    if (p == NULL){
-        abort_message("Ran out of memory or tried to allocate negative bytes.");
-    }
-    return p;
+Value *make_tagged_ptr(size_t num_value_objects)
+{
+        Value *p = (Value *)malloc(sizeof(Value)*num_value_objects);
+        if (p == NULL) {
+                abort_message("Ran out of memory or tried to allocate negative bytes.");
+        }
+        return p;
 }
 
 long make_tagged_bool(bool boolean)
@@ -190,9 +137,9 @@ struct Str *allocate_str(char *str)
         struct Str *str_obj = (struct Str *)malloc(sizeof(struct Str));
         validate_ptr(str_obj);
         size_t length = strlen(str);
-        char *heap_str = (char *)malloc(length); // not mallocing \0
+        char *heap_str = (char *)malloc(length + 1);
         str_obj->length = length;
-        str_obj->chars = strncpy(heap_str,str,length);
+        str_obj->chars = strncpy(heap_str,str,length + 1);
         return str_obj;
 }
 
@@ -248,6 +195,13 @@ void set_ith_value_dbl(Value *val_ptr,double num,size_t index)
 void set_ith_value_str(Value *val_ptr,char *str,size_t index)
 {
         val_ptr[index].type = VAL_STR;
+        val_ptr[index].as.str = allocate_str(str);
+
+}
+
+void set_ith_value_symbol(Value *val_ptr,char *str,size_t index)
+{
+        val_ptr[index].type = VAL_SYMBOL;
         val_ptr[index].as.str = allocate_str(str);
 
 }
@@ -350,71 +304,71 @@ Value *make_value_vector(Value *value_obj_array, size_t len)
         return ptr_value_vector;
 }
 
-int main()
-{
-        printf("TESTING THE PAIR '(1 . 2)\n");
-        struct Pair *pair_obj = allocate_pair();
-        set_ith_value_int(get_car_ptr(pair_obj),1,0);
-        set_ith_value_int(get_cdr_ptr(pair_obj),2,0);
-        printf("CAR: %ld\n",untag_int(pair_obj->car.as.tagged_type));
-        printf("CDR: %ld\n",untag_int(pair_obj->cdr.as.tagged_type));
-        printf("TESTING MAKE_VALUE_LIST FUNCTION '(3 4 5):\n");
-        Value *input_for_list = make_tagged_ptr(3);
-        set_ith_value_int(input_for_list,3,0);
-        set_ith_value_int(input_for_list,4,1);
-        set_ith_value_int(input_for_list,5,2);
-        Value *lst = make_value_list(input_for_list,3);
-        struct Pair *lst_cur_pair = lst->as.pair;
-        while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
-                printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
-                lst_cur_pair = lst_cur_pair->cdr.as.pair;
-                if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
-                        printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
-                        break;
-                }
-        }
+// int main()
+// {
+//         printf("TESTING THE PAIR '(1 . 2)\n");
+//         struct Pair *pair_obj = allocate_pair();
+//         set_ith_value_int(get_car_ptr(pair_obj),1,0);
+//         set_ith_value_int(get_cdr_ptr(pair_obj),2,0);
+//         printf("CAR: %ld\n",untag_int(pair_obj->car.as.tagged_type));
+//         printf("CDR: %ld\n",untag_int(pair_obj->cdr.as.tagged_type));
+//         printf("TESTING MAKE_VALUE_LIST FUNCTION '(3 4 5):\n");
+//         Value *input_for_list = make_tagged_ptr(3);
+//         set_ith_value_int(input_for_list,3,0);
+//         set_ith_value_int(input_for_list,4,1);
+//         set_ith_value_int(input_for_list,5,2);
+//         Value *lst = make_value_list(input_for_list,3);
+//         struct Pair *lst_cur_pair = lst->as.pair;
+//         while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+//                 printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+//                 lst_cur_pair = lst_cur_pair->cdr.as.pair;
+//                 if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+//                         printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+//                         break;
+//                 }
+//         }
 
-        printf("BUILDING THE LIST '(6 7 8) THE WAY ASM WOULD DO IT:\n");
-        struct Pair *new_pair_obj = allocate_pair();
-        struct Pair *cur = new_pair_obj;
+//         printf("BUILDING THE LIST '(6 7 8) THE WAY ASM WOULD DO IT:\n");
+//         struct Pair *new_pair_obj = allocate_pair();
+//         struct Pair *cur = new_pair_obj;
 
-        set_ith_value_int(get_car_ptr(cur),6,0);
-        set_ith_value_pair(get_cdr_ptr(cur),allocate_pair(),0);
-        cur = cur->cdr.as.pair;
+//         set_ith_value_int(get_car_ptr(cur),6,0);
+//         set_ith_value_pair(get_cdr_ptr(cur),allocate_pair(),0);
+//         cur = cur->cdr.as.pair;
 
-        set_ith_value_int(get_car_ptr(cur),7,0);
-        set_ith_value_pair(get_cdr_ptr(cur),allocate_pair(),0);
-        cur = cur->cdr.as.pair;
+//         set_ith_value_int(get_car_ptr(cur),7,0);
+//         set_ith_value_pair(get_cdr_ptr(cur),allocate_pair(),0);
+//         cur = cur->cdr.as.pair;
 
-        set_ith_value_int(get_car_ptr(cur),8,0);
+//         set_ith_value_int(get_car_ptr(cur),8,0);
 
-        Value *asm_pair = make_value_pair(new_pair_obj);
-        lst_cur_pair = asm_pair->as.pair;
-        while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
-                printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
-                lst_cur_pair = lst_cur_pair->cdr.as.pair;
-                if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
-                        printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
-                        break;
-                }
-        }
-        printf("NOW TESTING VECTORS:\n");
-        /*
-        this is how calls to this file in python will look when building 
-        an array of vec objects
-        */
-        Value *input_for_vec = make_tagged_ptr(3);
-        set_ith_value_int(input_for_vec,3,0);
-        set_ith_value_int(input_for_vec,4,1);
-        set_ith_value_int(input_for_vec,5,2);
-        Value *vec = make_value_vector(input_for_vec,3);
-        printf("%ld\n", untag_int(vec->as.vector->items[0].as.tagged_type));
-        printf("%ld\n", untag_int(vec->as.vector->items[1].as.tagged_type));
-        printf("%ld\n", untag_int(vec->as.vector->items[2].as.tagged_type));
-        printf("NOW TESTING STRINGS:\n");
-        struct Str *str_obj = allocate_str("hello");
-        Value *value_obj_str = make_value_string(str_obj);
-        printf("%d\n",value_obj_str->type);
-        printf("%s\n",value_obj_str->as.str->chars);
-        return 0;
-}
+//         Value *asm_pair = make_value_pair(new_pair_obj);
+//         lst_cur_pair = asm_pair->as.pair;
+//         while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+//                 printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+//                 lst_cur_pair = lst_cur_pair->cdr.as.pair;
+//                 if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+//                         printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+//                         break;
+//                 }
+//         }
+//         printf("NOW TESTING VECTORS:\n");
+//         /*
+//         this is how calls to this file in python will look when building 
+//         an array of vec objects
+//         */
+//         Value *input_for_vec = make_tagged_ptr(3);
+//         set_ith_value_int(input_for_vec,3,0);
+//         set_ith_value_int(input_for_vec,4,1);
+//         set_ith_value_int(input_for_vec,5,2);
+//         Value *vec = make_value_vector(input_for_vec,3);
+//         printf("%ld\n", untag_int(vec->as.vector->items[0].as.tagged_type));
+//         printf("%ld\n", untag_int(vec->as.vector->items[1].as.tagged_type));
+//         printf("%ld\n", untag_int(vec->as.vector->items[2].as.tagged_type));
+//         printf("NOW TESTING STRINGS:\n");
+//         struct Str *str_obj = allocate_str("hello");
+//         Value *value_obj_str = make_value_string(str_obj);
+//         printf("%d\n",value_obj_str->type);
+//         printf("%s\n",value_obj_str->as.str->chars);
+//         return 0;
+// }
