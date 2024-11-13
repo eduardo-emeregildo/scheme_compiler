@@ -5,8 +5,6 @@ from environment import *
 from scheme_list import *
 from function import *
 #did strings
-#Todo: work on a function that given an Identifier object,emits the correct asm
-#to create what the object represents. the result will be in rax
 # then use this method for the constants so the code's cleaner,
 # then work on quote expression 
 #Todo: start using the runtime to emit. First start with just constants(aka the expression 1,#f,5.3, then move on to vec/list)
@@ -110,43 +108,28 @@ class Parser:
             print("EXPRESSION-NUMBER")
             if isinstance(self.cur_token.text,int):
                 self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
-                self.emitter.emit_extern("make_tagged_int")
-                self.emitter.emit_main_section(f"\tmov rdi, {self.last_exp_res.value}\
-                \n\tcall make_tagged_int")
+                self.emitter.emit_identifier(self.last_exp_res)
             else:
                 self.set_last_exp_res(IdentifierType.FLOAT,str(self.cur_token.text))
-                self.emitter.emit_extern("make_value_double")
-                self.emitter.emit_main_section(f"\tmov rax, __?float64?__("
-                f"{self.last_exp_res.value})\n\tmovq xmm0, rax\n\t"
-                f"call make_value_double")
+                self.emitter.emit_identifier(self.last_exp_res)
             self.next_token()
         
         elif self.check_token(TokenType.CHAR):
             print("EXPRESSION-CHAR")
             self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
-            self.emitter.emit_extern("make_tagged_char")
-            self.emitter.emit_main_section(
-            f"\tmov rdi, '{self.last_exp_res.value}'\n\tcall make_tagged_char")
+            self.emitter.emit_identifier(self.last_exp_res)
             self.next_token()
             
         elif self.check_token(TokenType.BOOLEAN):
             print("EXPRESSION-BOOLEAN")
             self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
-            self.emitter.emit_extern("make_tagged_bool")
-            self.emitter.emit_main_section(
-            f"\tmov rdi, {'0x1' if self.last_exp_res.value == '#t' else '0x0'}"
-            f"\n\tcall make_tagged_bool")
+            self.emitter.emit_identifier(self.last_exp_res)
             self.next_token()
 
         elif self.check_token(TokenType.STRING):
             print("EXPRESSION-STRING")
             self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
-            self.emitter.emit_extern("allocate_str")
-            self.emitter.emit_extern("make_value_string")
-            self.emitter.emit_local_label(self.last_exp_res.value)
-            self.emitter.emit_main_section(
-            f"\tmov rdi, main.LC{len(self.emitter.local_labels) - 1}\n\t"
-            f"call allocate_str\n\tmov rdi,rax\n\tcall make_value_string")
+            self.emitter.emit_identifier(self.last_exp_res)
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):

@@ -42,12 +42,52 @@ class Emitter:
         self.externs.add(extern_str)
     
     def emit_local_label(self,string):
-        self.local_labels.append(f".LC{len(self.local_labels)}: db {string}")
+        self.local_labels.append(f".LC{len(self.local_labels)}: db {string},0")
     
     #given an Identifier obj, will emit the corresponding asm. The result will be in rax
-    # def emit_identifier(self,ident_obj):
-    #     match ident_obj.typeof:
-    #         case
+    def emit_identifier(self,ident_obj):
+        match ident_obj.typeof:
+            case IdentifierType.CHAR:
+                self.emit_extern("make_tagged_char")
+                self.emit_main_section(
+                f"\tmov rdi, '{ident_obj.value}'\n\tcall make_tagged_char")
+            case IdentifierType.STR:
+                self.emit_extern("allocate_str")
+                self.emit_extern("make_value_string")
+                self.emit_local_label(ident_obj.value)
+                self.emit_main_section(
+                f"\tmov rdi, main.LC{len(self.local_labels) - 1}\n\t"
+                f"call allocate_str\n\tmov rdi,rax\n\tcall make_value_string")
+            case IdentifierType.INT:
+                self.emit_extern("make_tagged_int")
+                self.emit_main_section(f"\tmov rdi, {ident_obj.value}\
+                \n\tcall make_tagged_int")
+            case IdentifierType.FLOAT:
+                self.emit_extern("make_value_double")
+                self.emit_main_section(f"\tmov rax, __?float64?__("
+                f"{ident_obj.value})\n\tmovq xmm0, rax\n\t"
+                f"call make_value_double")
+            case IdentifierType.BOOLEAN:
+                self.emit_extern("make_tagged_bool")
+                self.emit_main_section(
+                f"\tmov rdi, {'0x1' if ident_obj.value == '#t' else '0x0'}"
+                f"\n\tcall make_tagged_bool")
+            case IdentifierType.PAIR:
+                print("Implement emit_identifier for pair!")
+            case IdentifierType.VECTOR:
+                print("Implement emit_identifier for vector!")
+            case Identifier.FUNCTION:
+                print("Implement emit_identifier for function!")
+            case IdentifierType.SYMBOL:
+                self.emit_extern("allocate_str")
+                self.emit_extern("make_value_symbol")
+                #not sure if quotes included for symbols, i dont think so
+                self.emit_local_label(f"'{ident_obj.value}'")
+                self.emit_main_section(
+                f"\tmov rdi, main.LC{len(self.local_labels) - 1}\n\t"
+                f"call allocate_str\n\tmov rdi,rax\n\tcall make_value_symbol")
+                
+                
     
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 else f"extern {','.join(list(self.externs))}\n")
