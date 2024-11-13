@@ -4,17 +4,15 @@ from emit import *
 from environment import *
 from scheme_list import *
 from function import *
-#Begin writing the runtime.Specifically, write the part that the asm will call for say (define x 5). Remember that I am using a tagging system for types.. then use the runtime to in global_definitions
 
-#Todo0: work on defining functions(define <call pattern> <body>). work on self.body(). First support functions that accept and return values that are going to be on the stack(int,float,char,boolean)
-#Todo1: implement the beginnings of the built in library(native functions). start with +,-,*,/,cons,append, and printing(with c libs for asm) later along the line implement more list/vector procedures and equivalence tests. All these builtin functions will be made in c and will be part of the target program's runtime environment. The asm will call to these functions.
-#Todo2: Add string,symbol,list,vector and function to be allocated on the heap. Once this is working, implement gc to be able to manage memory on the heap.
+#work on emitting strs
+#Todo: start using the runtime to emit. First start with just constants(aka the expression 1,#f,5.3, then move on to vec/list)
+#Todo1: start implementing simple define functions. global vars will go in the bss section, while locals will go on the stack. will probably need
+#to track the stack offset of variables, so the environment class might need to change
+#Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
 
-#Note: define currently doesnt handle setting vars to functions. Deal with this after vector 
-# Also, when implementing local vars, maybe the environment class should have an offset from the stack field. work on emitting definition rule and scoping. 
-#Todo2: first implement parser, make sure you add the extra grammar(cons,car,cdr etc) to the grammar doc and to the parser.
-
-#somewhere down the line implement special functions in vector/list, such as vector-ref for example
+#i dont think i need scheme_list anymore.py, I can just pass an array of all the 
+#Identifiers and the runtime will handle list/vector creation 
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
     def __init__(self, lexer,emitter):
@@ -99,7 +97,7 @@ class Parser:
         while not self.check_token(TokenType.EOF):
             self.expression()
         self.emitter.emit_global_definitions(self.global_environment.symbol_table)
-        self.emitter.emit_start_section("\tmov rax, 60\n\tmov rdi, 0\n\tsyscall")
+        self.emitter.emit_main_section("\tpop rbp\n\tret")
             
     def expression(self): 
         if self.check_token(TokenType.NEWLINE):
@@ -109,18 +107,32 @@ class Parser:
             print("EXPRESSION-NUMBER")
             if isinstance(self.cur_token.text,int):
                 self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
+                self.emitter.add_extern("make_tagged_int")
+                self.emitter.emit_main_section(f"\tmov rdi, {self.last_exp_res.value}\
+                \n\tcall make_tagged_int")
             else:
                 self.set_last_exp_res(IdentifierType.FLOAT,str(self.cur_token.text))
+                self.emitter.add_extern("make_value_double")
+                self.emitter.emit_main_section(f"\tmov rax, __?float64?__("
+                f"{self.last_exp_res.value})\n\tmovq xmm0, rax\n\t"
+                f"call make_value_double")
             self.next_token()
         
         elif self.check_token(TokenType.CHAR):
             print("EXPRESSION-CHAR")
             self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
+            self.emitter.add_extern("make_tagged_char")
+            self.emitter.emit_main_section(
+            f"\tmov rdi, '{self.last_exp_res.value}'\n\tcall make_tagged_char")
             self.next_token()
             
         elif self.check_token(TokenType.BOOLEAN):
             print("EXPRESSION-BOOLEAN")
             self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
+            self.emitter.add_extern("make_tagged_bool")
+            self.emitter.emit_main_section(
+            f"\tmov rdi, {'0x1' if self.last_exp_res.value == '#t' else '0x0'}"
+            f"\n\tcall make_tagged_bool")
             self.next_token()
 
         elif self.check_token(TokenType.STRING):

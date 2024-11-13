@@ -2,11 +2,15 @@ from abc import ABC,abstractmethod
 from environment import *
 from scheme_list import *
 import sys
-#these clases will handle the generation of asm code for various types depending on scope.
+#these clases will handle the generation of asm code for various types of variables 
+#depending on scope.
 #there is one generator class per IdentifierType
 
 #if procedure has more than six args, they'll be on the stack
 LINUX_CALLING_CONVENTION = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
+LINUX_FLOATING_POINT_CONVENTION = ["xmm0","xmm1","xmm2","xmm3","xmm4","xmm5",
+"xmm6","xmm7"
+]
 
 class Generator(ABC):
     @abstractmethod

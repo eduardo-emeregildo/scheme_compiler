@@ -35,8 +35,10 @@ def main():
 
     parser.program() # Start the parser.
     emitter.writeFile() # Write the output to file.
-    os.system("nasm -f elf64 -o out.o out.asm")
-    os.system("ld -o out out.o")
+    os.system("nasm -f elf64 -g -F dwarf out.asm")
+    # final version wont have this
+    # os.system("gcc -c identifier.c")
+    os.system("gcc out.o identifier.o -o out -no-pie -z noexecstack")
     print("Compiling completed.")
     
 
