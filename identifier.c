@@ -126,8 +126,8 @@ Value *make_value_bool(bool boolean)
 }
 
 /*
-given a character arr, return ptr to Str object. symbol types will also
-use this object
+given a character arr(that is declared in a local label), return ptr to 
+Str object. symbol types will also use this object
 */
 struct Str *allocate_str(char *str)
 {
@@ -136,7 +136,7 @@ struct Str *allocate_str(char *str)
         size_t length = strlen(str);
         char *heap_str = (char *)malloc(length + 1);
         str_obj->length = length;
-        str_obj->chars = strncpy(heap_str,str,length + 1);
+        str_obj->chars = str;
         return str_obj;
 }
 

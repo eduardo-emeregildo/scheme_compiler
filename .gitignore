@@ -6,12 +6,12 @@ out
 compiler_notes.txt
 dynamic_typing_notes.txt
 log.txt
-ptr_tag.c
 .vscode
-ptr_tag
 identifier
 identifier.o
 identifier_test
 runtime
 runtime.asm
 runtime.o
+me.c
+me.s

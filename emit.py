@@ -7,6 +7,8 @@ class Emitter:
     def __init__(self, fullPath):
         self.fullPath = fullPath
         self.externs = set() #for tracking which externs need to be added
+        self.local_labels = [] #for creating character arrays. will go under
+        #main section. if i wanna add string interning this is where i would have to look
         self.bss_section = "section .bss\n"
         self.text_section = "section .text\n"
         self.main_code = "global main\nmain:\n\tpush rbp\n\tmov rbp,rsp\n"
@@ -36,8 +38,16 @@ class Emitter:
     def emit_text_section(self,code):
         self.text_section += code + '\n'
     
-    def add_extern(self,extern_str):
+    def emit_extern(self,extern_str):
         self.externs.add(extern_str)
+    
+    def emit_local_label(self,string):
+        self.local_labels.append(f".LC{len(self.local_labels)}: db {string}")
+    
+    #given an Identifier obj, will emit the corresponding asm. The result will be in rax
+    # def emit_identifier(self,ident_obj):
+    #     match ident_obj.typeof:
+    #         case
     
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 else f"extern {','.join(list(self.externs))}\n")
@@ -45,4 +55,5 @@ class Emitter:
     def writeFile(self):
         with open(self.fullPath, 'w') as outputFile:
             self.emit_externs()
-            outputFile.write(self.bss_section + self.text_section + self.main_code + self.functions)
+            outputFile.write(self.bss_section + self.text_section + 
+            self.main_code +'\n'.join(self.local_labels) + self.functions)
