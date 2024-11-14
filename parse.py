@@ -4,10 +4,13 @@ from emit import *
 from environment import *
 from scheme_list import *
 from function import *
-#did strings
-# then use this method for the constants so the code's cleaner,
-# then work on quote expression 
-#Todo: start using the runtime to emit. First start with just constants(aka the expression 1,#f,5.3, then move on to vec/list)
+
+#when i get back, implement evaluate_vector and test it. then implement 
+# emit.compile_identifier for the cases of list and vector
+
+
+
+#work on quote exp(constants done,list,vec,function left)
 #Todo1: start implementing simple define functions. global vars will go in the bss section, while locals will go on the stack. will probably need
 #to track the stack offset of variables, so the environment class might need to change
 #Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
@@ -19,7 +22,9 @@ class Parser:
     def __init__(self, lexer,emitter):
         self.lexer = lexer
         self.emitter = emitter
-        #store last result of an expression as an identifier class.For pairs ans lists will store pair as value field. if previous exp doesnt return anything set to None
+        #store last result of an expression as an identifier class.
+        #For pairs ans vecs will store an array of identifier objs.
+        #how to denote empty list?
         self.last_exp_res = None
         self.cur_token = None
         self.peek_token = None
@@ -60,7 +65,6 @@ class Parser:
     def abort(self, message):
         sys.exit("Error. " + message)
     
-    
     def evaluate_constant(self):
         match self.cur_token.type:
             case TokenType.NUMBER:
@@ -71,7 +75,7 @@ class Parser:
             case TokenType.BOOLEAN:
                 self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
             case TokenType.CHAR:
-                self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
+                self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
             case TokenType.STRING:
                 self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
             case _:
@@ -108,28 +112,33 @@ class Parser:
             print("EXPRESSION-NUMBER")
             if isinstance(self.cur_token.text,int):
                 self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
-                self.emitter.emit_identifier(self.last_exp_res)
+                self.emitter.emit_identifier_to_section(self.last_exp_res,
+                self.cur_environment.is_global())
             else:
                 self.set_last_exp_res(IdentifierType.FLOAT,str(self.cur_token.text))
-                self.emitter.emit_identifier(self.last_exp_res)
+                self.emitter.emit_identifier_to_section(self.last_exp_res,
+                self.cur_environment.is_global())
             self.next_token()
         
         elif self.check_token(TokenType.CHAR):
             print("EXPRESSION-CHAR")
             self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
-            self.emitter.emit_identifier(self.last_exp_res)
+            self.emitter.emit_identifier_to_section(self.last_exp_res,
+            self.cur_environment.is_global())
             self.next_token()
             
         elif self.check_token(TokenType.BOOLEAN):
             print("EXPRESSION-BOOLEAN")
             self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
-            self.emitter.emit_identifier(self.last_exp_res)
+            self.emitter.emit_identifier_to_section(self.last_exp_res,
+            self.cur_environment.is_global())
             self.next_token()
 
         elif self.check_token(TokenType.STRING):
             print("EXPRESSION-STRING")
             self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
-            self.emitter.emit_identifier(self.last_exp_res)
+            self.emitter.emit_identifier_to_section(self.last_exp_res,
+            self.cur_environment.is_global())
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
@@ -622,7 +631,52 @@ class Parser:
         # self.expression()
             
     def is_constant(self):
-        return self.is_token_any(self.cur_token.type,[TokenType.BOOLEAN,TokenType.NUMBER,TokenType.CHAR,TokenType.STRING])
+        return self.is_token_any(self.cur_token.type,[TokenType.BOOLEAN,
+        TokenType.NUMBER,TokenType.CHAR,TokenType.STRING])
+    
+    #evaluate_datum,evaluate_list,evaluate_vector evaluate a datnum without
+    #emitting asm code
+    def evaluate_datum(self):
+        if self.is_constant():
+            self.evaluate_constant()
+            self.next_token()
+        elif self.check_token(TokenType.IDENTIFIER):
+            self.evaluate_symbol()
+            self.next_token()
+        elif self.check_token(TokenType.EXPR_START):
+            self.evaluate_list()
+        elif self.check_token(TokenType.HASH):
+            self.evaluate_vector()
+        else:
+            self.abort(self.cur_token.text + "Is not a valid datum.")
+
+    #empty list is denoted by Identifier(IdentifierType.PAIR,[])
+    #end of list is denoted by a None at the end. If no None at the end, then
+    #it fell in to the DOT branch when evaluating list
+    def evaluate_list(self):
+        self.match(TokenType.EXPR_START)
+        datum_list = []
+        token_count = 0
+        while not self.check_token(TokenType.EXPR_END):
+            if self.check_token(TokenType.DOT):
+                if token_count < 1:
+                    self.abort("Creating a pair requires a car and a cdr.")
+                self.next_token()
+                self.evaluate_datum()
+                datum_list.append(self.last_exp_res)
+                break
+            else:
+                self.evaluate_datum()
+                datum_list.append(self.last_exp_res)
+                if self.check_token(TokenType.EXPR_END):
+                    datum_list.append(None)
+                token_count += 1
+        self.match(TokenType.EXPR_END)
+        self.evaluate_pair(datum_list)
+    
+    def evaluate_vector(self):
+        pass #implement me
+        
         
     # starts from parens
     # <list> ::= ( <datum>* ) | ( <datum>+ . <datum> )
@@ -633,8 +687,12 @@ class Parser:
         self.parens.append(self.cur_token.text)
         token_count = 0
         self.next_token()
-        first = Pair()
-        cur_node = first
+        
+        datums = []
+        is_global = self.cur_environment.is_global()
+        self.add_extern("allocate_pair")
+        self.emitter.emit_to_section(f"\tcall allocate_pair\n\tpush rax\n\tpush rax")
+        
         while not self.check_token(TokenType.EXPR_END):
             if self.check_token(TokenType.DOT):
                 print("DOT")
@@ -645,20 +703,22 @@ class Parser:
                 
                 if not self.check_token(TokenType.EXPR_END):
                     self.abort("Incorrect syntax for making pairs.")
-                cur_node.set_cdr(self.last_exp_res)
-                break    
+                # cur_node.set_cdr(self.last_exp_res)
+                break
             else:
-                self.datum() if not is_quasi else self.quasiquote_datum()                
-                cur_node.set_car(self.last_exp_res)
+                self.datum() if not is_quasi else self.quasiquote_datum()
+                #now set car of current(which is at the top of the stack)
                 if not self.check_token(TokenType.DOT):
-                    cur_node.set_cdr(Identifier(IdentifierType.PAIR,Pair()) if not self.check_token(TokenType.EXPR_END) else None)
-                    cur_node = cur_node.get_cdr_value()
+                    # cur_node.set_cdr(Identifier(IdentifierType.PAIR,Pair()) if not self.check_token(TokenType.EXPR_END) else None)
+                    # cur_node = cur_node.get_cdr_value()
+                    pass
                 token_count += 1
                 
         if len(self.parens) != 1 + num_parens:
             self.abort("Parentheses in list are not well formed.")
         self.parens.pop()
-        self.evaluate_pair(first)
+        #have to check if len(datums) = 0, i.e. an empty list
+        self.evaluate_pair(datums)
         # print("PRINTING LIST:")
         # first.print()
         self.next_token()
@@ -694,21 +754,30 @@ class Parser:
     #<datum> ::= <constant> | <symbol> | <list> | <vector>
     def datum(self):
         print("DATUM")
-        if self.is_constant():
-            print("CONSTANT")
-            self.evaluate_constant()
-            self.next_token()
-        elif self.check_token(TokenType.IDENTIFIER):
-            print("SYMBOL")
-            self.evaluate_symbol()
-            self.next_token()
-        elif self.check_token(TokenType.EXPR_START):
-            self.list()  
-        elif self.check_token(TokenType.HASH):
-            self.next_token()
-            self.vector()
-        else:
-            self.abort(self.cur_token.text + " Is not a valid datum.")
+        self.evaluate_datum()
+        # print("LAST EXP IS: ", self.last_exp_res.typeof,self.last_exp_res.value)
+        is_global = self.cur_environment.is_global()
+        self.emitter.emit_identifier_to_section(self.last_exp_res,is_global)
+        
+        #below is old code
+        # is_global = self.cur_environment.is_global()
+        # if self.is_constant():
+        #     print("CONSTANT")
+        #     self.evaluate_constant()
+        #     self.emitter.emit_identifier_to_section(self.last_exp_res, is_global)
+        #     self.next_token()
+        # elif self.check_token(TokenType.IDENTIFIER):
+        #     print("SYMBOL")
+        #     self.evaluate_symbol()
+        #     self.emitter.emit_identifier_to_section(self.last_exp_res, is_global)
+        #     self.next_token()
+        # elif self.check_token(TokenType.EXPR_START):
+        #     self.list()  
+        # elif self.check_token(TokenType.HASH):
+        #     self.next_token()
+        #     self.vector()
+        # else:
+        #     self.abort(self.cur_token.text + " Is not a valid datum.")
     
     # (quasiquote <datum>) , but datum is handled differently here. It must accept unquote and unquote-splicing keywords
     # (unquote expr) , (unquote-splicing expr)

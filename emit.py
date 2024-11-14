@@ -38,56 +38,66 @@ class Emitter:
     def emit_text_section(self,code):
         self.text_section += code + '\n'
     
-    def emit_extern(self,extern_str):
+    def add_extern(self,extern_str):
         self.externs.add(extern_str)
     
     def emit_local_label(self,string):
         self.local_labels.append(f".LC{len(self.local_labels)}: db {string},0")
     
-    #given an Identifier obj, will emit the corresponding asm. The result will be in rax
-    def emit_identifier(self,ident_obj):
+    #given an Identifier obj, will return the corresponding asm. The result will be in rax
+    def compile_identifier(self,ident_obj):
         match ident_obj.typeof:
             case IdentifierType.CHAR:
-                self.emit_extern("make_tagged_char")
-                self.emit_main_section(
-                f"\tmov rdi, '{ident_obj.value}'\n\tcall make_tagged_char")
+                self.add_extern("make_tagged_char")
+                return f"\tmov rdi, '{ident_obj.value}'\n\tcall make_tagged_char"
             case IdentifierType.STR:
-                self.emit_extern("allocate_str")
-                self.emit_extern("make_value_string")
+                self.add_extern("allocate_str")
+                self.add_extern("make_value_string")
                 self.emit_local_label(ident_obj.value)
-                self.emit_main_section(
-                f"\tmov rdi, main.LC{len(self.local_labels) - 1}\n\t"
+                return (f"\tmov rdi, main.LC{len(self.local_labels) - 1}\n\t" +
                 f"call allocate_str\n\tmov rdi,rax\n\tcall make_value_string")
             case IdentifierType.INT:
-                self.emit_extern("make_tagged_int")
-                self.emit_main_section(f"\tmov rdi, {ident_obj.value}\
-                \n\tcall make_tagged_int")
+                self.add_extern("make_tagged_int")
+                return f"\tmov rdi, {ident_obj.value}\n\tcall make_tagged_int"
             case IdentifierType.FLOAT:
-                self.emit_extern("make_value_double")
-                self.emit_main_section(f"\tmov rax, __?float64?__("
-                f"{ident_obj.value})\n\tmovq xmm0, rax\n\t"
+                self.add_extern("make_value_double")
+                return (f"\tmov rax, __?float64?__(" +
+                f"{ident_obj.value})\n\tmovq xmm0, rax\n\t" +
                 f"call make_value_double")
             case IdentifierType.BOOLEAN:
-                self.emit_extern("make_tagged_bool")
-                self.emit_main_section(
-                f"\tmov rdi, {'0x1' if ident_obj.value == '#t' else '0x0'}"
-                f"\n\tcall make_tagged_bool")
+                self.add_extern("make_tagged_bool")
+                return (f"\tmov rdi, {'0x1' if ident_obj.value == '#t' else '0x0'}"
+                + f"\n\tcall make_tagged_bool")
             case IdentifierType.PAIR:
-                print("Implement emit_identifier for pair!")
+                #creates empty pair
+                # self.add_extern("allocate_pair")
+                # return (f"call allocate_pair")
+                print("Implement compile_identifier for pair!")
             case IdentifierType.VECTOR:
-                print("Implement emit_identifier for vector!")
-            case Identifier.FUNCTION:
-                print("Implement emit_identifier for function!")
+                print("Implement compile_identifier for vector!")
+            case IdentifierType.FUNCTION:
+                print("Implement compile_identifier for function!")
             case IdentifierType.SYMBOL:
-                self.emit_extern("allocate_str")
-                self.emit_extern("make_value_symbol")
-                #not sure if quotes included for symbols, i dont think so
+                self.add_extern("allocate_str")
+                self.add_extern("make_value_symbol")
                 self.emit_local_label(f"'{ident_obj.value}'")
-                self.emit_main_section(
-                f"\tmov rdi, main.LC{len(self.local_labels) - 1}\n\t"
+                return(f"\tmov rdi, main.LC{len(self.local_labels) - 1}\n\t" +
                 f"call allocate_str\n\tmov rdi,rax\n\tcall make_value_symbol")
-                
-                
+    
+    #given ident_obj and a bool determining whether to emit to main or a label,
+    #emit in the corresponding place
+    def emit_identifier_to_section(self,ident_obj,is_global):
+        if is_global:
+            self.emit_main_section(self.compile_identifier(ident_obj))
+        else:
+            self.emit_function(self.compile_identifier(ident_obj))
+    
+    #emits asm code to corresponding section depending on the environment
+    def emit_to_section(self,asm_code,is_global):
+        if is_global:
+            self.emit_main_section(asm_code)
+        else:
+            self.emit_function(asm_code)
     
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 else f"extern {','.join(list(self.externs))}\n")
