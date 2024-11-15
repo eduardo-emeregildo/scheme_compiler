@@ -5,8 +5,8 @@ from environment import *
 from scheme_list import *
 from function import *
 
-#when i get back, implement evaluate_vector and test it. then implement 
-# emit.compile_identifier for the cases of list and vector
+# when i get back,for emit.compile_list, work on emitting code for do notation
+# emit.py line 127
 
 
 
@@ -90,8 +90,9 @@ class Parser:
     def evaluate_function(self,function_obj):
         self.set_last_exp_res(IdentifierType.FUNCTION,function_obj)
     
-    #Python lists will be used to represent  
-    def evaluate_vector(self,vector_obj):
+    #sets last_exp_res to a vector. Might need to rename other functions above
+    #to have set in the name instead of evaluate
+    def set_vector(self,vector_obj):
         self.set_last_exp_res(IdentifierType.VECTOR,vector_obj)
         
     def program(self):
@@ -638,21 +639,28 @@ class Parser:
     #emitting asm code
     def evaluate_datum(self):
         if self.is_constant():
+            print("CONSTANT")
             self.evaluate_constant()
             self.next_token()
         elif self.check_token(TokenType.IDENTIFIER):
+            print("SYMBOL")
             self.evaluate_symbol()
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
+            print("LIST")
             self.evaluate_list()
         elif self.check_token(TokenType.HASH):
+            print("VECTOR")
+            self.next_token()
             self.evaluate_vector()
         else:
             self.abort(self.cur_token.text + "Is not a valid datum.")
 
     #empty list is denoted by Identifier(IdentifierType.PAIR,[])
     #end of list is denoted by a None at the end. If no None at the end, then
-    #it fell in to the DOT branch when evaluating list
+    #it fell in to the DOT branch when evaluating list.
+    #Note: None value can ONLY appear at the end
+    #  # <list> ::= ( <datum>* ) | ( <datum>+ . <datum> )
     def evaluate_list(self):
         self.match(TokenType.EXPR_START)
         datum_list = []
@@ -674,83 +682,91 @@ class Parser:
         self.match(TokenType.EXPR_END)
         self.evaluate_pair(datum_list)
     
+    # <vector> ::= #( <datum>* ), starts from (
     def evaluate_vector(self):
-        pass #implement me
-        
+        self.match(TokenType.EXPR_START)
+        datum_list = []
+        while not self.check_token(TokenType.EXPR_END):
+            self.evaluate_datum()
+            datum_list.append(self.last_exp_res)
+        self.match(TokenType.EXPR_END)
+        self.set_vector(datum_list)
         
     # starts from parens
     # <list> ::= ( <datum>* ) | ( <datum>+ . <datum> )
-    def list(self,is_quasi = False):
-        #since this is not an expression, a list could potentially be deep within an exp, therefore store current amount of parens before processing the list
-        print("LIST")
-        num_parens = len(self.parens)
-        self.parens.append(self.cur_token.text)
-        token_count = 0
-        self.next_token()
+    
+    
+    # def list(self,is_quasi = False):
+    #     #since this is not an expression, a list could potentially be deep within an exp, therefore store current amount of parens before processing the list
+    #     print("LIST")
+    #     num_parens = len(self.parens)
+    #     self.parens.append(self.cur_token.text)
+    #     token_count = 0
+    #     self.next_token()
         
-        datums = []
-        is_global = self.cur_environment.is_global()
-        self.add_extern("allocate_pair")
-        self.emitter.emit_to_section(f"\tcall allocate_pair\n\tpush rax\n\tpush rax")
+    #     datums = []
+    #     is_global = self.cur_environment.is_global()
+    #     self.add_extern("allocate_pair")
+    #     self.emitter.emit_to_section(f"\tcall allocate_pair\n\tpush rax\n\tpush rax")
         
-        while not self.check_token(TokenType.EXPR_END):
-            if self.check_token(TokenType.DOT):
-                print("DOT")
-                if token_count < 1:
-                    self.abort(" Creating a pair requires one or more datums before the " + self.cur_token.text + " token.")
-                self.next_token()
-                self.datum() if not is_quasi else self.quasiquote_datum()
+    #     while not self.check_token(TokenType.EXPR_END):
+    #         if self.check_token(TokenType.DOT):
+    #             print("DOT")
+    #             if token_count < 1:
+    #                 self.abort(" Creating a pair requires one or more datums before the " + self.cur_token.text + " token.")
+    #             self.next_token()
+    #             self.datum() if not is_quasi else self.quasiquote_datum()
                 
-                if not self.check_token(TokenType.EXPR_END):
-                    self.abort("Incorrect syntax for making pairs.")
-                # cur_node.set_cdr(self.last_exp_res)
-                break
-            else:
-                self.datum() if not is_quasi else self.quasiquote_datum()
-                #now set car of current(which is at the top of the stack)
-                if not self.check_token(TokenType.DOT):
-                    # cur_node.set_cdr(Identifier(IdentifierType.PAIR,Pair()) if not self.check_token(TokenType.EXPR_END) else None)
-                    # cur_node = cur_node.get_cdr_value()
-                    pass
-                token_count += 1
+    #             if not self.check_token(TokenType.EXPR_END):
+    #                 self.abort("Incorrect syntax for making pairs.")
+    #             # cur_node.set_cdr(self.last_exp_res)
+    #             break
+    #         else:
+    #             self.datum() if not is_quasi else self.quasiquote_datum()
+    #             #now set car of current(which is at the top of the stack)
+    #             if not self.check_token(TokenType.DOT):
+    #                 # cur_node.set_cdr(Identifier(IdentifierType.PAIR,Pair()) if not self.check_token(TokenType.EXPR_END) else None)
+    #                 # cur_node = cur_node.get_cdr_value()
+    #                 pass
+    #             token_count += 1
                 
-        if len(self.parens) != 1 + num_parens:
-            self.abort("Parentheses in list are not well formed.")
-        self.parens.pop()
-        #have to check if len(datums) = 0, i.e. an empty list
-        self.evaluate_pair(datums)
-        # print("PRINTING LIST:")
-        # first.print()
-        self.next_token()
+    #     if len(self.parens) != 1 + num_parens:
+    #         self.abort("Parentheses in list are not well formed.")
+    #     self.parens.pop()
+    #     self.evaluate_pair(datums)
+    #     self.next_token()
+    
+    
     
     # <vector> ::= #( <datum>* ), starts from (
-    def vector(self,is_quasi = False):
-        if not self.check_token(TokenType.EXPR_START):
-            self.abort("Incorrect syntax for vector.")
-        print("VECTOR")
-        num_parens = len(self.parens)
-        self.parens.append(self.cur_token.text)
-        self.next_token()
-        vector = []
-        while not self.check_token(TokenType.EXPR_END):
-            if self.check_token(TokenType.EXPR_START) and (self.check_peek(TokenType.UNQUOTE) or self.check_peek(TokenType.UNQUOTESPLICING)):
-                if not is_quasi:
-                    self.abort("UNQUOTE and UNQUOTE-SPLICING only valid in quasiquote expression.")
-                self.next_token()
-                self.next_token()
-                self.expression()
-                self.match(TokenType.EXPR_END)
-            else:
-                self.datum() if not is_quasi else self.quasiquote_datum()
-                vector.append(self.last_exp_res)
+    # def vector(self,is_quasi = False):
+    #     if not self.check_token(TokenType.EXPR_START):
+    #         self.abort("Incorrect syntax for vector.")
+    #     print("VECTOR")
+    #     num_parens = len(self.parens)
+    #     self.parens.append(self.cur_token.text)
+    #     self.next_token()
+    #     vector = []
+    #     while not self.check_token(TokenType.EXPR_END):
+    #         if self.check_token(TokenType.EXPR_START) and (self.check_peek(TokenType.UNQUOTE) or self.check_peek(TokenType.UNQUOTESPLICING)):
+    #             if not is_quasi:
+    #                 self.abort("UNQUOTE and UNQUOTE-SPLICING only valid in quasiquote expression.")
+    #             self.next_token()
+    #             self.next_token()
+    #             self.expression()
+    #             self.match(TokenType.EXPR_END)
+    #         else:
+    #             self.datum() if not is_quasi else self.quasiquote_datum()
+    #             vector.append(self.last_exp_res)
         
-        if len(self.parens) != 1 + num_parens:
-            self.abort("Parentheses in list are not well formed.")
-        self.parens.pop()
-        self.evaluate_vector(vector)
-        # print("PRINTING VECTOR:")
-        # [print(ident.typeof,ident.value) for ident in vector]
-        self.next_token()
+    #     if len(self.parens) != 1 + num_parens:
+    #         self.abort("Parentheses in list are not well formed.")
+    #     self.parens.pop()
+    #     self.evaluate_vector(vector)
+    #     # print("PRINTING VECTOR:")
+    #     # [print(ident.typeof,ident.value) for ident in vector]
+    #     self.next_token()
+    
     #<datum> ::= <constant> | <symbol> | <list> | <vector>
     def datum(self):
         print("DATUM")

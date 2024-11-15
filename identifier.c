@@ -134,7 +134,6 @@ struct Str *allocate_str(char *str)
         struct Str *str_obj = (struct Str *)malloc(sizeof(struct Str));
         validate_ptr(str_obj);
         size_t length = strlen(str);
-        char *heap_str = (char *)malloc(length + 1);
         str_obj->length = length;
         str_obj->chars = str;
         return str_obj;
@@ -299,4 +298,23 @@ Value *make_value_vector(Value *value_obj_array, size_t len)
         struct Vector *vector_obj = allocate_vector(value_obj_array,len);
         ptr_value_vector->as.vector = vector_obj;
         return ptr_value_vector;
+}
+
+//prints elts of lst. Only supports ints.
+void print_list(Value *value_obj)
+{
+        if(value_obj->type != VAL_PAIR) {
+                abort_message("print_list expected a value type of pair.");
+        }
+        printf("printing list:\n");
+        struct Pair *lst_cur_pair = value_obj->as.pair;
+        while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+                printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+                lst_cur_pair = lst_cur_pair->cdr.as.pair;
+                if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+                        printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+                        break;
+                }
+        }
+
 }

@@ -67,5 +67,6 @@ int main()
         Value *value_obj_str = make_value_string(str_obj);
         printf("%d\n",value_obj_str->type);
         printf("%s\n",value_obj_str->as.str->chars);
+        print_list(asm_pair);
         return 0;
 }
