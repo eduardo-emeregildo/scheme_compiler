@@ -68,5 +68,12 @@ int main()
         printf("%d\n",value_obj_str->type);
         printf("%s\n",value_obj_str->as.str->chars);
         print_list(asm_pair);
+        printf("%ld\n",sizeof(struct Pair));
+        printf("%ld\n",sizeof(Value));
+        printf("PAIR OBJECT: %p\n",pair_obj);
+        printf("ADDRESS OF CAR OF PAIR_OBJECT: %p\n",get_car_ptr(pair_obj));
+        printf("ADDRESS OF CDR OF PAIR_OBJECT: %p\n",get_cdr_ptr(pair_obj));
+        printf("ARITHMETIC(should match cdr): %p\n",get_car_ptr(pair_obj) + 1);
+
         return 0;
 }

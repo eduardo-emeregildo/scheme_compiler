@@ -5,8 +5,9 @@ from environment import *
 from scheme_list import *
 from function import *
 
-# when i get back,for emit.compile_list, work on emitting code for do notation
-# emit.py line 127
+#when i get back, fix bug in emitter.new_compile_list(). When i run the assembly, its not
+#correctly printing the list. I suspect its something to do with either my get_car/get_cdr functions
+# which are getting these pointers via calculation, or how im calling allocate_pair
 
 
 

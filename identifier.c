@@ -308,6 +308,9 @@ void print_list(Value *value_obj)
         }
         printf("printing list:\n");
         struct Pair *lst_cur_pair = value_obj->as.pair;
+        printf("the car type is: %ld\n", untag_int(lst_cur_pair->car.type));
+        printf("the car_value is: %ld\n", untag_int(lst_cur_pair->car.as.tagged_type));
+        printf("the cdr type is: %ld\n", untag_int(lst_cur_pair->cdr.type));
         while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
                 printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
                 lst_cur_pair = lst_cur_pair->cdr.as.pair;
