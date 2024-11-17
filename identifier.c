@@ -300,28 +300,69 @@ Value *make_value_vector(Value *value_obj_array, size_t len)
         return ptr_value_vector;
 }
 
-//prints elts of lst. Only supports ints.
+//prints a value type
+void print_value_type(Value *value_obj) 
+{
+        switch(value_obj->type) {
+        case VAL_CHAR:
+                printf("%c\n",(int)remove_tag(value_obj->as.tagged_type));
+                break;
+        case VAL_STR:
+                printf("%s\n",value_obj->as.str->chars);
+                break;
+        case VAL_INT:
+                printf("%ld\n",untag_int(value_obj->as.tagged_type));
+                break;
+        case VAL_DOUBLE:
+                printf("%lf\n",value_obj->as._double);
+                break;
+        case VAL_BOOLEAN:
+                printf("0x%ld\n",remove_tag(value_obj->as.tagged_type));
+                break;
+        case VAL_PAIR:
+                print_list(value_obj);
+                break;
+        case VAL_VECTOR:
+        case VAL_FUNCTION:
+        case VAL_SYMBOL:
+                printf("'%s\n",value_obj->as.str->chars);
+                break;
+        case VAL_EMPTY_LIST:
+                printf("()\n");
+                break;
+        default:
+                break;
+        }
+}
+
+//prints elts of lst
 void print_list(Value *value_obj)
 {
-        if(value_obj->type != VAL_PAIR) {
-                abort_message("print_list expected a value type of pair.");
+        struct Pair *lst_cur_pair = value_obj->as.pair;
+        if(lst_cur_pair->car.type == VAL_EMPTY_LIST) {
+                print_value_type(get_car_ptr(lst_cur_pair));
+                return;
         }
         printf("printing list:\n");
-        struct Pair *lst_cur_pair = value_obj->as.pair;
         while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
-                printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+                // printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+                print_value_type(get_car_ptr(lst_cur_pair));
                 if(lst_cur_pair->cdr.type != VAL_PAIR) {
+                        //dot notation case
                         if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
                                 break;
                         }
-                        printf("%ld\n",untag_int(lst_cur_pair->cdr.as.tagged_type));
+                        // printf("%ld\n",untag_int(lst_cur_pair->cdr.as.tagged_type));
+                        print_value_type(get_cdr_ptr(lst_cur_pair));
                         break;
                 }
                 lst_cur_pair = lst_cur_pair->cdr.as.pair;
                 if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
-                        printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+                        // printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
+                        print_value_type(get_car_ptr(lst_cur_pair));
                         break;
                 }
         }
+        printf("end of list\n");
 
 }

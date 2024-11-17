@@ -89,5 +89,6 @@ Value *make_value_symbol(struct Str *str_obj);
 Value *make_value_pair(struct Pair *pair_obj);
 Value *make_value_list(Value *value_obj_array, size_t len);
 Value *make_value_vector(Value *value_obj_array, size_t len);
+void print_value_type(Value *value_obj);
 void print_list(Value *value_obj);
 #endif

@@ -70,10 +70,9 @@ class Emitter:
                 return (f"\tmov rdi, {'0x1' if ident_obj.value == '#t' else '0x0'}"
                 + f"\n\tcall make_tagged_bool")
             case IdentifierType.PAIR:    
-                # return self.compile_list(ident_obj)
                 self.add_extern("make_value_pair")
                 asm_code = []
-                asm_code.append(self.new_compile_list(ident_obj))
+                asm_code.append(self.compile_list(ident_obj))
                 asm_code.append("\tmov rdi, rsi\n\tcall make_value_pair")
                 
                 self.add_extern("print_list")
@@ -108,7 +107,7 @@ class Emitter:
             asm_code.append(f"\tmov rsi, {ident_obj.value}")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_int")
         elif TYPE == IdentifierType.FLOAT:
-            self.add_extern("set_ith-value_dbl")
+            self.add_extern("set_ith_value_dbl")
             asm_code.append(f"\tmov rax, __?float64?__({ident_obj.value})")
             asm_code.append("\tmovq xmm0, rax")
             asm_code.append(f"\tmov rsi, {index}\n\tcall set_ith_value_dbl")
@@ -116,10 +115,10 @@ class Emitter:
             self.add_extern("set_ith_value_bool")
             asm_code.append(f"\tmov rsi, {'0x1' if ident_obj.value == '#t' else '0x0'}")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_bool")
-        elif TYPE == Identifier.PAIR:
+        elif TYPE == IdentifierType.PAIR:
             self.add_extern("set_ith_value_pair")
             asm_code.append("push rdi") #store the first arg
-            asm_code.append(self.new_compile_list(ident_obj))
+            asm_code.append(self.compile_list(ident_obj))
             asm_code.append("pop rdi") #pop first arg
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_pair")
         elif TYPE == IdentifierType.VECTOR:
@@ -144,13 +143,18 @@ class Emitter:
         return ("\tmov rdi, QWORD [rsp]\n\tlea rdi, QWORD [rdi + 16]")
         
         
-    #this will be the replacement of compile_list
+    #empty list is denoted by Identifier(IdentifierType.PAIR,[])
+    #end of list is denoted by a None at the end. If no None at the end, then
+    #it fell in to the DOT branch when evaluating list.
+    #Note: None value can ONLY appear at the end
     #does not call make_value_pair. makes a pair object instead and moves ptr
     #to pair in rsi.
-    def new_compile_list(self,ident_obj):
+    def compile_list(self,ident_obj):
         asm_code = []
         last_elt_index = len(ident_obj.value) - 1
         self.add_extern("allocate_pair")
+        if len(ident_obj.value) == 0: #empty list
+            return "\tcall allocate_pair\n\t mov rsi,rax"
         asm_code.append("\tcall allocate_pair\n\tpush rax\n\tpush rax")
         # now build the list
         for i,ident in enumerate(ident_obj.value):
@@ -190,83 +194,7 @@ class Emitter:
         asm_code.append("\tpop rax\n\tpop rsi")
         return '\n'.join(asm_code)
             
-            
 
-    #empty list is denoted by Identifier(IdentifierType.PAIR,[])
-    #end of list is denoted by a None at the end. If no None at the end, then
-    #it fell in to the DOT branch when evaluating list.
-    #Note: None value can ONLY appear at the end
-    def compile_list(self,ident_obj):
-        asm_code = []
-        last_elt_index = len(ident_obj.value) - 1
-        self.add_extern("allocate_pair")
-        self.add_extern("get_car_ptr")
-        self.add_extern("get_cdr_ptr")
-        self.add_extern("make_value_pair")
-        asm_code.append("\tcall allocate_pair\n\tpush rax\n\tpush rax")
-        # now build the list
-        #remember, have to check if last elt is None,
-        #and if any elt of type pair has [] of size 0
-        for i,ident in enumerate(ident_obj.value):
-            asm_code.append("\tmov rdi, QWORD [rsp]\n\tcall get_car_ptr")
-            if ident.typeof == IdentifierType.CHAR:
-                pass
-            elif ident.typeof == IdentifierType.INT:
-                self.add_extern("set_ith_value_int")
-                #set the car
-                asm_code.append("\tmov rdi,rax")
-                asm_code.append(f"\tmov rsi, {ident.value}\n\tmov rdx, 0")
-                asm_code.append("\tcall set_ith_value_int")
-                #now set the cdr
-                #first check if next is None. if it is, dont set cdr
-                
-                #check if next is the last elt. If it is the last elt,
-                #if next is None, this is the end of the list, update car, 
-                # dont touch the cdr
-                
-                #if next is an ident, this came from dot notation, set the cdr
-                # to the last ident.
-                
-                #if next is not last elt, set the cdr to an empty pair,then 
-                # update cur on the stack. cn do so with: mov QWORD [rsp], value
-                
-                if i + 1 == last_elt_index:
-                    if ident_obj.value[last_elt_index] == None:
-                        break
-                    else:
-                        #dot notation case, set the cdr to last ident and break
-                        pass
-                        
-                        
-                else:
-                    self.add_extern("set_ith_value_pair")
-                    #set cdr to empty pair
-                    asm_code.append("\tmov rdi, QWORD [rsp]\n\tcall get_cdr_ptr")
-                    #perhaps the commented line below can be used instead of pushing
-                    # and popping since allocate_pair takes no args
-                    # asm_code.append("\tmov rdi, rax\n\tcall allocate_pair")
-                    asm_code.append("\tpush rax\n\tcall allocate_pair")
-                    asm_code.append("\tpop rdi\n\tmov rsi,rax\n\tmov rdx,0")
-                    asm_code.append("\tcall set_ith_value_pair")
-                    #update current,which is top of the stack
-                    # at QWORD [rsp], the ptr to the cur_pair is there.
-                    #what i want to do is 
-                    asm_code.append("\tmov rdi, QWORD [rsp]\n\tcall get_cdr_ptr")
-                    asm_code.append("\tmov rbx,QWORD [rax + 8]") # could be a -8
-                    asm_code.append("\tmov QWORD [rsp], rbx")
-        asm_code.append("\tpop rax\n\tpop rdi\n\tcall make_value_pair")
-        self.add_extern("print_list")
-        asm_code.append("\tmov rdi,rax\n\tcall print_list")
-        return '\n'.join(asm_code)
-    
-        
-                    
-                    
-                    
-                
-                
-                
-    
     #given ident_obj and a bool determining whether to emit to main or a label,
     #emit in the corresponding place
     def emit_identifier_to_section(self,ident_obj,is_global):

@@ -5,8 +5,7 @@ from environment import *
 from scheme_list import *
 from function import *
 
-# When i get back, test a list with mixed/nested types(have to update print_list
-# function to accept all types.) After this, implement compiling vectors
+# When i get back, implement compiling vectors
 
 
 
@@ -771,29 +770,8 @@ class Parser:
     def datum(self):
         print("DATUM")
         self.evaluate_datum()
-        # print("LAST EXP IS: ", self.last_exp_res.typeof,self.last_exp_res.value)
         is_global = self.cur_environment.is_global()
         self.emitter.emit_identifier_to_section(self.last_exp_res,is_global)
-        
-        #below is old code
-        # is_global = self.cur_environment.is_global()
-        # if self.is_constant():
-        #     print("CONSTANT")
-        #     self.evaluate_constant()
-        #     self.emitter.emit_identifier_to_section(self.last_exp_res, is_global)
-        #     self.next_token()
-        # elif self.check_token(TokenType.IDENTIFIER):
-        #     print("SYMBOL")
-        #     self.evaluate_symbol()
-        #     self.emitter.emit_identifier_to_section(self.last_exp_res, is_global)
-        #     self.next_token()
-        # elif self.check_token(TokenType.EXPR_START):
-        #     self.list()  
-        # elif self.check_token(TokenType.HASH):
-        #     self.next_token()
-        #     self.vector()
-        # else:
-        #     self.abort(self.cur_token.text + " Is not a valid datum.")
     
     # (quasiquote <datum>) , but datum is handled differently here. It must accept unquote and unquote-splicing keywords
     # (unquote expr) , (unquote-splicing expr)
