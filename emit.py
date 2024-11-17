@@ -74,7 +74,7 @@ class Emitter:
                 self.add_extern("make_value_pair")
                 asm_code = []
                 asm_code.append(self.new_compile_list(ident_obj))
-                asm_code.append("\tmov rsi, rdi\n\tcall make_value_pair")
+                asm_code.append("\tmov rdi, rsi\n\tcall make_value_pair")
                 
                 self.add_extern("print_list")
                 asm_code.append("\tmov rdi,rax\n\tcall print_list")
@@ -141,7 +141,7 @@ class Emitter:
         return ("\tmov rdi, QWORD [rsp]")
     
     def emit_cdr_ptr(self):
-        return ("\tmov rdi, QWORD [rsp]\n\tlea rdi, [rdi + 16]")
+        return ("\tmov rdi, QWORD [rsp]\n\tlea rdi, QWORD [rdi + 16]")
         
         
     #this will be the replacement of compile_list
@@ -164,7 +164,9 @@ class Emitter:
                 else:
                     #dot notation case, set the cdr to last ident and break
                     asm_code.append(self.emit_cdr_ptr())
-                    asm_code.append(self.set_ith_value(ident,0))
+                    asm_code.append(
+                    self.set_ith_value(ident_obj.value[last_elt_index],0))
+                    break
                     
             else:
                 self.add_extern("set_ith_value_pair")

@@ -74,6 +74,8 @@ int main()
         printf("ADDRESS OF CAR OF PAIR_OBJECT: %p\n",get_car_ptr(pair_obj));
         printf("ADDRESS OF CDR OF PAIR_OBJECT: %p\n",get_cdr_ptr(pair_obj));
         printf("ARITHMETIC(should match cdr): %p\n",get_car_ptr(pair_obj) + 1);
+        Value *new_pair = make_value_pair(pair_obj);
+        print_list(new_pair);
 
         return 0;
 }
