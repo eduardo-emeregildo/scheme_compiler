@@ -23,14 +23,14 @@ class Emitter:
     def emit_function(self,code):
         self.functions += code + '\n'
         
-    def emit_global_definitions(self,def_dict):
-        emitted_definitions = []
-        factory = GeneratorFactory()
-        for ident_name in def_dict:
-            type_generator = factory.create_generator(def_dict[ident_name],0,ident_name)
-            emitted_definitions.append(f"{ident_name}:")
-            emitted_definitions.append(type_generator.generate_global_var())
-        self.emit_bss_section('\n'.join(emitted_definitions))
+    # def emit_global_definitions(self,def_dict):
+    #     emitted_definitions = []
+    #     factory = GeneratorFactory()
+    #     for ident_name in def_dict:
+    #         type_generator = factory.create_generator(def_dict[ident_name],0,ident_name)
+    #         emitted_definitions.append(f"{ident_name}:")
+    #         emitted_definitions.append(type_generator.generate_global_var())
+    #     self.emit_bss_section('\n'.join(emitted_definitions))
             
     def emit_main_section(self,code):
         self.main_code += code + '\n'
@@ -233,9 +233,24 @@ class Emitter:
             self.emit_main_section(asm_code)
         else:
             self.emit_function(asm_code)
-    
+            
+    #emits_definition to corresponding place. thi definitely needs to be
+    #revisited to implement closures
+    def emit_definition(self,ident_name,is_global):
+        if is_global:
+            self.emit_bss_section(f"\t{ident_name}: resq 1")
+            self.emit_main_section(f"\tmov QWORD [{ident_name}],rax")
+        else:
+            #have to store the offset somehow in this case
+            #depending on how closures are implemented, might need a different
+            #mechanism to store locals other than the stack
+            self.emit_function("push rax")
+            
+            
+    #to declare functions from runtime
     def emit_externs(self):
-        self.emit_text_section("" if len(self.externs) == 0 else f"extern {','.join(list(self.externs))}\n")
+        self.emit_text_section("" if len(self.externs) == 0 
+        else f"extern {','.join(list(self.externs))}\n")
         
     def writeFile(self):
         with open(self.fullPath, 'w') as outputFile:

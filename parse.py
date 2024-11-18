@@ -4,6 +4,11 @@ from emit import *
 from environment import *
 from function import *
 
+# read up on how to implement closures/local variables. Once I decided whether
+#to implement local vars using the stack or via another mechanism, implement
+#whatever i need to(if i use stacks, must store the offset) and edit emit_definition
+
+
 #Todo0: start implementing simple define statements. global vars will go in 
 #the bss section, while locals will go on the stack. will probably need
 #to track the stack offset of variables, so the environment class might need to change
@@ -96,9 +101,11 @@ class Parser:
         #Parse all expressions in the program
         while not self.check_token(TokenType.EOF):
             self.expression()
-        self.emitter.emit_global_definitions(self.global_environment.symbol_table)
+        # self.emitter.emit_global_definitions(self.global_environment.symbol_table)
         self.emitter.emit_main_section("\tpop rbp\n\tret")
-            
+    
+    #after self.expression() is executed, what the expression evaluates to
+    #will be in rax   
     def expression(self): 
         if self.check_token(TokenType.NEWLINE):
             self.next_token()
@@ -183,7 +190,7 @@ class Parser:
             elif self.check_token(TokenType.CASE):
                 self.next_token()
                 self.case_exp()
-                
+
             elif self.check_token(TokenType.LET):
                 self.next_token()
                 self.let_exp()
@@ -559,7 +566,13 @@ class Parser:
             ident_name = self.cur_token.text
             self.next_token()
             self.expression()
-            self.cur_environment.add_definition(ident_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
+            self.cur_environment.add_definition(ident_name,
+            Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
+            #now set variable to the right place(i.e. global or local)
+            
+            is_global = self.cur_environment.is_global()
+            self.emitter.emit_definition(ident_name,is_global)
+            
 
         elif self.check_token(TokenType.EXPR_START):
             function = Function()
@@ -609,7 +622,7 @@ class Parser:
             self.call_pattern() 
         else:
             self.abort("Incorrect syntax for call pattern.")
-        
+
     # the definition are the local variables declared (within the function) which will be usable in the sequence.
     # <body> ::= <definition>* <sequence>   
     def body(self,function):
