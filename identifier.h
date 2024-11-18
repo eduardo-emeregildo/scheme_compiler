@@ -49,6 +49,7 @@ struct Str {
         char* chars; 
 };
 
+// if size is 0, items will point to NULL
 struct Vector {
         int size;
         Value *items;
@@ -91,4 +92,5 @@ Value *make_value_list(Value *value_obj_array, size_t len);
 Value *make_value_vector(Value *value_obj_array, size_t len);
 void print_value_type(Value *value_obj);
 void print_list(Value *value_obj);
+void print_vector(Value *value_obj);
 #endif

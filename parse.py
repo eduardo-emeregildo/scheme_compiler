@@ -2,20 +2,15 @@ import sys
 from lex import *
 from emit import *
 from environment import *
-from scheme_list import *
 from function import *
 
-# When i get back, implement compiling vectors
-
-
-
-#work on quote exp(constants done,list,vec,function left)
-#Todo1: start implementing simple define functions. global vars will go in the bss section, while locals will go on the stack. will probably need
+#Todo0: start implementing simple define statements. global vars will go in 
+#the bss section, while locals will go on the stack. will probably need
 #to track the stack offset of variables, so the environment class might need to change
+
+#Todo1: implement defining functions
 #Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
 
-#i dont think i need scheme_list anymore.py, I can just pass an array of all the 
-#Identifiers and the runtime will handle list/vector creation 
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
     def __init__(self, lexer,emitter):

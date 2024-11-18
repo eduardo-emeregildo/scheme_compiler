@@ -323,6 +323,8 @@ void print_value_type(Value *value_obj)
                 print_list(value_obj);
                 break;
         case VAL_VECTOR:
+                print_vector(value_obj);
+                break;
         case VAL_FUNCTION:
         case VAL_SYMBOL:
                 printf("'%s\n",value_obj->as.str->chars);
@@ -335,7 +337,6 @@ void print_value_type(Value *value_obj)
         }
 }
 
-//prints elts of lst
 void print_list(Value *value_obj)
 {
         struct Pair *lst_cur_pair = value_obj->as.pair;
@@ -365,4 +366,15 @@ void print_list(Value *value_obj)
         }
         printf("end of list\n");
 
+}
+
+void print_vector(Value *value_obj)
+{
+        printf("Printing vector\n");
+        Value *vec = value_obj->as.vector->items;
+        int vec_len = value_obj->as.vector->size;
+        for(size_t i = 0; i < vec_len ; i++) {
+                print_value_type(&vec[i]);
+        }
+        printf("End of Vector\n");
 }

@@ -76,6 +76,6 @@ int main()
         printf("ARITHMETIC(should match cdr): %p\n",get_car_ptr(pair_obj) + 1);
         Value *new_pair = make_value_pair(pair_obj);
         print_list(new_pair);
-
+        print_vector(vec);
         return 0;
 }

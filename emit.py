@@ -73,13 +73,19 @@ class Emitter:
                 self.add_extern("make_value_pair")
                 asm_code = []
                 asm_code.append(self.compile_list(ident_obj))
-                asm_code.append("\tmov rdi, rsi\n\tcall make_value_pair")
-                
-                self.add_extern("print_list")
-                asm_code.append("\tmov rdi,rax\n\tcall print_list")
+                asm_code.append("\tmov rdi, rsi\n\tcall make_value_pair")                
+                # self.add_extern("print_list")
+                # asm_code.append("\tmov rdi,rax\n\tcall print_list")
                 return '\n'.join(asm_code)
             case IdentifierType.VECTOR:
-                print("Implement compile_identifier for vector!")
+                self.add_extern("make_value_vector")
+                asm_code = []
+                asm_code.append(self.compile_vector(ident_obj))
+                asm_code.append(f"\tmov rdi,rsi\n\tmov rsi,{len(ident_obj.value)}")
+                asm_code.append("\tcall make_value_vector")
+                # self.add_extern("print_vector")
+                # asm_code.append("\tmov rdi,rax\n\tcall print_vector")
+                return '\n'.join(asm_code)
             case IdentifierType.FUNCTION:
                 print("Implement compile_identifier for function!")
             case IdentifierType.SYMBOL:
@@ -117,13 +123,20 @@ class Emitter:
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_bool")
         elif TYPE == IdentifierType.PAIR:
             self.add_extern("set_ith_value_pair")
-            asm_code.append("push rdi") #store the first arg
+            asm_code.append("\tpush rdi") #store the first arg
             asm_code.append(self.compile_list(ident_obj))
-            asm_code.append("pop rdi") #pop first arg
+            asm_code.append("\tpop rdi") #pop first arg
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_pair")
         elif TYPE == IdentifierType.VECTOR:
-            self.add_extern("set_ith_value_vector")
-            print('implement me :P')
+            self.add_extern("set_ith_value_vector,allocate_vector")
+            #first make the vector object using the output of compile_vector,
+            #then call set_ith_value_vector
+            asm_code.append("\tpush rdi")
+            asm_code.append(self.compile_vector(ident_obj))
+            asm_code.append(f"\tmov rdi, rsi\n\tmov rsi, {len(ident_obj.value)}")
+            asm_code.append("\tcall allocate_vector\n\tpop rdi\n\tmov rsi,rax")
+            asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_vector")
+            
         elif TYPE == IdentifierType.FUNCTION:
             print('implement me (function) :P')
         elif TYPE == IdentifierType.SYMBOL:
@@ -142,13 +155,13 @@ class Emitter:
     def emit_cdr_ptr(self):
         return ("\tmov rdi, QWORD [rsp]\n\tlea rdi, QWORD [rdi + 16]")
         
-        
+
+    #this function creates the pair obj required to call make_value_pair.
+    #the ptr to this object will be in rsi. 
     #empty list is denoted by Identifier(IdentifierType.PAIR,[])
     #end of list is denoted by a None at the end. If no None at the end, then
     #it fell in to the DOT branch when evaluating list.
     #Note: None value can ONLY appear at the end
-    #does not call make_value_pair. makes a pair object instead and moves ptr
-    #to pair in rsi.
     def compile_list(self,ident_obj):
         asm_code = []
         last_elt_index = len(ident_obj.value) - 1
@@ -182,19 +195,30 @@ class Emitter:
                 asm_code.append("\tpush rdi\n\tcall allocate_pair")
                 asm_code.append("\tpop rdi\n\tmov rsi,rax\n\tmov rdx,0")
                 asm_code.append("\tcall set_ith_value_pair")
-                #update current,which is top of the stack
-                # at QWORD [rsp], the ptr to the cur_pair is there.
-                #what i want to do is 
-                # asm_code.append("\tmov rdi, QWORD [rsp]\n\tcall get_cdr_ptr")
-
-                
+                #now advance cur pair,which is top of the stack(i.e. QWORD [rsp])                
                 asm_code.append(self.emit_cdr_ptr())
                 asm_code.append("\tmov rax,QWORD [rdi + 8]")
                 asm_code.append("\tmov QWORD [rsp], rax")
         asm_code.append("\tpop rax\n\tpop rsi")
         return '\n'.join(asm_code)
             
-
+    #this function creates the value obj array required for make_value_vector.
+    #the ptr to this array will be in rsi. 
+    def compile_vector(self,ident_obj):
+        asm_code = []
+        vec_len = len(ident_obj.value)
+        if vec_len == 0:
+            return "\tmov rsi,0x0"
+        self.add_extern("make_tagged_ptr")
+        asm_code.append(f"\tmov rdi, {vec_len}\n\tcall make_tagged_ptr")
+        asm_code.append("\tpush rax")
+        for i,ident in enumerate(ident_obj.value):
+            asm_code.append("\tmov rdi, QWORD [rsp]")
+            asm_code.append(self.set_ith_value(ident,i))
+        asm_code.append("\tpop rsi")
+        return '\n'.join(asm_code)
+    
+    
     #given ident_obj and a bool determining whether to emit to main or a label,
     #emit in the corresponding place
     def emit_identifier_to_section(self,ident_obj,is_global):
