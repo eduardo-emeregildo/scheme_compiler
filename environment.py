@@ -83,6 +83,9 @@ class Environment:
             return
         self.depth += 8
         self.symbol_table[ident_name] = [self.depth,identifier_obj]
+    
+    def is_defined(self,ident_name):
+        return ident_name in self.symbol_table
         
     # def get_offset(self,ident_name):
     #     return self.symbol_table[ident_name][0]

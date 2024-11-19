@@ -4,12 +4,7 @@ from emit import *
 from environment import *
 from function import *
 
-#implement defining a function. test if local variables work
-#Todo0: start implementing simple define statements. global vars will go in 
-#the bss section, while locals will go on the stack. will probably need
-#to track the stack offset of variables, so the environment class might need to change
-
-#Todo1: implement defining functions
+#Todo0: implement defining functions. test local definitions with functions
 #Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
 
 # Parser object keeps track of current token and checks if the code matches the grammar.
@@ -563,14 +558,15 @@ class Parser:
         if self.check_token(TokenType.IDENTIFIER):
             print("VARIABLE")
             ident_name = self.cur_token.text
+            is_global = self.cur_environment.is_global()
+            #define label in bss section only if its new var
+            if is_global and not self.cur_environment.is_defined(ident_name):
+                self.emitter.emit_bss_section(f"\t{ident_name}: resq 1")                    
             self.next_token()
             self.expression()
             self.cur_environment.add_definition(ident_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
-            is_global = self.cur_environment.is_global()
             self.emitter.emit_definition(ident_name,is_global)
-            
-
         elif self.check_token(TokenType.EXPR_START):
             function = Function()
             self.call_pattern(function)

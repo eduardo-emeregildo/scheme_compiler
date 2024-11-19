@@ -238,17 +238,14 @@ class Emitter:
     #revisited to implement closures
     def emit_definition(self,ident_name,is_global):
         if is_global:
-            self.emit_bss_section(f"\t{ident_name}: resq 1")
             self.emit_main_section(f"\tmov QWORD [{ident_name}],rax")
         else:
             self.emit_function("push rax")
     
-    #used for resolving identifiers that are already defined. will have the
-    # value for the ident in rax
+    #used for identifier expression. will have the value for the ident in rax
     #offset = None means the var is global 
     def emit_defined_variable(self,ident_name,offset):
         if offset is None:
-            self.add_extern("print_list")
             self.emit_main_section(f"\tmov rax, QWORD [{ident_name}]")
         else:
             #what if the definition was found in a parent environment that is 
