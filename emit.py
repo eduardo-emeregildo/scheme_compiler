@@ -241,10 +241,21 @@ class Emitter:
             self.emit_bss_section(f"\t{ident_name}: resq 1")
             self.emit_main_section(f"\tmov QWORD [{ident_name}],rax")
         else:
-            #have to store the offset somehow in this case
-            #depending on how closures are implemented, might need a different
-            #mechanism to store locals other than the stack
             self.emit_function("push rax")
+    
+    #used for resolving identifiers that are already defined. will have the
+    # value for the ident in rax
+    #offset = None means the var is global 
+    def emit_defined_variable(self,ident_name,offset):
+        if offset is None:
+            self.add_extern("print_list")
+            self.emit_main_section(f"\tmov rax, QWORD [{ident_name}]")
+        else:
+            #what if the definition was found in a parent environment that is 
+            # also local. the offset would be .wrong then 
+            # This might be where closures come in
+            self.emit_function(f"\tmov rax, QWORD [rbp - {offset}]")
+            
             
             
     #to declare functions from runtime

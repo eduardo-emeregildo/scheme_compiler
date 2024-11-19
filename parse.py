@@ -4,11 +4,7 @@ from emit import *
 from environment import *
 from function import *
 
-# read up on how to implement closures/local variables. Once I decided whether
-#to implement local vars using the stack or via another mechanism, implement
-#whatever i need to(if i use stacks, must store the offset) and edit emit_definition
-
-
+#implement defining a function. test if local variables work
 #Todo0: start implementing simple define statements. global vars will go in 
 #the bss section, while locals will go on the stack. will probably need
 #to track the stack offset of variables, so the environment class might need to change
@@ -147,8 +143,11 @@ class Parser:
             if not self.cur_token.text in self.cur_environment.symbol_table:
                 self.abort("Identifier "+ self.cur_token.text + " not defined.")
             print("EXPRESSION-VARIABLE")
-            cur_ident = self.cur_environment.find_definition(self.cur_token.text)
-            self.set_last_exp_res(cur_ident.typeof,cur_ident.value)        
+            definition = self.cur_environment.find_definition(self.cur_token.text)
+            def_offset = Environment.get_offset(definition)
+            def_ident_obj = Environment.get_ident_obj(definition)
+            self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
+            self.emitter.emit_defined_variable(self.cur_token.text,def_offset)
             self.next_token()
                     
         elif self.check_token(TokenType.QUOTE_SYMBOL):
@@ -568,8 +567,6 @@ class Parser:
             self.expression()
             self.cur_environment.add_definition(ident_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
-            #now set variable to the right place(i.e. global or local)
-            
             is_global = self.cur_environment.is_global()
             self.emitter.emit_definition(ident_name,is_global)
             

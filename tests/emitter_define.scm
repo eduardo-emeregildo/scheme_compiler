@@ -1,6 +1,7 @@
-(define x 5)
-(define y "yeoooo")
-;(define z '(1 2 3 4))
+;(define x 5)
+
+;(define y "yeoooo")
+(define z '(1 2 3 4))
 ;(define z #\f)
 ;(define a 5.3)
 ;(define b #t)

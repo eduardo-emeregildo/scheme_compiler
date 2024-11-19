@@ -27,6 +27,8 @@ class Identifier:
         return self.typeof == IdentifierType.PAIR or self.typeof == IdentifierType.VECTOR
     
     #returns size in bytes that value will take up in memory.
+    #at the very least has to get rewritten since im not using pair ds anymore.
+    #probably just needs to get removeed
     def get_size(self):
         if self.typeof == IdentifierType.INT or self.typeof == IdentifierType.FLOAT:
             return 8
@@ -59,22 +61,42 @@ class Identifier:
                 sum += ident.get_size()
             return sum
 
-#Below This is how lexical scoping will be handled. symbol_table is a dictionary that will store Identifier objects, with the key being the identifier name, detailing what type it is ands its value 
-# Parent will hold its parent Environment. The global environment is the environment with null parent      
+#Below This is how lexical scoping will be handled. symbol_table is a dictionary
+#which has the identifier name as the key,
+#each key will store a 2 elt aray, first elt is the offset, second elt is the
+#Identifier object, detailing what type it is ands its value.
+#global vars will have an offset of None, since they will be retrieved 
+#differently (from the bss section)
+# Parent will hold its parent Environment. The global environment is the 
+# environment with None parent
+#the depth is the sum of all the offsets. since global env doesnt save on stack,
+#the global env will always have depth = 0
 class Environment:
     def __init__(self,parent = None):
         self.symbol_table = {}
         self.parent = parent
+        self.depth = 0
         
     def add_definition(self,ident_name,identifier_obj):
-        self.symbol_table[ident_name] = identifier_obj
+        if self.parent is None:
+            self.symbol_table[ident_name] = [None,identifier_obj]
+            return
+        self.depth += 8
+        self.symbol_table[ident_name] = [self.depth,identifier_obj]
+        
+    # def get_offset(self,ident_name):
+    #     return self.symbol_table[ident_name][0]
     
+    # def get_ident_object(self,ident_name):
+    #     return self.symbol_table[ident_name][1]
+
     def remove_definition(self,ident_name):
         del self.symbol_table[ident_name]
+        if self.parent is not None:
+            self.depth -= 8
     
     def is_global(self):
         return self.parent is None
-        
         
     def find_definition(self,ident_name):  
         if ident_name in self.symbol_table:
@@ -82,21 +104,14 @@ class Environment:
         if self.parent == None:
             sys.exit("Error, " + "Identifier " + ident_name + "Not defined.")
         return self.parent.find_definition(ident_name)
-    
-
     #caller will be parent env of new env
     def create_local_env(self):
         return Environment(self)
-
-
-# a = Environment()
-# a.add_definition("x",Identifier(IdentifierType.INT,5))
-# print(a.symbol_table)
-# print(a.find_definition("x").value)
-# local = a.create_local_env()
-# print(local.parent.symbol_table)
-
-        
-
-
-
+    
+    @staticmethod
+    def get_offset(definition_arr):
+        return definition_arr[0]
+    
+    @staticmethod
+    def get_ident_obj(definition_arr):
+        return definition_arr[1]
