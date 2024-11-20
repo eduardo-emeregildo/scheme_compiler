@@ -4,6 +4,7 @@ from emit import *
 from environment import *
 from function import *
 
+# implement the function definition, i.e. handle (define (my-func x) x)
 #Todo0: implement defining functions. test local definitions with functions
 #Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
 
@@ -20,7 +21,7 @@ class Parser:
         self.peek_token = None
         self.global_environment = Environment()
         self.cur_environment = self.global_environment
-        self.parens = []
+        #self.parens = []
         self.next_token()
         self.next_token()
 
@@ -93,7 +94,7 @@ class Parser:
         while not self.check_token(TokenType.EOF):
             self.expression()
         # self.emitter.emit_global_definitions(self.global_environment.symbol_table)
-        self.emitter.emit_main_section("\tpop rbp\n\tret")
+        self.emitter.emit_main_section("\tmov rax,0\n\tpop rbp\n\tret")
     
     #after self.expression() is executed, what the expression evaluates to
     #will be in rax   
@@ -151,7 +152,7 @@ class Parser:
             self.datum()
 
         elif self.check_token(TokenType.EXPR_START):
-            self.parens.append(self.cur_token.text)
+            #self.parens.append(self.cur_token.text)
             self.next_token()
             if self.check_token(TokenType.IF):
                 self.next_token()
@@ -211,7 +212,7 @@ class Parser:
                 print("EXPRESSION-BEGIN")
                 self.expression()
                 self.match(TokenType.EXPR_END)
-                self.parens.pop()
+                #self.parens.pop()
                 
             # (delay <expression>)
             elif self.check_token(TokenType.DELAY):
@@ -219,7 +220,7 @@ class Parser:
                 print("EXPRESSION-DELAY")
                 self.expression()
                 self.match(TokenType.EXPR_END)
-                self.parens.pop()
+                #self.parens.pop()
             
             elif self.check_token(TokenType.DO):
                 self.next_token()
@@ -238,7 +239,7 @@ class Parser:
                 while not self.check_token(TokenType.EXPR_END):
                     print("OPERAND")
                     self.expression()
-                self.parens.pop()
+                #self.parens.pop()
                 self.next_token()
                 
                  
@@ -287,10 +288,10 @@ class Parser:
         if num_args < 2 :
             self.abort("Too few arguments in if condition.")
         
-        if len(self.parens) == 0:
-            self.abort("Parentheses are not well formed.")
+        # if len(self.parens) == 0:
+        #     self.abort("Parentheses are not well formed.")
                 
-        self.parens.pop()
+        #self.parens.pop()
         self.next_token()
         
     #(quote <datum>)
@@ -299,9 +300,9 @@ class Parser:
         self.datum()        
         if not self.check_token(TokenType.EXPR_END):
             self.abort("Incorrect syntax in quote expression. ")
-        if len(self.parens) == 0:
-            self.abort("Parentheses in quote expression not well formed.")
-        self.parens.pop()
+        # if len(self.parens) == 0:
+        #     self.abort("Parentheses in quote expression not well formed.")
+        # self.parens.pop()
         self.next_token()
         
     #(lambda <bound var list> <body>)
@@ -310,35 +311,35 @@ class Parser:
         self.bound_var_list()
         self.body()
         self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        #self.parens.pop()
     
     def and_exp(self):
         print("EXPRESION-AND")
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
-        self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        self.next_token()
+        #self.parens.pop()
         
     def or_exp(self):
         print("EXPRESION-OR")
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
-        self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        self.next_token()
+        #self.parens.pop()
         
     # (cond <cond clause>*) | (cond <cond clause>* (else <sequence>))
     def cond_exp(self):
         print("EXPRESSION-COND")
         #first, handle case where there are 0 cond clauses and no else. basically exp is: (cond)
         if self.check_token(TokenType.EXPR_END):
-            self.parens.pop()
+            #self.parens.pop()
             self.next_token()
 
         # no cond clause but an else clause, so (cond (else <sequence>))
         elif self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
             self.else_rule()
             self.match(TokenType.EXPR_END)
-            self.parens.pop()
+            #self.parens.pop()
             
         # one or more cond clauses and an optional else at the end
         else:
@@ -352,7 +353,7 @@ class Parser:
                 self.cond_clause()
                 
             self.match(TokenType.EXPR_END)
-            self.parens.pop()
+            #self.parens.pop()
             
     #(case <expression> <case clause>*) | (case <expression> <case clause>* (else <sequence>))  #<case clause> ::= ((<datum>*) <sequence>)       
     def case_exp(self):
@@ -360,13 +361,13 @@ class Parser:
         self.expression()
         
         if self.check_token(TokenType.EXPR_END):
-            self.parens.pop()
+            #self.parens.pop()
             self.next_token()
             
         elif self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
             self.else_rule()
             self.match(TokenType.EXPR_END)
-            self.parens.pop()
+            #self.parens.pop()
         
         # one or more case clauses and an optional else at the end
         else:
@@ -376,7 +377,7 @@ class Parser:
                     break
                 self.case_clause()
             self.match(TokenType.EXPR_END)
-            self.parens.pop()
+            #self.parens.pop()
     
     # (let (<binding spec>*) <body>) | (let <variable> (<binding spec>*) <body>) 
     def let_exp(self):
@@ -390,7 +391,7 @@ class Parser:
         self.next_token()
         self.body()
         self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        #self.parens.pop()
     
     # (let* (<binding spec>*) <body>)
     def let_star_exp(self):
@@ -401,7 +402,7 @@ class Parser:
         self.next_token()
         self.body()
         self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        #self.parens.pop()
         
     # (letrec (<binding spec>*) <body>)
     def letrec_exp(self):
@@ -412,7 +413,7 @@ class Parser:
         self.next_token()
         self.body()
         self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        #self.parens.pop()
 
     # (set! <variable> <expression>)
     def setexclam_exp(self):
@@ -421,7 +422,7 @@ class Parser:
         print("VARIABLE")
         self.expression()
         self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        #self.parens.pop()
         
     #(rec <variable> <expression>)
     def rec_exp(self):
@@ -430,7 +431,7 @@ class Parser:
         print("VARIABLE")
         self.expression()
         self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        #self.parens.pop()
         
     # (do (<iteration spec>*) (<end test> <sequence>+) <expression>*)
     def do_exp(self):
@@ -442,7 +443,7 @@ class Parser:
         self.end_test()
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
-        self.parens.pop()
+        #self.parens.pop()
         self.next_token()
 
     # (quasiquote <datum>) , but datum is handled differently here. It must accept unquote and unquote-splicing keywords
@@ -451,7 +452,7 @@ class Parser:
         print("EXPRESSION-QUASIQUOTE")
         self.quasiquote_datum()
         self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        #self.parens.pop()
         
     # <iteration spec> ::= (<variable> <init> <step>), init and step are expressions
     def iteration_spec(self):
@@ -487,11 +488,11 @@ class Parser:
     def cond_clause(self):
         print("COND-CLAUSE")
         self.match(TokenType.EXPR_START)
-        self.parens.append("(")
+        #self.parens.append("(")
         self.expression()
         self.expression()
         self.match(TokenType.EXPR_END)
-        self.parens.pop()
+        #self.parens.pop()
         
     #<case clause> ::= ((<datum>*) <sequence>)
     def case_clause(self):
@@ -520,7 +521,7 @@ class Parser:
             print("VARIABLE")
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
-            self.parens.append(self.cur_token.text)
+            #self.parens.append(self.cur_token.text)
             token_count = 0
             self.next_token()
             
@@ -542,7 +543,7 @@ class Parser:
                 else:
                     self.abort("Incorrect syntax in varlist of lambda expression.")
             #no nesting in this grammar rule so no need to check stack 
-            self.parens.pop()
+            #self.parens.pop()
             self.next_token()
             
         else:
@@ -554,7 +555,7 @@ class Parser:
     def definition_exp(self) -> str:
         print("EXPRESSION-DEFINE")
         ident_name = None
-        num_parens = len(self.parens) - 1
+        #num_parens = len(self.parens) - 1
         if self.check_token(TokenType.IDENTIFIER):
             print("VARIABLE")
             ident_name = self.cur_token.text
@@ -568,6 +569,7 @@ class Parser:
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
             self.emitter.emit_definition(ident_name,is_global)
         elif self.check_token(TokenType.EXPR_START):
+            #function case
             function = Function()
             self.call_pattern(function)
             self.body(function)
@@ -578,17 +580,23 @@ class Parser:
             self.abort("Incorrect syntax in definition expression")
             
         self.match(TokenType.EXPR_END)
-        if len(self.parens) != 1 + num_parens:
-            self.abort("Parentheses are not well formed.")
-        self.parens.pop()
+        # if len(self.parens) != 1 + num_parens:
+        #     self.abort("Parentheses are not well formed.")
+        # self.parens.pop()
         return ident_name
          
-    # <call pattern> ::= (<pattern> <variable>*) | (<pattern> <variable>* . <variable>), where pattern ::= variable | <call pattern>
+    # <call pattern> ::= (<pattern> <variable>*) | 
+    # (<pattern> <variable>* . <variable>) where pattern ::= variable | <call pattern>
+    # populates Function obj with everything except local definitions, and body
+    
+    #might make pattern = to just a variable, but not sure yet. will begin with
+    #implementing call pattern assuming that pattern is not recursive and is just
+    # a variable
     def call_pattern(self,function):
         print("CALL_PATTERN")
-        num_parens = len(self.parens)
-        self.parens.append(self.cur_token.text)
-        self.next_token()
+        #num_parens = len(self.parens)
+        #self.parens.append(self.cur_token.text)
+        self.match(TokenType.EXPR_START)
         if self.check_token(TokenType.IDENTIFIER):
             print("PATTERN")
             function.set_name(self.cur_token.text)
@@ -607,9 +615,9 @@ class Parser:
                     self.next_token()
                 else:
                     self.abort(self.cur_token.text + " is not an identifier.")
-            if len(self.parens) != 1 + num_parens:
-                self.abort("Parentheses in call pattern are not well formed.")
-            self.parens.pop()
+            # if len(self.parens) != 1 + num_parens:
+            #     self.abort("Parentheses in call pattern are not well formed.")
+            #self.parens.pop()
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
             self.call_pattern() 
@@ -622,11 +630,12 @@ class Parser:
         print("BODY")
         #Process all definitions first. then process sequence with self.expression()
         while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):  
-            self.parens.append(self.cur_token.text)
+            #self.parens.append(self.cur_token.text)
             self.next_token()
             self.next_token()
             definition_name = self.definition_exp()
-            function.add_local_definition(definition_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
+            function.add_local_definition(definition_name,
+            Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         #extract function body
         function.add_to_body(self.extract_exp())
         # self.expression()
@@ -797,4 +806,3 @@ class Parser:
             self.vector(True)     
         else:
             self.abort(self.cur_token.text + " Is not a valid datum.")
-        

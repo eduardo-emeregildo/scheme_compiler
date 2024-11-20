@@ -11,10 +11,7 @@ class IdentifierType(Enum):
     FUNCTION = 7
     #an identifier that you dont evaluate. Ex would be if you do 'x, x is a symbol and we dont eval. an Identifier of this type would have the symbol name as the value
     SYMBOL = 8
-
-
 class Identifier:
-    #might need to add a third field which is offset from the stack. Since local vars will be on the stack, the offset amt is needed
     def __init__(self,typeof,value):
         self.typeof = typeof
         self.value = value
@@ -87,11 +84,6 @@ class Environment:
     def is_defined(self,ident_name):
         return ident_name in self.symbol_table
         
-    # def get_offset(self,ident_name):
-    #     return self.symbol_table[ident_name][0]
-    
-    # def get_ident_object(self,ident_name):
-    #     return self.symbol_table[ident_name][1]
 
     def remove_definition(self,ident_name):
         del self.symbol_table[ident_name]
@@ -104,7 +96,7 @@ class Environment:
     def find_definition(self,ident_name):  
         if ident_name in self.symbol_table:
             return self.symbol_table[ident_name]
-        if self.parent == None:
+        if self.parent is None:
             sys.exit("Error, " + "Identifier " + ident_name + "Not defined.")
         return self.parent.find_definition(ident_name)
     #caller will be parent env of new env

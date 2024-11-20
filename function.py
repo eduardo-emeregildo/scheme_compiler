@@ -1,18 +1,25 @@
 from environment import *
 import sys
-#class used to represent functions. for Identifier objs with typeof = IdentifierType.FUNCTION, its value will be this function object
+#class used to represent functions. for Identifier objs with 
+# typeof = IdentifierType.FUNCTION, its value will be this function object
 
 #param_list is a python list of param names
 #arity  is number of args the function accepts
-#body is scheme body of function
+#body is the asm instructions for the function
+
+#if procedure has more than six args, they'll be on the stack
+LINUX_CALLING_CONVENTION = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
+LINUX_FLOATING_POINT_CONVENTION = ["xmm0","xmm1","xmm2","xmm3","xmm4","xmm5",
+"xmm6","xmm7"
+]
 
 class Function():
     def __init__(self):
+        self.name = ""
         self.param_list = []
         #for local define expressions in the body of the function
         self.local_definitions = {}
         self.arity = 0
-        self.name = ""
         self.body = ""
     
     def add_param(self,param:str):

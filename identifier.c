@@ -1,5 +1,4 @@
 // gcc -Wall -c -o identifier.o identifier.c
-//Todo: start working on the parser so that it emits asm code that calls these functions
 #include "identifier.h"
 
 // for signed 63 bit int: [-2^62, 2^62 - 1]
@@ -298,6 +297,15 @@ Value *make_value_vector(Value *value_obj_array, size_t len)
         struct Vector *vector_obj = allocate_vector(value_obj_array,len);
         ptr_value_vector->as.vector = vector_obj;
         return ptr_value_vector;
+}
+
+
+Value *make_value_function(void *addr)
+{
+        Value *ptr_value_function = make_tagged_ptr(1);
+        ptr_value_function->type = VAL_FUNCTION;
+        ptr_value_function->as.function = addr;
+        return ptr_value_function;
 }
 
 //prints a value type

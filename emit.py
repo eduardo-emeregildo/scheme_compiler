@@ -1,7 +1,8 @@
 from environment import *
 from generation import *
 # Emitter object keeps track of the generated main_code and outputs it.
-#If i run into performance issues modify functions to use less concatenations or to concat by putting strs in a list and calling .join
+#If i run into performance issues modify functions to use less concatenations or 
+# to concat by putting strs in a list and calling .join
 
 class Emitter:
     def __init__(self, fullPath):
@@ -136,7 +137,6 @@ class Emitter:
             asm_code.append(f"\tmov rdi, rsi\n\tmov rsi, {len(ident_obj.value)}")
             asm_code.append("\tcall allocate_vector\n\tpop rdi\n\tmov rsi,rax")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_vector")
-            
         elif TYPE == IdentifierType.FUNCTION:
             print('implement me (function) :P')
         elif TYPE == IdentifierType.SYMBOL:
@@ -217,7 +217,6 @@ class Emitter:
             asm_code.append(self.set_ith_value(ident,i))
         asm_code.append("\tpop rsi")
         return '\n'.join(asm_code)
-    
     
     #given ident_obj and a bool determining whether to emit to main or a label,
     #emit in the corresponding place
