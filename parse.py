@@ -4,7 +4,11 @@ from emit import *
 from environment import *
 from function import *
 
-# implement the function definition, i.e. handle (define (my-func x) x)
+#test function definitions(different amt of args,definitions,and body expressions)
+#returnning a function from a function currently doesnt work
+#implement defining functions with dot notation as call pattern
+#implement calling functions
+
 #Todo0: implement defining functions. test local definitions with functions
 #Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
 
@@ -136,13 +140,16 @@ class Parser:
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
-            if not self.cur_token.text in self.cur_environment.symbol_table:
-                self.abort("Identifier "+ self.cur_token.text + " not defined.")
             print("EXPRESSION-VARIABLE")
             definition = self.cur_environment.find_definition(self.cur_token.text)
             def_offset = Environment.get_offset(definition)
             def_ident_obj = Environment.get_ident_obj(definition)
-            self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
+            
+            
+            if def_ident_obj is not None:
+                self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
+            else:
+                self.last_exp_res = None
             self.emitter.emit_defined_variable(self.cur_token.text,def_offset)
             self.next_token()
                     
@@ -251,6 +258,12 @@ class Parser:
     def extract_exp(self) -> str:
         open_paren_count = 0
         exp = []
+        if self.check_token(TokenType.QUOTE_SYMBOL):
+            exp.append(self.cur_token.text)
+            self.next_token()
+        if self.check_token(TokenType.HASH):
+            exp.append(self.cur_token.text)
+            self.next_token()
         if self.check_token(TokenType.EXPR_START):
             if self.check_peek(TokenType.EXPR_END):
                 self.abort("Empty expression in body.")
@@ -258,7 +271,7 @@ class Parser:
             exp.append(str(self.cur_token.text))
             self.next_token()
             while open_paren_count != 0:
-                exp.append(str(self.cur_token.text))
+                exp.append(f"{str(self.cur_token.text)} ")
                 if self.check_token(TokenType.EXPR_START):
                     open_paren_count += 1
                 elif self.check_token(TokenType.EXPR_END):
@@ -271,7 +284,8 @@ class Parser:
         else:
             exp.append(str(self.cur_token.text))
             self.next_token()
-        return ' '.join(exp)
+        exp.append("\0")
+        return ''.join(exp)
       
     #(if <test> <consequent> <alternate>) | (if <test> <consequent>), where test,consequent and alternate are expressions
     def if_exp(self):
@@ -565,24 +579,34 @@ class Parser:
                 self.emitter.emit_bss_section(f"\t{ident_name}: resq 1")                    
             self.next_token()
             self.expression()
+            self.set_last_exp_res(self.last_exp_res.typeof,self.last_exp_res.value)
             self.cur_environment.add_definition(ident_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
-            self.emitter.emit_definition(ident_name,is_global)
+            offset = Environment.get_offset(
+            self.cur_environment.symbol_table[ident_name])
+            self.emitter.emit_definition(ident_name,is_global,offset)
+            
         elif self.check_token(TokenType.EXPR_START):
             #function case
             function = Function()
+            
+            old_env = self.cur_environment
+            self.cur_environment = old_env.create_local_env()
+            
             self.call_pattern(function)
             self.body(function)
-            self.evaluate_function(function)
+            #now add function definition to parent envifonment
             ident_name = function.get_name()
-            self.cur_environment.add_definition(ident_name,Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
+            self.cur_environment = old_env
+            self.cur_environment.add_definition(ident_name,Identifier(
+            IdentifierType.FUNCTION,function))
+            self.evaluate_function(function)
+            print("sdfalkjhsl",self.cur_environment.symbol_table)
         else:
             self.abort("Incorrect syntax in definition expression")
             
         self.match(TokenType.EXPR_END)
-        # if len(self.parens) != 1 + num_parens:
-        #     self.abort("Parentheses are not well formed.")
-        # self.parens.pop()
+        # self.last_exp_res = None # since definitions arent exps
         return ident_name
          
     # <call pattern> ::= (<pattern> <variable>*) | 
@@ -600,7 +624,10 @@ class Parser:
         if self.check_token(TokenType.IDENTIFIER):
             print("PATTERN")
             function.set_name(self.cur_token.text)
+            self.emitter.emit_function_label(function.name)
+            self.emitter.emit_function_prolog()
             self.next_token()
+            arg_count = 0
             while not self.check_token(TokenType.EXPR_END):
                 if self.check_token(TokenType.DOT):
                     print("DOT")
@@ -612,34 +639,43 @@ class Parser:
                 elif self.check_token(TokenType.IDENTIFIER):
                     print("VARIABLE")
                     function.add_param(self.cur_token.text)
+                    #now add ALL args to environment and emit only args 1-6
+                    arg_count += 1
+                    if arg_count < 7:
+                        self.cur_environment.add_definition(self.cur_token.text,None)
+                        self.emitter.emit_register_arg(arg_count)
+                    else:
+                        #add stack definition to env. 
+                        # no need to emit since on the other side of the stack
+                        self.cur_environment.add_stack_definition(
+                        self.cur_token.text,(arg_count-5)*8)
                     self.next_token()
                 else:
                     self.abort(self.cur_token.text + " is not an identifier.")
-            # if len(self.parens) != 1 + num_parens:
-            #     self.abort("Parentheses in call pattern are not well formed.")
-            #self.parens.pop()
+            
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
             self.call_pattern() 
         else:
             self.abort("Incorrect syntax for call pattern.")
 
-    # the definition are the local variables declared (within the function) which will be usable in the sequence.
+    # the definition are the local variables declared (within the function) 
+    # which will be usable in the sequence.
     # <body> ::= <definition>* <sequence>   
     def body(self,function):
         print("BODY")
-        #Process all definitions first. then process sequence with self.expression()
+        #Process all definitions, then call self.expression to create function
+        #body
         while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):  
             #self.parens.append(self.cur_token.text)
             self.next_token()
             self.next_token()
             definition_name = self.definition_exp()
             function.add_local_definition(definition_name,
-            Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
-        #extract function body
-        function.add_to_body(self.extract_exp())
-        # self.expression()
-            
+            Identifier(self.last_exp_res.typeof,self.last_exp_res.value))   
+        self.expression()
+        self.emitter.emit_function_epilog()
+        
     def is_constant(self):
         return self.is_token_any(self.cur_token.type,[TokenType.BOOLEAN,
         TokenType.NUMBER,TokenType.CHAR,TokenType.STRING])

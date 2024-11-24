@@ -1,9 +1,10 @@
 from environment import *
 from generation import *
+import sys
 # Emitter object keeps track of the generated main_code and outputs it.
 #If i run into performance issues modify functions to use less concatenations or 
 # to concat by putting strs in a list and calling .join
-
+LINUX_CALLING_CONVENTION = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
 class Emitter:
     def __init__(self, fullPath):
         self.fullPath = fullPath
@@ -11,18 +12,24 @@ class Emitter:
         self.local_labels = [] #for creating character arrays. will go under
         #main section. if i wanna add string interning this is where i would have to look
         self.bss_section = "section .bss\n"
-        self.text_section = "section .text\n"
-        self.main_code = "global main\nmain:\n\tpush rbp\n\tmov rbp,rsp\n"
+        self.text_section = "section .text\nglobal main\n"
+        self.main_code = "main:\n\tpush rbp\n\tmov rbp,rsp\n"
         self.functions = ""
-        
-    def emit_data_label(self,label):
-        self.emit_bss_section(label + ":")
         
     def emit_bss_section(self,code):
         self.bss_section += code + '\n'
 
     def emit_function(self,code):
         self.functions += code + '\n'
+    
+    def emit_function_label(self,label):
+        self.emit_function(f"{label}:")
+    
+    def emit_function_prolog(self):
+        self.emit_function(f"\tpush rbp\n\tmov rbp, rsp")
+    
+    def emit_function_epilog(self):
+        self.emit_function(f"\tpop rbp\n\tret")
         
     # def emit_global_definitions(self,def_dict):
     #     emitted_definitions = []
@@ -235,14 +242,16 @@ class Emitter:
             
     #emits_definition to corresponding place. thi definitely needs to be
     #revisited to implement closures
-    def emit_definition(self,ident_name,is_global):
+    #offset used for local_definitions b/c they have to go on the stack
+    def emit_definition(self,ident_name,is_global,offset = None):
         if is_global:
             self.emit_main_section(f"\tmov QWORD [{ident_name}],rax")
         else:
-            self.emit_function("push rax")
+            self.emit_function(f"\tmov QWORD [rbp{offset:+}], rax")
     
-    #used for identifier expression. will have the value for the ident in rax
-    #offset = None means the var is global 
+    # used for identifier expression where identifier is NOT a register arg. 
+    # will have the value for the ident in rax.
+    # offset = None means the var is global 
     def emit_defined_variable(self,ident_name,offset):
         if offset is None:
             self.emit_main_section(f"\tmov rax, QWORD [{ident_name}]")
@@ -250,17 +259,20 @@ class Emitter:
             #what if the definition was found in a parent environment that is 
             # also local. the offset would be .wrong then 
             # This might be where closures come in
-            self.emit_function(f"\tmov rax, QWORD [rbp - {offset}]")
-            
-            
-            
-    #to declare functions from runtime
+            self.emit_function(f"\tmov rax, QWORD [rbp{offset:+}]")
+    
+    def emit_register_arg(self,arg_num):
+        self.emit_function(
+        f"\tmov QWORD[rbp-{arg_num * 8}],{LINUX_CALLING_CONVENTION[arg_num -1]}")
+        
+    #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 
         else f"extern {','.join(list(self.externs))}\n")
-        
+    
+    
     def writeFile(self):
         with open(self.fullPath, 'w') as outputFile:
             self.emit_externs()
             outputFile.write(self.bss_section + self.text_section + 
-            self.main_code +'\n'.join(self.local_labels) + self.functions)
+            self.functions + self.main_code +'\n'.join(self.local_labels))
