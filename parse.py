@@ -5,9 +5,10 @@ from environment import *
 from function import *
 
 #test function definitions(different amt of args,definitions,and body expressions)
-#returnning a function from a function currently doesnt work
+#also test the asm with gdb
+
 #implement defining functions with dot notation as call pattern
-#implement calling functions
+#implement calling a function
 
 #Todo0: implement defining functions. test local definitions with functions
 #Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
@@ -51,7 +52,6 @@ class Parser:
             self.abort("Expected " + type.name + ", got " + self.cur_token.type.name)
         self.next_token()
         
-
     # Advances the current token.
     def next_token(self):
         self.cur_token = self.peek_token
@@ -141,16 +141,19 @@ class Parser:
         
         elif self.check_token(TokenType.IDENTIFIER):
             print("EXPRESSION-VARIABLE")
+            is_global = self.cur_environment.is_global()
             definition = self.cur_environment.find_definition(self.cur_token.text)
-            def_offset = Environment.get_offset(definition)
             def_ident_obj = Environment.get_ident_obj(definition)
-            
             
             if def_ident_obj is not None:
                 self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
             else:
                 self.last_exp_res = None
-            self.emitter.emit_defined_variable(self.cur_token.text,def_offset)
+            
+            if is_global:
+                self.emitter.emit_var_to_global(self.cur_token.text,definition)
+            else:
+                self.emitter.emit_var_to_local(self.cur_token.text,definition)
             self.next_token()
                     
         elif self.check_token(TokenType.QUOTE_SYMBOL):
@@ -592,7 +595,7 @@ class Parser:
             
             old_env = self.cur_environment
             self.cur_environment = old_env.create_local_env()
-            
+
             self.call_pattern(function)
             self.body(function)
             #now add function definition to parent envifonment
@@ -601,7 +604,14 @@ class Parser:
             self.cur_environment.add_definition(ident_name,Identifier(
             IdentifierType.FUNCTION,function))
             self.evaluate_function(function)
-            print("sdfalkjhsl",self.cur_environment.symbol_table)
+            
+            #lastly, make function object in the runtime
+            self.emitter.emit_identifier_to_section(self.last_exp_res,
+            self.cur_environment.is_global())
+            is_global = self.cur_environment.is_global()
+            offset = Environment.get_offset(
+            self.cur_environment.symbol_table[ident_name])
+            self.emitter.emit_definition(ident_name,is_global,offset)
         else:
             self.abort("Incorrect syntax in definition expression")
             
@@ -624,7 +634,16 @@ class Parser:
         if self.check_token(TokenType.IDENTIFIER):
             print("PATTERN")
             function.set_name(self.cur_token.text)
-            self.emitter.emit_function_label(function.name)
+            
+            #declare space in bss section for function obj if function was made
+            # from global env
+            is_parent_global = self.cur_environment.parent.is_global()
+            ident = self.cur_token.text
+            if is_parent_global and not self.cur_environment.parent.is_defined(ident):
+                self.emitter.emit_bss_section(f"\t{ident}: resq 1")
+            
+            self.emitter.emit_function_label("..@" + function.name)
+            
             self.emitter.emit_function_prolog()
             self.next_token()
             arg_count = 0
@@ -655,7 +674,7 @@ class Parser:
             
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
-            self.call_pattern() 
+            self.call_pattern() # will probably remove this recursive def
         else:
             self.abort("Incorrect syntax for call pattern.")
 
@@ -666,8 +685,7 @@ class Parser:
         print("BODY")
         #Process all definitions, then call self.expression to create function
         #body
-        while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):  
-            #self.parens.append(self.cur_token.text)
+        while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):
             self.next_token()
             self.next_token()
             definition_name = self.definition_exp()

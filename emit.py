@@ -30,16 +30,7 @@ class Emitter:
     
     def emit_function_epilog(self):
         self.emit_function(f"\tpop rbp\n\tret")
-        
-    # def emit_global_definitions(self,def_dict):
-    #     emitted_definitions = []
-    #     factory = GeneratorFactory()
-    #     for ident_name in def_dict:
-    #         type_generator = factory.create_generator(def_dict[ident_name],0,ident_name)
-    #         emitted_definitions.append(f"{ident_name}:")
-    #         emitted_definitions.append(type_generator.generate_global_var())
-    #     self.emit_bss_section('\n'.join(emitted_definitions))
-            
+                
     def emit_main_section(self,code):
         self.main_code += code + '\n'
         
@@ -95,7 +86,9 @@ class Emitter:
                 # asm_code.append("\tmov rdi,rax\n\tcall print_vector")
                 return '\n'.join(asm_code)
             case IdentifierType.FUNCTION:
-                print("Implement compile_identifier for function!")
+                self.add_extern("make_value_function")
+                function_name = ident_obj.value.name
+                return f"\tmov rdi, ..@{function_name}\n\tcall make_value_function"
             case IdentifierType.SYMBOL:
                 self.add_extern("allocate_str")
                 self.add_extern("make_value_symbol")
@@ -145,7 +138,10 @@ class Emitter:
             asm_code.append("\tcall allocate_vector\n\tpop rdi\n\tmov rsi,rax")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_vector")
         elif TYPE == IdentifierType.FUNCTION:
-            print('implement me (function) :P')
+            self.add_extern("set_ith_value_function")
+            function_name = ident_obj.value.name
+            asm_code.append(f"\tmov rsi, ..@{function_name}\n\tmov rdx, {index}")
+            asm_code.append("\tcall set_ith_value_function")
         elif TYPE == IdentifierType.SYMBOL:
             self.add_extern("set_ith_value_symbol")
             self.emit_local_label(f"'{ident_obj.value}'")
@@ -240,7 +236,7 @@ class Emitter:
         else:
             self.emit_function(asm_code)
             
-    #emits_definition to corresponding place. thi definitely needs to be
+    #emits_definition to corresponding place. this definitely needs to be
     #revisited to implement closures
     #offset used for local_definitions b/c they have to go on the stack
     def emit_definition(self,ident_name,is_global,offset = None):
@@ -248,19 +244,23 @@ class Emitter:
             self.emit_main_section(f"\tmov QWORD [{ident_name}],rax")
         else:
             self.emit_function(f"\tmov QWORD [rbp{offset:+}], rax")
+        
+    #emits identifier exp to main section. Assumes var is already in rax
+    def emit_var_to_global(self,ident_name,symbol_table_arr):
+        if Environment.get_offset(symbol_table_arr) is not None:
+            sys.exit("Shouldnt get here. Cant emit a local var in global scope")
+        self.emit_main_section(f"\tmov rax, QWORD [{ident_name}]")
     
-    # used for identifier expression where identifier is NOT a register arg. 
-    # will have the value for the ident in rax.
-    # offset = None means the var is global 
-    def emit_defined_variable(self,ident_name,offset):
-        if offset is None:
-            self.emit_main_section(f"\tmov rax, QWORD [{ident_name}]")
+    #emits identifier exp to function section
+    def emit_var_to_local(self,ident_name,symbol_table_arr):
+        offset = Environment.get_offset(symbol_table_arr)
+        if offset is None: #var to emit is global
+            self.emit_function(f"\tmov rax, QWORD [{ident_name}]")
         else:
-            #what if the definition was found in a parent environment that is 
-            # also local. the offset would be .wrong then 
-            # This might be where closures come in
             self.emit_function(f"\tmov rax, QWORD [rbp{offset:+}]")
-    
+            
+            
+        
     def emit_register_arg(self,arg_num):
         self.emit_function(
         f"\tmov QWORD[rbp-{arg_num * 8}],{LINUX_CALLING_CONVENTION[arg_num -1]}")
@@ -269,7 +269,6 @@ class Emitter:
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 
         else f"extern {','.join(list(self.externs))}\n")
-    
     
     def writeFile(self):
         with open(self.fullPath, 'w') as outputFile:

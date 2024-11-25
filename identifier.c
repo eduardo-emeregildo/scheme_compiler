@@ -213,6 +213,13 @@ void set_ith_value_vector(Value *val_ptr,struct Vector *vec,size_t index)
         val_ptr[index].as.vector = vec;
 }
 
+void set_ith_value_function(Value *val_ptr,void *func_addr,size_t index)
+{
+        val_ptr[index].type = VAL_FUNCTION;
+        val_ptr[index].as.function = func_addr;
+
+}
+
 Value *get_car_ptr(struct Pair *pair_obj)
 {
         return &pair_obj->car;
