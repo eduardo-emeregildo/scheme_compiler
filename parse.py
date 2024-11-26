@@ -3,14 +3,8 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
-
-#test function definitions(different amt of args,definitions,and body expressions)
-#also test the asm with gdb
-
-#implement defining functions with dot notation as call pattern
 #implement calling a function
-
-#Todo0: implement defining functions. test local definitions with functions
+#implement defining functions with dot notation as call pattern
 #Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
 
 # Parser object keeps track of current token and checks if the code matches the grammar.
@@ -592,15 +586,16 @@ class Parser:
         elif self.check_token(TokenType.EXPR_START):
             #function case
             function = Function()
+            parent_env = self.cur_environment
+            previous_cur_function = self.emitter.cur_function
+            self.cur_environment = parent_env.create_local_env()
             
-            old_env = self.cur_environment
-            self.cur_environment = old_env.create_local_env()
-
             self.call_pattern(function)
             self.body(function)
+            self.emitter.set_current_function(previous_cur_function)
             #now add function definition to parent envifonment
             ident_name = function.get_name()
-            self.cur_environment = old_env
+            self.cur_environment = parent_env
             self.cur_environment.add_definition(ident_name,Identifier(
             IdentifierType.FUNCTION,function))
             self.evaluate_function(function)
@@ -620,30 +615,24 @@ class Parser:
         return ident_name
          
     # <call pattern> ::= (<pattern> <variable>*) | 
-    # (<pattern> <variable>* . <variable>) where pattern ::= variable | <call pattern>
-    # populates Function obj with everything except local definitions, and body
-    
-    #might make pattern = to just a variable, but not sure yet. will begin with
-    #implementing call pattern assuming that pattern is not recursive and is just
-    # a variable
+    # (<pattern> <variable>* . <variable>) where pattern ::= variable
+    # populates Function obj with everything except local definitions and body
     def call_pattern(self,function):
         print("CALL_PATTERN")
-        #num_parens = len(self.parens)
-        #self.parens.append(self.cur_token.text)
         self.match(TokenType.EXPR_START)
         if self.check_token(TokenType.IDENTIFIER):
             print("PATTERN")
             function.set_name(self.cur_token.text)
-            
+            self.emitter.set_current_function(function.name)
+            if function.name in self.emitter.functions: #for redifining function
+                del self.emitter.functions[function.name]
             #declare space in bss section for function obj if function was made
             # from global env
             is_parent_global = self.cur_environment.parent.is_global()
             ident = self.cur_token.text
             if is_parent_global and not self.cur_environment.parent.is_defined(ident):
                 self.emitter.emit_bss_section(f"\t{ident}: resq 1")
-            
             self.emitter.emit_function_label("..@" + function.name)
-            
             self.emitter.emit_function_prolog()
             self.next_token()
             arg_count = 0
@@ -671,14 +660,11 @@ class Parser:
                     self.next_token()
                 else:
                     self.abort(self.cur_token.text + " is not an identifier.")
-            
             self.next_token()
-        elif self.check_token(TokenType.EXPR_START):
-            self.call_pattern() # will probably remove this recursive def
         else:
             self.abort("Incorrect syntax for call pattern.")
 
-    # the definition are the local variables declared (within the function) 
+    # the definitions are the local variables declared (within the function) 
     # which will be usable in the sequence.
     # <body> ::= <definition>* <sequence>   
     def body(self,function):
@@ -687,10 +673,10 @@ class Parser:
         #body
         while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):
             self.next_token()
-            self.next_token()
+            self.next_token()            
             definition_name = self.definition_exp()
             function.add_local_definition(definition_name,
-            Identifier(self.last_exp_res.typeof,self.last_exp_res.value))   
+            Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         self.expression()
         self.emitter.emit_function_epilog()
         

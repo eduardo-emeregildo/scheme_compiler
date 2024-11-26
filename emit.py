@@ -14,13 +14,24 @@ class Emitter:
         self.bss_section = "section .bss\n"
         self.text_section = "section .text\nglobal main\n"
         self.main_code = "main:\n\tpush rbp\n\tmov rbp,rsp\n"
-        self.functions = ""
-        
+        #each function will have its dedicated slot to write to in self.functions
+        self.functions = {}
+        #holds the current function name(str) to write to, which is a key in 
+        #self.functions
+        self.cur_function = None
     def emit_bss_section(self,code):
         self.bss_section += code + '\n'
 
     def emit_function(self,code):
-        self.functions += code + '\n'
+        if self.cur_function is None:
+            sys.exit("Error in emit_function. cur_function is None.")
+        if self.cur_function not in self.functions:
+            self.functions[self.cur_function] = code + '\n'
+        else:
+            self.functions[self.cur_function] += code + '\n'
+            
+    def set_current_function(self,func_name):
+        self.cur_function = func_name
     
     def emit_function_label(self,label):
         self.emit_function(f"{label}:")
@@ -273,5 +284,6 @@ class Emitter:
     def writeFile(self):
         with open(self.fullPath, 'w') as outputFile:
             self.emit_externs()
-            outputFile.write(self.bss_section + self.text_section + 
-            self.functions + self.main_code +'\n'.join(self.local_labels))
+            outputFile.write(self.bss_section + self.text_section 
+            + ''.join(self.functions.values()) + self.main_code 
+            +'\n'.join(self.local_labels))
