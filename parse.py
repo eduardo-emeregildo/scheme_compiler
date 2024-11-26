@@ -4,6 +4,10 @@ from emit import *
 from environment import *
 from function import *
 
+#fix test case in functions.scm. seems that the generated code is correct,
+#its just emitting in the wrong place. functions in emitter should be an array
+# that way each function has its dedicated spot to write to. 
+
 #test function definitions(different amt of args,definitions,and body expressions)
 #also test the asm with gdb
 
@@ -592,15 +596,14 @@ class Parser:
         elif self.check_token(TokenType.EXPR_START):
             #function case
             function = Function()
-            
-            old_env = self.cur_environment
-            self.cur_environment = old_env.create_local_env()
+            parent_env = self.cur_environment
+            self.cur_environment = parent_env.create_local_env()
 
             self.call_pattern(function)
             self.body(function)
             #now add function definition to parent envifonment
             ident_name = function.get_name()
-            self.cur_environment = old_env
+            self.cur_environment = parent_env
             self.cur_environment.add_definition(ident_name,Identifier(
             IdentifierType.FUNCTION,function))
             self.evaluate_function(function)
@@ -687,10 +690,10 @@ class Parser:
         #body
         while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):
             self.next_token()
-            self.next_token()
+            self.next_token()            
             definition_name = self.definition_exp()
             function.add_local_definition(definition_name,
-            Identifier(self.last_exp_res.typeof,self.last_exp_res.value))   
+            Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         self.expression()
         self.emitter.emit_function_epilog()
         
