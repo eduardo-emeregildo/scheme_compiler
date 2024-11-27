@@ -4,8 +4,12 @@ from emit import *
 from environment import *
 from function import *
 
+#work on function_call. Right now arg values are being overwritten. They have to
+#go on the stack first and once every arg is evaluated, put them in the right register
+
 #Todo1: implement calling a normal function and a variadic function
-#Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
+#Todo2: begin writing some library functions in the runtime. start with 
+#equality tests, +,-,*,/,cons,append, and printing
 
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
@@ -30,7 +34,11 @@ class Parser:
     def set_last_exp_res(self,typeof,val):
         self.last_exp_res = Identifier(typeof,val)
     
-
+    def get_last_exp_type(self):
+        if self.last_exp_res is None:
+            self.abort("Cant get type, last expression evaluated to None.")
+        return self.last_exp_res.typeof
+        
     def is_token_any(self,type,type_arr):
         return type in type_arr
     
@@ -155,7 +163,6 @@ class Parser:
             self.datum()
 
         elif self.check_token(TokenType.EXPR_START):
-            #self.parens.append(self.cur_token.text)
             self.next_token()
             if self.check_token(TokenType.IF):
                 self.next_token()
@@ -233,24 +240,60 @@ class Parser:
                 self.next_token()
                 self.quasiquote_exp()
             #<procedure call> ::= (<operator> <operand>*)
-            #in the emitter, the first expression must evaluate to a valid operator
+            #first exp must be an ident_obj of type function
             else:
-                # self.abort("Token " + str(self.cur_token.text) + " is not an operator")
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
                 self.expression()
-                while not self.check_token(TokenType.EXPR_END):
-                    print("OPERAND")
-                    self.expression()
-                #self.parens.pop()
-                self.next_token()
+                #this if is for register args. If a register arg is used as a
+                #procedure, the type must be checked at runtime.
+                if self.last_exp_res is None:
+                    #this probably needs its own function
+                    self.abort("Using register arg as procedure. Have to implement")
+                if self.get_last_exp_type() != IdentifierType.FUNCTION:
+                    self.abort(f"Application not a procedure.")
+                    
+                func_obj = self.last_exp_res.value
+                if func_obj.is_variadic:
+                    pass #function call for variadic
+                else:
+                    self.function_call(func_obj)  
+                # while not self.check_token(TokenType.EXPR_END):
+                #     print("OPERAND")
+                #     self.expression()
+                # #self.parens.pop()
+                # self.next_token()
                 
-                 
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
-      
-    #returns a string which contains the next expression. used to extract body of a function. self.cur_token will be set to next char after exp
-    #This method does not check if the expression has correct syntax(racket doesnt either), the error will occur will the function gets called
+    
+    def function_call(self,func_obj):
+        arg_count = 0
+        is_global = self.cur_environment.is_global()
+        while not self.check_token(TokenType.EXPR_END):
+            print("OPERAND")
+            arg_count += 1
+            if arg_count > func_obj.arity:
+                break
+            self.expression()
+            if self.last_exp_res is None:
+                self.abort("In function_call, arg evaluated to None.")
+            self.emitter.emit_register_arg(arg_count,is_global)
+            #also have to cover the case of function with 7 or more args
+            print("IN FUNCTION CALL: ",self.last_exp_res.typeof)
+            
+        if arg_count != func_obj.arity:
+                self.abort(f"Arity mismatch. Function " + 
+                f"{func_obj.name} requires {str(func_obj.arity)} arguments.")
+            
+        self.next_token()
+        
+        
+    #returns a string which contains the next expression. used to extract body 
+    # of a function. self.cur_token will be set to next char after exp
+    #This method does not check if the expression has correct syntax(racket doesnt either), 
+    # the error will occur will the function gets called
+    #leave this function for now, but might be deleted in the future
     def extract_exp(self) -> str:
         open_paren_count = 0
         exp = []
@@ -310,9 +353,6 @@ class Parser:
         self.datum()        
         if not self.check_token(TokenType.EXPR_END):
             self.abort("Incorrect syntax in quote expression. ")
-        # if len(self.parens) == 0:
-        #     self.abort("Parentheses in quote expression not well formed.")
-        # self.parens.pop()
         self.next_token()
         
     #(lambda <bound var list> <body>)
@@ -617,7 +657,7 @@ class Parser:
     def add_param_to_env(self,arg_count):
         if arg_count < 7:
             self.cur_environment.add_definition(self.cur_token.text,None)
-            self.emitter.emit_register_arg(arg_count)
+            self.emitter.emit_register_param(arg_count)
         else:
             #add stack definition to env. 
             # no need to emit since on the other side of the stack
@@ -687,6 +727,7 @@ class Parser:
             function.add_local_definition(definition_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         self.expression()
+        print("LAST_EXP_RESULT IS: ",self.last_exp_res)
         self.emitter.emit_function_epilog()
         
     def is_constant(self):

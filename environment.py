@@ -32,7 +32,7 @@ class Identifier:
 #Identifier object, detailing what type it is ands its value.
 
 #when adding register args to symbol_table, they will have the identifier obj
-#sent to None since it is not known what the type is.
+#set to None since it is not known what the type is.
 # (type checking at runtime is done in the actual function)
 
 

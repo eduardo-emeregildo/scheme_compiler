@@ -271,10 +271,23 @@ class Emitter:
             self.emit_function(f"\tmov rax, QWORD [rbp{offset:+}]")
             
             
-        
-    def emit_register_arg(self,arg_num):
+    #for creating function definition
+    def emit_register_param(self,arg_num):
         self.emit_function(
         f"\tmov QWORD[rbp-{arg_num * 8}],{LINUX_CALLING_CONVENTION[arg_num -1]}")
+    
+    #for setting a function call. sets the args
+    def emit_register_arg(self,arg_num,is_global):
+        if is_global:
+            self.emit_main_section(
+            f"\tmov {LINUX_CALLING_CONVENTION[arg_num-1]},rax")
+        else:
+            self.emit_function(
+            f"\tmov {LINUX_CALLING_CONVENTION[arg_num-1]},rax")
+    
+    #for args 7 and higher, they go on the stack
+    def emit_stack_arg(self,arg_num):
+        pass
         
     #to declare functions defined in runtime
     def emit_externs(self):
