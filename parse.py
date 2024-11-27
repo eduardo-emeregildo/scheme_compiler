@@ -3,8 +3,8 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
-#implement calling a function
-#implement defining functions with dot notation as call pattern
+
+#Todo1: implement calling a normal function and a variadic function
 #Todo2: begin writing some library functions in the runtime. start with +,-,*,/,cons,append, and printing
 
 # Parser object keeps track of current token and checks if the code matches the grammar.
@@ -20,7 +20,6 @@ class Parser:
         self.peek_token = None
         self.global_environment = Environment()
         self.cur_environment = self.global_environment
-        #self.parens = []
         self.next_token()
         self.next_token()
 
@@ -599,7 +598,6 @@ class Parser:
             self.cur_environment.add_definition(ident_name,Identifier(
             IdentifierType.FUNCTION,function))
             self.evaluate_function(function)
-            
             #lastly, make function object in the runtime
             self.emitter.emit_identifier_to_section(self.last_exp_res,
             self.cur_environment.is_global())
@@ -613,7 +611,19 @@ class Parser:
         self.match(TokenType.EXPR_END)
         # self.last_exp_res = None # since definitions arent exps
         return ident_name
-         
+
+    #adds param to current environment and emits if its arg 1-6. 
+    #used in call_pattern
+    def add_param_to_env(self,arg_count):
+        if arg_count < 7:
+            self.cur_environment.add_definition(self.cur_token.text,None)
+            self.emitter.emit_register_arg(arg_count)
+        else:
+            #add stack definition to env. 
+            # no need to emit since on the other side of the stack
+            self.cur_environment.add_stack_definition(
+            self.cur_token.text,(arg_count-5)*8)
+    
     # <call pattern> ::= (<pattern> <variable>*) | 
     # (<pattern> <variable>* . <variable>) where pattern ::= variable
     # populates Function obj with everything except local definitions and body
@@ -639,8 +649,14 @@ class Parser:
             while not self.check_token(TokenType.EXPR_END):
                 if self.check_token(TokenType.DOT):
                     print("DOT")
+                    function.set_variadic()
                     self.next_token()
-                    self.match(TokenType.IDENTIFIER)
+                    if not self.check_token(TokenType.IDENTIFIER):
+                        self.abort(
+                        "Incorrect syntax for call pattern. Illegal use of '.'")
+                    arg_count += 1
+                    self.add_param_to_env(arg_count)
+                    self.next_token()
                     if not self.check_token(TokenType.EXPR_END):
                         self.abort("Parentheses in call pattern not well formed.") 
                     break
@@ -649,14 +665,7 @@ class Parser:
                     function.add_param(self.cur_token.text)
                     #now add ALL args to environment and emit only args 1-6
                     arg_count += 1
-                    if arg_count < 7:
-                        self.cur_environment.add_definition(self.cur_token.text,None)
-                        self.emitter.emit_register_arg(arg_count)
-                    else:
-                        #add stack definition to env. 
-                        # no need to emit since on the other side of the stack
-                        self.cur_environment.add_stack_definition(
-                        self.cur_token.text,(arg_count-5)*8)
+                    self.add_param_to_env(arg_count)
                     self.next_token()
                 else:
                     self.abort(self.cur_token.text + " is not an identifier.")
