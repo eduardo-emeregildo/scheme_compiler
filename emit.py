@@ -274,21 +274,36 @@ class Emitter:
     #for creating function definition
     def emit_register_param(self,arg_num):
         self.emit_function(
-        f"\tmov QWORD[rbp-{arg_num * 8}],{LINUX_CALLING_CONVENTION[arg_num -1]}")
+        f"\tmov QWORD [rbp-{arg_num * 8}],{LINUX_CALLING_CONVENTION[arg_num -1]}")
     
-    #for setting a function call. sets the args
-    def emit_register_arg(self,arg_num,is_global):
+    #for setting up a function call. sets the args
+    def emit_register_arg(self,arg_num,arity,is_global):
         if is_global:
             self.emit_main_section(
-            f"\tmov {LINUX_CALLING_CONVENTION[arg_num-1]},rax")
+            f"\tmov {LINUX_CALLING_CONVENTION[arg_num]}, " +
+            f"QWORD [rbp-{(arity - arg_num) * 8}]")
         else:
             self.emit_function(
-            f"\tmov {LINUX_CALLING_CONVENTION[arg_num-1]},rax")
-    
-    #for args 7 and higher, they go on the stack
-    def emit_stack_arg(self,arg_num):
-        pass
+            f"\tmov {LINUX_CALLING_CONVENTION[arg_num]}, " +
+            f"QWORD [rbp-{(arity - arg_num) * 8}]")
         
+    def push_arg(self,arg_num,arity,is_global):
+        if is_global:
+            # self.emit_main_section("\tpush rax")
+            self.emit_main_section(
+            f"\tmov QWORD [rbp-{(arity-(arg_num - 1))*8}], rax")
+        else:
+            #self.emit_function("\tpush rax")
+            self.emit_function(
+            f"\tmov QWORD [rbp-{(arity-(arg_num - 1))*8}], rax")
+    
+    #for adjusting rsp after setting up args for a function
+    def subtract_rsp(self,amount,is_global):
+        if is_global:
+            self.emit_main_section(f"\tsub rsp, {amount}")
+        else:
+            self.emit_function(f"\tsub rsp, {amount}")
+            
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 

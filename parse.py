@@ -4,8 +4,16 @@ from emit import *
 from environment import *
 from function import *
 
-#work on function_call. Right now arg values are being overwritten. They have to
-#go on the stack first and once every arg is evaluated, put them in the right register
+#Some issues I have to fix with function calling:
+# 1. Right now, function calling is probably going to override main's local 
+#variables (which would be set by a let.). Basically setting up a function call
+#has to factor in the depth of the current environment
+
+#2. Have to handle the case where function is not global, i.e. there is no label
+#in the asm code. Have to use the address instead.
+
+#3. right now function_call doesnt have the prettiest code. especially with
+#all the is_global checks. definitely refactor
 
 #Todo1: implement calling a normal function and a variadic function
 #Todo2: begin writing some library functions in the runtime. start with 
@@ -258,11 +266,6 @@ class Parser:
                     pass #function call for variadic
                 else:
                     self.function_call(func_obj)  
-                # while not self.check_token(TokenType.EXPR_END):
-                #     print("OPERAND")
-                #     self.expression()
-                # #self.parens.pop()
-                # self.next_token()
                 
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
@@ -278,17 +281,34 @@ class Parser:
             self.expression()
             if self.last_exp_res is None:
                 self.abort("In function_call, arg evaluated to None.")
-            self.emitter.emit_register_arg(arg_count,is_global)
+            
+            self.emitter.push_arg(arg_count,func_obj.arity,is_global)
             #also have to cover the case of function with 7 or more args
             print("IN FUNCTION CALL: ",self.last_exp_res.typeof)
-            
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
                 f"{func_obj.name} requires {str(func_obj.arity)} arguments.")
+        #now put args in the right place and advance rsp
+        for cur_arg in range(arg_count):
+            if cur_arg < 6:
+                self.emitter.emit_register_arg(cur_arg,arg_count,is_global)
+            else:
+                #advance rsp to point to last arg on stack
+                self.emitter.subtract_rsp((arg_count - 6)*8,is_global)
+                break
+        #function call. if function is not global, has to be handled without the name
+        if is_global:
+            self.emitter.emit_main_section(f"\tcall ..@{func_obj.name}")
+        else:
+            self.emit_function(f"\tcall ..@{func_obj.name}")
             
+        #now add back the rsp :)
+        if arg_count > 6:
+            if is_global:
+                self.emitter.emit_main_section(f"\tadd rsp, {(arg_count - 6) * 8}")
+            else:
+               self.emitter.emit_function(f"\tadd rsp, {(arg_count - 6) * 8}") 
         self.next_token()
-        
-        
     #returns a string which contains the next expression. used to extract body 
     # of a function. self.cur_token will be set to next char after exp
     #This method does not check if the expression has correct syntax(racket doesnt either), 
