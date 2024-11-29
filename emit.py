@@ -277,25 +277,25 @@ class Emitter:
         f"\tmov QWORD [rbp-{arg_num * 8}],{LINUX_CALLING_CONVENTION[arg_num -1]}")
     
     #for setting up a function call. sets the args
-    def emit_register_arg(self,arg_num,arity,is_global):
+    def emit_register_arg(self,arg_num,arity,env_depth,is_global):
         if is_global:
             self.emit_main_section(
             f"\tmov {LINUX_CALLING_CONVENTION[arg_num]}, " +
-            f"QWORD [rbp-{(arity - arg_num) * 8}]")
+            f"QWORD [rbp{env_depth - ((arity - arg_num) * 8):+}]")
         else:
             self.emit_function(
             f"\tmov {LINUX_CALLING_CONVENTION[arg_num]}, " +
-            f"QWORD [rbp-{(arity - arg_num) * 8}]")
+            f"QWORD [rbp{env_depth - ((arity - arg_num) * 8):+}]")
         
-    def push_arg(self,arg_num,arity,is_global):
+    def push_arg(self,arg_num,arity,env_depth,is_global):
         if is_global:
             # self.emit_main_section("\tpush rax")
             self.emit_main_section(
-            f"\tmov QWORD [rbp-{(arity-(arg_num - 1))*8}], rax")
+            f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax")
         else:
             #self.emit_function("\tpush rax")
             self.emit_function(
-            f"\tmov QWORD [rbp-{(arity-(arg_num - 1))*8}], rax")
+            f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax")
     
     #for adjusting rsp after setting up args for a function
     def subtract_rsp(self,amount,is_global):
@@ -303,6 +303,12 @@ class Emitter:
             self.emit_main_section(f"\tsub rsp, {amount}")
         else:
             self.emit_function(f"\tsub rsp, {amount}")
+            
+    def add_rsp(self,amount,is_global):
+        if is_global:
+            self.emit_main_section(f"\tadd rsp, {amount}")
+        else:
+            self.emit_function(f"\tadd rsp, {amount}")
             
     #to declare functions defined in runtime
     def emit_externs(self):

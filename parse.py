@@ -4,13 +4,17 @@ from emit import *
 from environment import *
 from function import *
 
-#Some issues I have to fix with function calling:
-# 1. Right now, function calling is probably going to override main's local 
-#variables (which would be set by a let.). Basically setting up a function call
-#has to factor in the depth of the current environment
+#implement the built in display function. this is going to massively help with
+#debugging
 
+#Some issues I have to fix with function calling:
 #2. Have to handle the case where function is not global, i.e. there is no label
 #in the asm code. Have to use the address instead.
+    #to test this, make a function with local function definition and call the 
+    #function definition (this might be stepping into closure territory)
+
+# let is basically a local function whose body gets immediately executed.
+#plz look up how let works
 
 #3. right now function_call doesnt have the prettiest code. especially with
 #all the is_global checks. definitely refactor
@@ -273,6 +277,7 @@ class Parser:
     def function_call(self,func_obj):
         arg_count = 0
         is_global = self.cur_environment.is_global()
+        env_depth = self.cur_environment.depth
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
             arg_count += 1
@@ -281,34 +286,32 @@ class Parser:
             self.expression()
             if self.last_exp_res is None:
                 self.abort("In function_call, arg evaluated to None.")
-            
-            self.emitter.push_arg(arg_count,func_obj.arity,is_global)
-            #also have to cover the case of function with 7 or more args
-            print("IN FUNCTION CALL: ",self.last_exp_res.typeof)
+            #pushes each arg to the stack so that they're stored while 
+            # evaluating each arg
+            self.emitter.push_arg(arg_count,func_obj.arity,env_depth,is_global)
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
                 f"{func_obj.name} requires {str(func_obj.arity)} arguments.")
-        #now put args in the right place and advance rsp
+        #now put args in the right place and advance rsp if applicable
         for cur_arg in range(arg_count):
             if cur_arg < 6:
-                self.emitter.emit_register_arg(cur_arg,arg_count,is_global)
+                self.emitter.emit_register_arg(
+                cur_arg,arg_count,env_depth,is_global)
             else:
-                #advance rsp to point to last arg on stack
-                self.emitter.subtract_rsp((arg_count - 6)*8,is_global)
+                #advance rsp to point to seventh arg
+                self.emitter.subtract_rsp(
+                abs(env_depth - (arg_count - 6)*8),is_global)
                 break
         #function call. if function is not global, has to be handled without the name
         if is_global:
             self.emitter.emit_main_section(f"\tcall ..@{func_obj.name}")
         else:
-            self.emit_function(f"\tcall ..@{func_obj.name}")
-            
-        #now add back the rsp :)
+            self.emitter.emit_function(f"\tcall ..@{func_obj.name}")
+        #now add back the rsp if it was decremented :)
         if arg_count > 6:
-            if is_global:
-                self.emitter.emit_main_section(f"\tadd rsp, {(arg_count - 6) * 8}")
-            else:
-               self.emitter.emit_function(f"\tadd rsp, {(arg_count - 6) * 8}") 
+            self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
         self.next_token()
+        
     #returns a string which contains the next expression. used to extract body 
     # of a function. self.cur_token will be set to next char after exp
     #This method does not check if the expression has correct syntax(racket doesnt either), 
@@ -747,7 +750,6 @@ class Parser:
             function.add_local_definition(definition_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         self.expression()
-        print("LAST_EXP_RESULT IS: ",self.last_exp_res)
         self.emitter.emit_function_epilog()
         
     def is_constant(self):
