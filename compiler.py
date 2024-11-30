@@ -38,7 +38,8 @@ def main():
     os.system("nasm -f elf64 -g -F dwarf out.asm")
     # final version wont have this
     os.system("gcc -O3 -c identifier.c")
-    os.system("gcc out.o identifier.o -o out -no-pie -z noexecstack")
+    os.system("gcc -O3 -c lib.c")
+    os.system("gcc out.o identifier.o lib.o -o out -no-pie -z noexecstack")
     print("Compiling completed.")
     
 

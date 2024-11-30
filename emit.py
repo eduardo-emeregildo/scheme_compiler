@@ -314,7 +314,7 @@ class Emitter:
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 
         else f"extern {','.join(list(self.externs))}\n")
-    
+        
     def writeFile(self):
         with open(self.fullPath, 'w') as outputFile:
             self.emit_externs()

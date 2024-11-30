@@ -3,20 +3,27 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
-
+from scheme_builtins import *
 #implement the built in display function. this is going to massively help with
 #debugging
+
+#in the identifier expression. Figure out what to return in asm for builtin
+#functions. Rn its returning the address to the extern and NOT a value obj ptr.
+
+#After this, look at comments in scheme_builtins to see what I have to do next
+#for builtin functions
 
 #Some issues I have to fix with function calling:
 #2. Have to handle the case where function is not global, i.e. there is no label
 #in the asm code. Have to use the address instead.
     #to test this, make a function with local function definition and call the 
     #function definition (this might be stepping into closure territory)
+    #remember that c has function ptrs, this could serve useful
 
-# let is basically a local function whose body gets immediately executed.
-#plz look up how let works
+#3. have to implement function_call for variadic functions. implementing +,- etc
+# in the built in library will require this since these are variadic functons
 
-#3. right now function_call doesnt have the prettiest code. especially with
+#4. right now function_call doesnt have the prettiest code. especially with
 #all the is_global checks. definitely refactor
 
 #Todo1: implement calling a normal function and a variadic function
@@ -153,9 +160,16 @@ class Parser:
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
-            print("EXPRESSION-VARIABLE")
+            print("EXPRESSION-VARIABLE")                
             is_global = self.cur_environment.is_global()
-            definition = self.cur_environment.find_definition(self.cur_token.text)
+            definition = None
+            if self.cur_token.text in BUILTINS:
+                definition = [None,Identifier(
+                IdentifierType.FUNCTION,BUILTINS[self.cur_token.text])]
+                self.emitter.add_extern(self.cur_token.text)
+            else:
+                definition = self.cur_environment.find_definition(
+                self.cur_token.text)
             def_ident_obj = Environment.get_ident_obj(definition)
             
             if def_ident_obj is not None:
@@ -655,7 +669,7 @@ class Parser:
             self.call_pattern(function)
             self.body(function)
             self.emitter.set_current_function(previous_cur_function)
-            #now add function definition to parent envifonment
+            #now add function definition to parent environment
             ident_name = function.get_name()
             self.cur_environment = parent_env
             self.cur_environment.add_definition(ident_name,Identifier(

@@ -1,6 +1,7 @@
 import sys
 from enum import Enum
 from function import *
+from scheme_builtins import BUILTINS
 LINUX_CALLING_CONVENTION = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
 class IdentifierType(Enum):
     CHAR = 0

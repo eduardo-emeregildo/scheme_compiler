@@ -1,4 +1,4 @@
-from environment import *
+# from environment import *
 import sys
 #class used to represent functions. for Identifier objs with 
 # typeof = IdentifierType.FUNCTION, its value will be this function object
@@ -34,3 +34,12 @@ class Function():
     
     def set_variadic(self):
         self.is_variadic = True
+    
+    #should only be used for builtin functions
+    def set(self,name,param_list,local_defs,arity,is_variadic):
+        self.name = name
+        self.param_list = param_list
+        self.local_defs = local_defs
+        self.arity = arity
+        self.is_variadic = is_variadic
+        return self
