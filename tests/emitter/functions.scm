@@ -1,7 +1,8 @@
 ;(define (func) 5)
 ;(define (one x y z) (define (two y) y)(define f 5) two)
 ;(define (monkey a b c d e f g) g)
-;(define (one_arg x y) y)
+(define (one_arg x y) (define (inner z) 8) (inner 1))
+(one_arg 1 2)
 ;(define monkey 21)
 ;(define (one_arg x) (define f "hey") func)
 ;(define (my_func one two three four five six seven eight) (define f 7)eight)
@@ -15,4 +16,3 @@
 ;monkey
 ;(define (func one two three four five six seven eight) eight)
 ;(func 1 2 3 4 5 6 7 8)
-display

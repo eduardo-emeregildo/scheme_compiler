@@ -1,5 +1,4 @@
 #include "lib.h"
-
 //prints a value type
 void print_value_type(Value *value_obj) 
 {
@@ -81,7 +80,7 @@ void print_vector(Value *value_obj)
         }
         printf(" )\n");
 }
-void display(void *type)
+void _DISPLAY(void *type)
 {
         long long_type = (long)type;
         if (is_ptr(long_type)) {

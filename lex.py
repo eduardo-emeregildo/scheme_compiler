@@ -226,6 +226,7 @@ TokenType = Enum(
         ("QUASIQUOTE",330),
         ("UNQUOTE", 331),
         ("UNQUOTESPLICING",332),
+        # ("DISPLAY" , 333),
         
         #OPERANDS/Datatypes
         ("BOOLEAN" , 401),
@@ -235,6 +236,7 @@ TokenType = Enum(
         # LIST = 405
         # VECTOR = 406
         # BYTEVECTOR = 407
+        #Builtin Functions(move the arithmetic operators,equal,cons etc here)
     ]
 )
     
@@ -249,8 +251,4 @@ class Token:
         for type in TokenType:
             if type.value >= 300 and type.value < 400 and type.name == token_text:
                 return type
-        return None 
-        
-        
-        
-    
+        return None

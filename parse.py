@@ -4,21 +4,15 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-#implement the built in display function. this is going to massively help with
-#debugging
-
-#in the identifier expression. Figure out what to return in asm for builtin
-#functions. Rn its returning the address to the extern and NOT a value obj ptr.
+#Things I have to do complete implementation of function calling:
+# 1. Now that builtin.h has the value objects, make the lexer 
+# recognize builtins separately, handle all of these collectively in the parser
 
 #After this, look at comments in scheme_builtins to see what I have to do next
-#for builtin functions
-
-#Some issues I have to fix with function calling:
-#2. Have to handle the case where function is not global, i.e. there is no label
-#in the asm code. Have to use the address instead.
-    #to test this, make a function with local function definition and call the 
-    #function definition (this might be stepping into closure territory)
-    #remember that c has function ptrs, this could serve useful
+#for builtin functions. finish implementing calling builtin functions.
+#After builtins can be called, make sure stuff like: 
+# (define new-display display)
+# (new-display 1) work.
 
 #3. have to implement function_call for variadic functions. implementing +,- etc
 # in the built in library will require this since these are variadic functons
@@ -160,7 +154,9 @@ class Parser:
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
-            print("EXPRESSION-VARIABLE")                
+            print("EXPRESSION-VARIABLE")
+            print(self.cur_token.type)
+            print(self.cur_token.text)
             is_global = self.cur_environment.is_global()
             definition = None
             if self.cur_token.text in BUILTINS:
@@ -316,11 +312,19 @@ class Parser:
                 self.emitter.subtract_rsp(
                 abs(env_depth - (arg_count - 6)*8),is_global)
                 break
-        #function call. if function is not global, has to be handled without the name
+        #function call using the pointer in a value object of type function(in c)
         if is_global:
-            self.emitter.emit_main_section(f"\tcall ..@{func_obj.name}")
+            self.emitter.emit_main_section(
+            f"\tmov rax,QWORD[{func_obj.name}]\n\t" + 
+            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
         else:
-            self.emitter.emit_function(f"\tcall ..@{func_obj.name}")
+            local_function_obj = self.cur_environment.find_definition(func_obj.name)
+            function_offset = Environment.get_offset(local_function_obj)
+            if function_offset is None:
+                self.abort("local function call has no offset.")
+            self.emitter.emit_function(
+            f"\tmov rax,QWORD[rbp{function_offset:+}]\n\t" + 
+            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
         #now add back the rsp if it was decremented :)
         if arg_count > 6:
             self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
