@@ -5,24 +5,24 @@ from environment import *
 from function import *
 from scheme_builtins import *
 #Things I have to do complete implementation of function calling:
-# 1. Now that builtin.h has the value objects, make the lexer 
-# recognize builtins separately, handle all of these collectively in the parser
 
-#After this, look at comments in scheme_builtins to see what I have to do next
-#for builtin functions. finish implementing calling builtin functions.
-#After builtins can be called, make sure stuff like: 
-# (define new-display display)
-# (new-display 1) work.
+#Things to do:
+    # 1. fix bug calling a function using the arg of arg. 
+    # Ex: (define (func one) (display one)) doesnt work
+    
+    # 2. make display function print out prettier results
+    
+    #3. make sure define doesnt let user use names reserved for builtins
+    
+    #4. implement variadic function call for normal and builtin functions
 
-#3. have to implement function_call for variadic functions. implementing +,- etc
-# in the built in library will require this since these are variadic functons
+    #5. make sure stuff like this:
+    # (define new-display display)
+    # (new-display 1) works (I think it should but havent checked yet).
 
-#4. right now function_call doesnt have the prettiest code. especially with
-#all the is_global checks. definitely refactor
+    #6. right now function_call doesnt have the prettiest code. especially with
+    #all the is_global checks. definitely refactor
 
-#Todo1: implement calling a normal function and a variadic function
-#Todo2: begin writing some library functions in the runtime. start with 
-#equality tests, +,-,*,/,cons,append, and printing
 
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
@@ -155,17 +155,11 @@ class Parser:
         
         elif self.check_token(TokenType.IDENTIFIER):
             print("EXPRESSION-VARIABLE")
-            print(self.cur_token.type)
-            print(self.cur_token.text)
             is_global = self.cur_environment.is_global()
             definition = None
-            if self.cur_token.text in BUILTINS:
-                definition = [None,Identifier(
-                IdentifierType.FUNCTION,BUILTINS[self.cur_token.text])]
-                self.emitter.add_extern(self.cur_token.text)
-            else:
-                definition = self.cur_environment.find_definition(
-                self.cur_token.text)
+            
+            definition = self.cur_environment.find_definition(
+            self.cur_token.text)
             def_ident_obj = Environment.get_ident_obj(definition)
             
             if def_ident_obj is not None:
@@ -183,13 +177,30 @@ class Parser:
             print("EXPRESSION-QUOTE-SYMBOL")
             self.next_token()
             self.datum()
+        
+        elif self.check_token(TokenType.BUILTIN):
+            print("BUILTIN")
+            is_global = self.cur_environment.is_global()
+            self.emitter.add_extern(self.cur_token.text)
+            self.emitter.emit_builtin_function(self.cur_token.text,is_global)
+            self.next_token()
 
         elif self.check_token(TokenType.EXPR_START):
             self.next_token()
             if self.check_token(TokenType.IF):
                 self.next_token()
                 self.if_exp()
-
+            
+            #calling a builtin function
+            elif self.check_token(TokenType.BUILTIN):
+                func_obj = BUILTINS[self.cur_token.text]
+                #print("FUNCTION OBJECT: ",func_obj)
+                #print(func_obj.name,func_obj.arity)
+                self.next_token()
+                self.function_call(func_obj)
+                #self.next_token()
+                #self.match(TokenType.EXPR_END)
+            
             elif self.check_token(TokenType.QUOTE):
                 self.next_token()
                 self.quote_exp()
@@ -313,7 +324,10 @@ class Parser:
                 abs(env_depth - (arg_count - 6)*8),is_global)
                 break
         #function call using the pointer in a value object of type function(in c)
-        if is_global:
+        if func_obj.name in BUILTINS:
+            print("CALLING A BUILTIN FUNCTION :D")
+            self.emitter.emit_builtin_call(func_obj.name,is_global)
+        elif is_global:
             self.emitter.emit_main_section(
             f"\tmov rax,QWORD[{func_obj.name}]\n\t" + 
             f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")

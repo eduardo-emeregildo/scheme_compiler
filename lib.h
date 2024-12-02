@@ -8,6 +8,6 @@
 void print_value_type(Value *value_obj);
 void print_list(Value *value_obj);
 void print_vector(Value *value_obj);
-void _DISPLAY(void *value_ptr);
-Value DISPLAY = {VAL_FUNCTION,.as = {.function = &_DISPLAY}};
+void _display(void *value_ptr);
+Value display = {VAL_FUNCTION,.as = {.function = &_display}};
 #endif

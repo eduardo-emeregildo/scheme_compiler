@@ -1,4 +1,5 @@
 from enum import Enum
+from scheme_builtins import BUILTINS
 import sys
 
 class Lexer:
@@ -154,7 +155,9 @@ class Lexer:
                 
             token_text = self.source[start : self.cur_pos + 1]
             token_text_upper = token_text.upper()
-            if token_text_upper in self.special_chars:
+            if token_text in BUILTINS:
+                token = Token(token_text,TokenType.BUILTIN)
+            elif token_text_upper in self.special_chars:
                 token = Token(token_text_upper,self.special_chars[token_text_upper])
             else:
                 keyword = Token.check_if_keyword(token_text_upper)
@@ -226,8 +229,6 @@ TokenType = Enum(
         ("QUASIQUOTE",330),
         ("UNQUOTE", 331),
         ("UNQUOTESPLICING",332),
-        # ("DISPLAY" , 333),
-        
         #OPERANDS/Datatypes
         ("BOOLEAN" , 401),
         ("CHAR" , 402),
@@ -236,11 +237,12 @@ TokenType = Enum(
         # LIST = 405
         # VECTOR = 406
         # BYTEVECTOR = 407
-        #Builtin Functions(move the arithmetic operators,equal,cons etc here)
+        #type for all builtin functions. the text will how the builtin is
+        #referenced in the runtime
+        ("BUILTIN", 501),
     ]
 )
     
-
 class Token:
     def __init__(self,token_text,token_type) -> None:
         self.text = token_text

@@ -309,7 +309,25 @@ class Emitter:
             self.emit_main_section(f"\tadd rsp, {amount}")
         else:
             self.emit_function(f"\tadd rsp, {amount}")
-            
+    
+    #emits asm for evaluating a builtin function(just the name as an exp)
+    def emit_builtin_function(self,builtin_name,is_global):
+        if is_global:
+            self.emit_main_section(f"\tmov rax, {builtin_name}")
+        else:
+            self.emit_function(f"\tmov rax, {builtin_name}")
+
+    #emits asm for calling builtin function
+    def emit_builtin_call(self,builtin_name,is_global):
+        self.add_extern(builtin_name)
+        if is_global:
+            self.emit_main_section(
+            f"\tmov rax, {builtin_name}\n\t" + 
+            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
+        else:
+            self.emit_function(
+            f"\tmov rax, {builtin_name}\n\t" + 
+            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 

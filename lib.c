@@ -80,7 +80,7 @@ void print_vector(Value *value_obj)
         }
         printf(" )\n");
 }
-void _DISPLAY(void *type)
+void _display(void *type)
 {
         long long_type = (long)type;
         if (is_ptr(long_type)) {
