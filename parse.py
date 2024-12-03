@@ -6,21 +6,13 @@ from function import *
 from scheme_builtins import *
 #Things I have to do complete implementation of function calling:
 
-#Things to do:
-    # 1. fix bug calling a function using the arg of arg. 
-    # Ex: (define (func one) (display one)) doesnt work
-    
-    # 2. make display function print out prettier results
-    
-    #3. make sure define doesnt let user use names reserved for builtins
-    
-    #4. implement variadic function call for normal and builtin functions
+#Things to do: 
+    #5. Implement passing a function obj as an arg and calling this function obj
+    # that comes from this arg. ex: (define (func op) (op 3))
 
-    #5. make sure stuff like this:
-    # (define new-display display)
-    # (new-display 1) works (I think it should but havent checked yet).
+    #6. implement variadic function call for normal and builtin functions
 
-    #6. right now function_call doesnt have the prettiest code. especially with
+    #7. right now function_call doesnt have the prettiest code. especially with
     #all the is_global checks. definitely refactor
 
 
@@ -155,9 +147,7 @@ class Parser:
         
         elif self.check_token(TokenType.IDENTIFIER):
             print("EXPRESSION-VARIABLE")
-            is_global = self.cur_environment.is_global()
-            definition = None
-            
+            is_global = self.cur_environment.is_global()            
             definition = self.cur_environment.find_definition(
             self.cur_token.text)
             def_ident_obj = Environment.get_ident_obj(definition)
@@ -181,8 +171,10 @@ class Parser:
         elif self.check_token(TokenType.BUILTIN):
             print("BUILTIN")
             is_global = self.cur_environment.is_global()
+            builtin_function = BUILTINS[self.cur_token.text]
             self.emitter.add_extern(self.cur_token.text)
             self.emitter.emit_builtin_function(self.cur_token.text,is_global)
+            self.set_last_exp_res(IdentifierType.FUNCTION,builtin_function)
             self.next_token()
 
         elif self.check_token(TokenType.EXPR_START):
@@ -194,12 +186,8 @@ class Parser:
             #calling a builtin function
             elif self.check_token(TokenType.BUILTIN):
                 func_obj = BUILTINS[self.cur_token.text]
-                #print("FUNCTION OBJECT: ",func_obj)
-                #print(func_obj.name,func_obj.arity)
                 self.next_token()
                 self.function_call(func_obj)
-                #self.next_token()
-                #self.match(TokenType.EXPR_END)
             
             elif self.check_token(TokenType.QUOTE):
                 self.next_token()
@@ -278,16 +266,26 @@ class Parser:
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
                 self.expression()
-                #this if is for register args. If a register arg is used as a
-                #procedure, the type must be checked at runtime.
+                #for issuing a function call with a function arg. Have to check
+                #that this arg is indeed a function, which can only be done at
+                #runtime
+                func_obj = None
                 if self.last_exp_res is None:
-                    #this probably needs its own function
-                    self.abort("Using register arg as procedure. Have to implement")
-                if self.get_last_exp_type() != IdentifierType.FUNCTION:
+                    #print(self.emitter.functions[self.emitter.cur_function])
+                    #print(self.emitter.main_code)
+                    #self.abort("Using register arg as procedure. Have to implement")
+                    is_global = self.cur_environment.is_global()
+                    self.emitter.emit_is_function(is_global)
+                elif self.get_last_exp_type() != IdentifierType.FUNCTION:
+                    print(self.last_exp_res.typeof)
+                    print(self.last_exp_res.value)
                     self.abort(f"Application not a procedure.")
-                    
-                func_obj = self.last_exp_res.value
-                if func_obj.is_variadic:
+                else:
+                    func_obj = self.last_exp_res.value
+                
+                if func_obj is None: #function call from an arg
+                    pass
+                elif func_obj.is_variadic:
                     pass #function call for variadic
                 else:
                     self.function_call(func_obj)  
@@ -305,8 +303,6 @@ class Parser:
             if arg_count > func_obj.arity:
                 break
             self.expression()
-            if self.last_exp_res is None:
-                self.abort("In function_call, arg evaluated to None.")
             #pushes each arg to the stack so that they're stored while 
             # evaluating each arg
             self.emitter.push_arg(arg_count,func_obj.arity,env_depth,is_global)
@@ -325,7 +321,6 @@ class Parser:
                 break
         #function call using the pointer in a value object of type function(in c)
         if func_obj.name in BUILTINS:
-            print("CALLING A BUILTIN FUNCTION :D")
             self.emitter.emit_builtin_call(func_obj.name,is_global)
         elif is_global:
             self.emitter.emit_main_section(
@@ -339,7 +334,7 @@ class Parser:
             self.emitter.emit_function(
             f"\tmov rax,QWORD[rbp{function_offset:+}]\n\t" + 
             f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
-        #now add back the rsp if it was decremented :)
+        #add back the rsp if it was decremented
         if arg_count > 6:
             self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
         self.next_token()

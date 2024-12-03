@@ -46,26 +46,24 @@ void print_list(Value *value_obj)
                 return;
         }
         printf("(");
-        while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {
-                printf(" ");        
+        while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {        
                 print_value_type(get_car_ptr(lst_cur_pair));
+                printf(" ");
                 if(lst_cur_pair->cdr.type != VAL_PAIR) {
                         //dot notation case
                         if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
                                 break;
                         }
-                        // printf("%ld\n",untag_int(lst_cur_pair->cdr.as.tagged_type));
                         print_value_type(get_cdr_ptr(lst_cur_pair));
                         break;
                 }
                 lst_cur_pair = lst_cur_pair->cdr.as.pair;
                 if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
-                        // printf("%ld\n",untag_int(lst_cur_pair->car.as.tagged_type));
                         print_value_type(get_car_ptr(lst_cur_pair));
                         break;
                 }
         }
-        printf(" )\n");
+        printf(")");
 
 }
 
@@ -75,10 +73,12 @@ void print_vector(Value *value_obj)
         Value *vec = value_obj->as.vector->items;
         int vec_len = value_obj->as.vector->size;
         for(size_t i = 0; i < vec_len ; i++) {
-                printf(" ");
                 print_value_type(&vec[i]);
+                if(i < (vec_len - 1)) {
+                        printf(" ");
+                }
         }
-        printf(" )\n");
+        printf(")");
 }
 void _display(void *type)
 {
@@ -87,13 +87,25 @@ void _display(void *type)
                 print_value_type((Value *)type);
 
         } else if (is_int(long_type)) {
-                printf("%ld\n", untag_int(long_type));
+                printf("%ld", untag_int(long_type));
         } else if (is_bool(long_type)) {
-                printf("0x%ld\n",remove_tag(long_type));
+                printf("0x%ld",remove_tag(long_type));
         } else if (is_char(long_type)) {
-                printf("%c\n",(int)remove_tag(long_type));
+                printf("%c",(int)remove_tag(long_type));
         }
         else {
-                abort_message("Error in display function. Not a valid type.");
+                abort_message("in display function, not a valid type.");
+        }
+        printf("\n");
+}
+
+void is_function(long type)
+{
+        if (!is_ptr(type)) {
+                abort_message("in runtime. Argument is not a function");
+        }
+        Value *value_type = (Value*)type;
+        if (value_type->type != VAL_FUNCTION) {
+                abort_message("in runtime. Argument is not a function");
         }
 }

@@ -33,7 +33,7 @@ bool is_char(long item)
 
 void abort_message(char *error_message)
 {
-        printf("Error. %s",error_message);
+        printf("Error, %s",error_message);
         exit(EXIT_FAILURE);
 }
 

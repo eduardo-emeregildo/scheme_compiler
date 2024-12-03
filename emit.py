@@ -316,6 +316,16 @@ class Emitter:
             self.emit_main_section(f"\tmov rax, {builtin_name}")
         else:
             self.emit_function(f"\tmov rax, {builtin_name}")
+    
+    #check if value in rax is a value object of type function
+    def emit_is_function(self,is_global):
+        self.add_extern("is_function")
+        if is_global:
+            self.emit_main_section(
+            f"\tpush rax\n\tmov rdi,rax\n\tcall is_function\n\tpop rax")
+        else:
+            self.emit_function(
+            f"\tpush rax\n\tmov rdi,rax\n\tcall is_function\n\tpop rax")
 
     #emits asm for calling builtin function
     def emit_builtin_call(self,builtin_name,is_global):

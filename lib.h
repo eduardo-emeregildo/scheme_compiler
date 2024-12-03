@@ -8,6 +8,11 @@
 void print_value_type(Value *value_obj);
 void print_list(Value *value_obj);
 void print_vector(Value *value_obj);
+void is_function(long type);
+/*
+the ptrs to the functions below will be used when making value objs of type
+function
+*/
 void _display(void *value_ptr);
 Value display = {VAL_FUNCTION,.as = {.function = &_display}};
 #endif
