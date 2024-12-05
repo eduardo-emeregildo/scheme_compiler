@@ -4,17 +4,25 @@ import sys
 # typeof = IdentifierType.FUNCTION, its value will be this function object
 
 #param_list is a python list of param names
-# local_definitions is for local define expressions in the body of the function
+
+# local_definitions is for local define exps in the body of the function. the 
+# values are identifier objects
+
 #arity  is number of args the function accepts
 #is_variadic indicates if function was defined with dot notation in call pattrn
 #if procedure has more than six args, they'll be on the stack
+
+#function_args_arity are for params that are being used as functions in the body.
+#it will hold the arity in this dictionary, the key being the param name, which
+#is already in param_list
 class Function():
     def __init__(self):
         self.name = ""
         self.param_list = []
         self.local_definitions = {}
         self.arity = 0
-        self.is_variadic = False 
+        self.is_variadic = False
+        #self.function_args_arity = {}
     
     def add_param(self,param:str):
         self.param_list.append(param)

@@ -4,18 +4,25 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-#Things I have to do complete implementation of function calling:
+# Fix this bug first:
+# the call instructions does a push under the hood, therefore I manually set say
+# [rbp - 8] to something and do a call instruction in the future, [rbp-8] is
+# overwritten. Basically I have to account for this everywhere there is a call
+# instruction.
 
 #Things to do: 
-    #5. Implement passing a function obj as an arg and calling this function obj
-    # that comes from this arg. ex: (define (func op) (op 3))
-
+    
+    #5. figure out how to check arity during function call that uses
+    # one of its args as a function. i.e. if we have the definition:
+    # (define (func op) (op 10)) ,
+    #calling with: (func display) should check that the arity in the
+    #body of func's body function call matches with display's arity.
+    
     #6. implement variadic function call for normal and builtin functions
 
     #7. right now function_call doesnt have the prettiest code. especially with
     #all the is_global checks. definitely refactor
-
-
+    
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
     def __init__(self, lexer,emitter):
@@ -80,7 +87,8 @@ class Parser:
             case TokenType.STRING:
                 self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
             case _:
-                self.abort("Calling evaluate_constant(). current token is not a constant") 
+                self.abort(
+                "Calling evaluate_constant(). current token is not a constant") 
                                 
     def evaluate_symbol(self):
         self.set_last_exp_res(IdentifierType.SYMBOL,self.cur_token.text)
@@ -265,34 +273,72 @@ class Parser:
             else:
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
+                operator_name = self.cur_token.text
                 self.expression()
                 #for issuing a function call with a function arg. Have to check
                 #that this arg is indeed a function, which can only be done at
                 #runtime
-                func_obj = None
                 if self.last_exp_res is None:
-                    #print(self.emitter.functions[self.emitter.cur_function])
-                    #print(self.emitter.main_code)
-                    #self.abort("Using register arg as procedure. Have to implement")
                     is_global = self.cur_environment.is_global()
                     self.emitter.emit_is_function(is_global)
+                    #function call using an arg, have to somehow get info on the
+                    # function
+                    self.arg_function_call(operator_name)
                 elif self.get_last_exp_type() != IdentifierType.FUNCTION:
-                    print(self.last_exp_res.typeof)
-                    print(self.last_exp_res.value)
                     self.abort(f"Application not a procedure.")
                 else:
                     func_obj = self.last_exp_res.value
-                
-                if func_obj is None: #function call from an arg
-                    pass
-                elif func_obj.is_variadic:
-                    pass #function call for variadic
-                else:
-                    self.function_call(func_obj)  
-                
+                    if func_obj.is_variadic:
+                        pass #function call for variadic
+                    else:
+                        self.function_call(func_obj)
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
-    
+                    
+    # when an arg is used as a function. Arity not being checked since it is
+    #not known which function the user will pass in.
+    def arg_function_call(self,operator_name):
+        arg_count = 0
+        is_global = self.cur_environment.is_global()
+        env_depth = self.cur_environment.depth
+        while not self.check_token(TokenType.EXPR_END):
+            print("OPERAND")
+            arg_count += 1
+            self.expression()
+            self.emitter.emit_to_section(
+            f"\tmov QWORD[rbp{env_depth - (8*arg_count):+}],rax",is_global)    
+        #now put args in the right place and call function
+        # -8 is where last arg on the stack, ex: (func 1 2 3 4 5 6 7 8)
+        # the 8th arg is -8, 7th is -16
+        for cur_arg in range(arg_count):
+            if cur_arg < 6:
+                self.emitter.emit_to_section(
+                f"\tmov {LINUX_CALLING_CONVENTION[cur_arg]}," + 
+                f"QWORD[rbp{env_depth - (8*(cur_arg + 1)):+}]",is_global)
+            else:
+                self.emitter.emit_to_section(
+                f"\tmov rax, QWORD [rbp{env_depth - (8*(cur_arg + 1)):+}]\n\t" +
+                f"mov QWORD [rbp{env_depth - ((arg_count - cur_arg)*8)}],rax",is_global)
+                
+        #advance rsp to point to 7th arg
+        if arg_count > 6:
+            self.emitter.subtract_rsp(
+            abs(env_depth - (arg_count - 6)*8),is_global)
+            
+        #now call the function
+        arg_definition = self.cur_environment.find_definition(operator_name)
+        arg_offset = Environment.get_offset(arg_definition)
+        self.emitter.emit_to_section(
+            f"\tmov rax,QWORD[rbp{arg_offset:+}]\n\t" + 
+            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]",is_global)
+        
+        #add back the rsp if more than 6 args
+        if arg_count > 6:
+            self.emitter.add_rsp(
+            abs(env_depth - (arg_count - 6)*8),is_global)            
+        self.next_token()
+        
+        
     def function_call(self,func_obj):
         arg_count = 0
         is_global = self.cur_environment.is_global()

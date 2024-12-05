@@ -94,18 +94,19 @@ void _display(void *type)
                 printf("%c",(int)remove_tag(long_type));
         }
         else {
-                abort_message("in display function, not a valid type.");
+                abort_message("in display function, not a valid type.\n");
         }
         printf("\n");
 }
 
 void is_function(long type)
 {
-        if (!is_ptr(type)) {
-                abort_message("in runtime. Argument is not a function");
-        }
         Value *value_type = (Value*)type;
-        if (value_type->type != VAL_FUNCTION) {
-                abort_message("in runtime. Argument is not a function");
+        if (!is_ptr(type)) {
+                abort_message("in runtime. Argument is not a function\n");
         }
+        else if (value_type->type != VAL_FUNCTION) {
+                abort_message("in runtime. Argument is not a function\n");
+        }
+        //return value_type;
 }

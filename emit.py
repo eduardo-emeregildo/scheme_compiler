@@ -289,11 +289,9 @@ class Emitter:
         
     def push_arg(self,arg_num,arity,env_depth,is_global):
         if is_global:
-            # self.emit_main_section("\tpush rax")
             self.emit_main_section(
             f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax")
         else:
-            #self.emit_function("\tpush rax")
             self.emit_function(
             f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax")
     
@@ -322,10 +320,10 @@ class Emitter:
         self.add_extern("is_function")
         if is_global:
             self.emit_main_section(
-            f"\tpush rax\n\tmov rdi,rax\n\tcall is_function\n\tpop rax")
+            f"\tmov rdi,rax\n\tcall is_function")
         else:
             self.emit_function(
-            f"\tpush rax\n\tmov rdi,rax\n\tcall is_function\n\tpop rax")
+            f"\tmov rdi,rax\n\tcall is_function")
 
     #emits asm for calling builtin function
     def emit_builtin_call(self,builtin_name,is_global):
