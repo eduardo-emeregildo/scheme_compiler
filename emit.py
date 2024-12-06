@@ -232,13 +232,18 @@ class Emitter:
         asm_code.append("\tpop rsi")
         return '\n'.join(asm_code)
     
-    #given ident_obj and a bool determining whether to emit to main or a label,
-    #emit in the corresponding place
-    def emit_identifier_to_section(self,ident_obj,is_global):
+    #given ident_obj and the current environment, emit in the corresponding place
+    def emit_identifier_to_section(self,ident_obj,cur_environment):
+        is_global = cur_environment.is_global()
+        env_depth = abs(cur_environment.depth)
+        if env_depth != 0:
+            self.subtract_rsp(env_depth,is_global)
         if is_global:
             self.emit_main_section(self.compile_identifier(ident_obj))
         else:
             self.emit_function(self.compile_identifier(ident_obj))
+        if env_depth != 0:
+            self.add_rsp(env_depth,is_global)
     
     #emits asm code to corresponding section depending on the environment
     def emit_to_section(self,asm_code,is_global):
@@ -286,7 +291,8 @@ class Emitter:
             self.emit_function(
             f"\tmov {LINUX_CALLING_CONVENTION[arg_num]}, " +
             f"QWORD [rbp{env_depth - ((arity - arg_num) * 8):+}]")
-        
+    
+    #push every arg to the stack so that they're stored while evaluating each arg  
     def push_arg(self,arg_num,arity,env_depth,is_global):
         if is_global:
             self.emit_main_section(
@@ -316,14 +322,20 @@ class Emitter:
             self.emit_function(f"\tmov rax, {builtin_name}")
     
     #check if value in rax is a value object of type function
-    def emit_is_function(self,is_global):
+    def emit_is_function(self,cur_environment):
+        is_global = cur_environment.is_global()
+        env_depth = abs(cur_environment.depth)
         self.add_extern("is_function")
+        if env_depth != 0:
+            self.subtract_rsp(env_depth,is_global)
         if is_global:
             self.emit_main_section(
             f"\tmov rdi,rax\n\tcall is_function")
         else:
             self.emit_function(
             f"\tmov rdi,rax\n\tcall is_function")
+        if env_depth != 0:
+            self.add_rsp(env_depth,is_global)
 
     #emits asm for calling builtin function
     def emit_builtin_call(self,builtin_name,is_global):

@@ -10,6 +10,11 @@ from scheme_builtins import *
 # overwritten. Basically I have to account for this everywhere there is a call
 # instruction.
 
+#todo: test that function_call isnt overwritting the stack when using local 
+#function definitions. i.e. (define (func x)  (define (op y) (display y))(op y))
+
+#then fix arg_function_call to not overwrite stack
+
 #Things to do: 
     
     #5. figure out how to check arity during function call that uses
@@ -125,32 +130,32 @@ class Parser:
             if isinstance(self.cur_token.text,int):
                 self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
                 self.emitter.emit_identifier_to_section(self.last_exp_res,
-                self.cur_environment.is_global())
+                self.cur_environment)
             else:
                 self.set_last_exp_res(IdentifierType.FLOAT,str(self.cur_token.text))
                 self.emitter.emit_identifier_to_section(self.last_exp_res,
-                self.cur_environment.is_global())
+                self.cur_environment)
             self.next_token()
         
         elif self.check_token(TokenType.CHAR):
             print("EXPRESSION-CHAR")
             self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
             self.emitter.emit_identifier_to_section(self.last_exp_res,
-            self.cur_environment.is_global())
+            self.cur_environment)
             self.next_token()
             
         elif self.check_token(TokenType.BOOLEAN):
             print("EXPRESSION-BOOLEAN")
             self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
             self.emitter.emit_identifier_to_section(self.last_exp_res,
-            self.cur_environment.is_global())
+            self.cur_environment)
             self.next_token()
 
         elif self.check_token(TokenType.STRING):
             print("EXPRESSION-STRING")
             self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
             self.emitter.emit_identifier_to_section(self.last_exp_res,
-            self.cur_environment.is_global())
+            self.cur_environment)
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
@@ -279,8 +284,7 @@ class Parser:
                 #that this arg is indeed a function, which can only be done at
                 #runtime
                 if self.last_exp_res is None:
-                    is_global = self.cur_environment.is_global()
-                    self.emitter.emit_is_function(is_global)
+                    self.emitter.emit_is_function(self.cur_environment)
                     #function call using an arg, have to somehow get info on the
                     # function
                     self.arg_function_call(operator_name)
@@ -343,6 +347,9 @@ class Parser:
         arg_count = 0
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
+        #subtract environment's depth temporarily to compute the args without 
+        #overwritting things on the stack
+        self.cur_environment.depth -= func_obj.arity*8
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
             arg_count += 1
@@ -352,6 +359,7 @@ class Parser:
             #pushes each arg to the stack so that they're stored while 
             # evaluating each arg
             self.emitter.push_arg(arg_count,func_obj.arity,env_depth,is_global)
+        self.cur_environment.depth += func_obj.arity*8
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
                 f"{func_obj.name} requires {str(func_obj.arity)} arguments.")
@@ -366,8 +374,15 @@ class Parser:
                 abs(env_depth - (arg_count - 6)*8),is_global)
                 break
         #function call using the pointer in a value object of type function(in c)
+        
+        # for calls where no args are on the stack, subtract ONLY the depth if
+        # there is stuff to preserve on the stack(AKA if depth != 0)
+        if arg_count < 6 and env_depth != 0:
+            self.emitter.subtract_rsp(abs(env_depth),is_global)
+            
         if func_obj.name in BUILTINS:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
+            
         elif is_global:
             self.emitter.emit_main_section(
             f"\tmov rax,QWORD[{func_obj.name}]\n\t" + 
@@ -380,9 +395,11 @@ class Parser:
             self.emitter.emit_function(
             f"\tmov rax,QWORD[rbp{function_offset:+}]\n\t" + 
             f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
-        #add back the rsp if it was decremented
+        #add back the rsp
         if arg_count > 6:
             self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
+        elif env_depth != 0:
+            self.emitter.add_rsp(abs(env_depth),is_global)
         self.next_token()
         
     #returns a string which contains the next expression. used to extract body 
@@ -736,7 +753,7 @@ class Parser:
             self.evaluate_function(function)
             #lastly, make function object in the runtime
             self.emitter.emit_identifier_to_section(self.last_exp_res,
-            self.cur_environment.is_global())
+            self.cur_environment)
             is_global = self.cur_environment.is_global()
             offset = Environment.get_offset(
             self.cur_environment.symbol_table[ident_name])
@@ -965,8 +982,9 @@ class Parser:
     def datum(self):
         print("DATUM")
         self.evaluate_datum()
-        is_global = self.cur_environment.is_global()
-        self.emitter.emit_identifier_to_section(self.last_exp_res,is_global)
+        #is_global = self.cur_environment.is_global()
+        self.emitter.emit_identifier_to_section(self.last_exp_res,
+        self.cur_environment)
     
     # (quasiquote <datum>) , but datum is handled differently here. It must accept unquote and unquote-splicing keywords
     # (unquote expr) , (unquote-splicing expr)
