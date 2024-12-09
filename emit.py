@@ -237,10 +237,7 @@ class Emitter:
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
         self.subtract_rsp(env_depth,is_global)
-        if is_global:
-            self.emit_main_section(self.compile_identifier(ident_obj))
-        else:
-            self.emit_function(self.compile_identifier(ident_obj))
+        self.emit_to_section(self.compile_identifier(ident_obj),is_global)
         self.add_rsp(env_depth,is_global)
     
     #emits asm code to corresponding section depending on the environment
@@ -279,51 +276,54 @@ class Emitter:
         self.emit_function(
         f"\tmov QWORD [rbp-{arg_num * 8}],{LINUX_CALLING_CONVENTION[arg_num -1]}")
     
-    #for setting up a function call. sets the args
-    def emit_register_arg(self,arg_num,arity,env_depth,is_global):
-        if is_global:
-            self.emit_main_section(
-            f"\tmov {LINUX_CALLING_CONVENTION[arg_num]}, " +
-            f"QWORD [rbp{env_depth - ((arity - arg_num) * 8):+}]")
-        else:
-            self.emit_function(
-            f"\tmov {LINUX_CALLING_CONVENTION[arg_num]}, " +
-            f"QWORD [rbp{env_depth - ((arity - arg_num) * 8):+}]")
+    #for setting up a function call. sets the args. If arity is None, an arg
+    # is being used as function object. Since arity is not yet known the
+    # calculation is different
+    def emit_register_arg(self,arg_num,env_depth,is_global,arity = None):
+        if arity is None:
+            self.emit_to_section(
+            f"\tmov {LINUX_CALLING_CONVENTION[arg_num]}," + 
+            f"QWORD [rbp{env_depth - (8*(arg_num + 1)):+}]",is_global)
+            return
+        self.emit_to_section(
+        f"\tmov {LINUX_CALLING_CONVENTION[arg_num]}, " +
+        f"QWORD [rbp{env_depth - ((arity - arg_num) * 8):+}]",is_global)
     
-    #push every arg to the stack so that they're stored while evaluating each arg  
-    def push_arg(self,arg_num,arity,env_depth,is_global):
-        if is_global:
-            self.emit_main_section(
-            f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax")
-        else:
-            self.emit_function(
-            f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax")
+    #for putting args 7 and further to the stack
+    # (should only be used in arg_function_call)
+    def emit_arg_to_stack(self,arg_num,env_depth,is_global,arity):
+        self.emit_to_section(
+        f"\tmov rax, QWORD [rbp{env_depth - (8*(arg_num + 1)):+}]\n\t" +
+        f"mov QWORD [rbp{env_depth - ((arity - arg_num)*8)}],rax",is_global)
+        
+    
+    #push the arg to the stack so that its stored while evaluating each arg
+    #if arity is None you are pushing args for arg thats being used a function
+    def push_arg(self,arg_num,env_depth,is_global,arity = None):
+        if arity is None:
+            self.emit_to_section(
+            f"\tmov QWORD [rbp{env_depth - (8*arg_num):+}],rax",is_global)
+            return
+        self.emit_to_section(
+        f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax",
+        is_global)
     
     #for adjusting rsp after setting up args for a function
     def subtract_rsp(self,amount,is_global):
         if amount == 0:
             print("Subtracting rsp with 0 amount")
             return
-        if is_global:
-            self.emit_main_section(f"\tsub rsp, {amount}")
-        else:
-            self.emit_function(f"\tsub rsp, {amount}")
-            
+        self.emit_to_section(f"\tsub rsp, {amount}",is_global)
+    
     def add_rsp(self,amount,is_global):
         if amount == 0:
             print("Adding rsp with 0 amount")
             return
-        if is_global:
-            self.emit_main_section(f"\tadd rsp, {amount}")
-        else:
-            self.emit_function(f"\tadd rsp, {amount}")
+        self.emit_to_section(f"\tadd rsp, {amount}",is_global)
     
     #emits asm for evaluating a builtin function(just the name as an exp)
     def emit_builtin_function(self,builtin_name,is_global):
-        if is_global:
-            self.emit_main_section(f"\tmov rax, {builtin_name}")
-        else:
-            self.emit_function(f"\tmov rax, {builtin_name}")
+        self.emit_to_section(f"\tmov rax, {builtin_name}",is_global)
     
     #check if value in rax is a value object of type function
     def emit_is_function(self,cur_environment):
@@ -331,25 +331,24 @@ class Emitter:
         env_depth = abs(cur_environment.depth)
         self.add_extern("is_function")
         self.subtract_rsp(env_depth,is_global)
-        if is_global:
-            self.emit_main_section(
-            f"\tmov rdi,rax\n\tcall is_function")
-        else:
-            self.emit_function(
-            f"\tmov rdi,rax\n\tcall is_function")
+        self.emit_to_section(
+        f"\tmov rdi,rax\n\tcall is_function",is_global)
         self.add_rsp(env_depth,is_global)
 
     #emits asm for calling builtin function
     def emit_builtin_call(self,builtin_name,is_global):
         self.add_extern(builtin_name)
-        if is_global:
-            self.emit_main_section(
-            f"\tmov rax, {builtin_name}\n\t" + 
-            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
-        else:
-            self.emit_function(
-            f"\tmov rax, {builtin_name}\n\t" + 
-            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
+        self.emit_to_section(
+        f"\tmov rax, {builtin_name}\n\t" + 
+        f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]",is_global)
+    
+    def emit_global_function_call(self,func_name):
+        self.emit_main_section(f"\tmov rax,QWORD[{func_name}]\n\t" + 
+        f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
+
+    def emit_local_function_call(self,func_offset):
+        self.emit_function(f"\tmov rax,QWORD[rbp{func_offset:+}]\n\t" + 
+        f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 

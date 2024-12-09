@@ -42,13 +42,6 @@
 ;(func 1 2 3 4)
 ;(define (func x)  (define (op y) (display x))(op x))
 ;(func 4)
-
-;(define (func one) 
-        ;(define (inner one two three four five six seven eight) seven)
-        ;(define x 3)
-        ;(define y 41)
-        ;(inner 1 2 3 4 5 6 7 8))
-;(func 40)
 (define (yeo one two three four five six seven eight) 
         (define x 21)
         (display eight))

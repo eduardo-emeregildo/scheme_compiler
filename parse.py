@@ -4,16 +4,8 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-# Fix this bug first:
-# the call instructions does a push under the hood, therefore I manually set say
-# [rbp - 8] to something and do a call instruction in the future, [rbp-8] is
-# overwritten. Basically I have to account for this everywhere there is a call
-# instruction.
 
-
-#then fix arg_function_call to not overwrite stack
-#Things to do: 
-    
+#Things to do:     
     #5. figure out how to check arity during function call that uses
     # one of its args as a function. i.e. if we have the definition:
     # (define (func op) (op 10)) ,
@@ -306,39 +298,30 @@ class Parser:
             print("OPERAND")
             arg_count += 1
             self.expression()
-            self.emitter.emit_to_section(
-            f"\tmov QWORD[rbp{env_depth - (8*arg_count):+}],rax",is_global)
+            self.emitter.push_arg(arg_count,env_depth,is_global)
             self.cur_environment.depth -= 8
         self.cur_environment.depth += arg_count*8
-        #now put args in the right place and call function
-        # -8 is where last arg on the stack, ex: (func 1 2 3 4 5 6 7 8)
-        # the 8th arg is -8, 7th is -16
+        #now put args in the right place
+        # -8 is offset of last arg (assuming env depth is 0)
         for cur_arg in range(arg_count):
-            if cur_arg < 6:
-                self.emitter.emit_to_section(
-                f"\tmov {LINUX_CALLING_CONVENTION[cur_arg]}," + 
-                f"QWORD[rbp{env_depth - (8*(cur_arg + 1)):+}]",is_global)
+            if cur_arg < 6:                
+                self.emitter.emit_register_arg(cur_arg,env_depth,is_global)
             else:
-                self.emitter.emit_to_section(
-                f"\tmov rax, QWORD [rbp{env_depth - (8*(cur_arg + 1)):+}]\n\t" +
-                f"mov QWORD [rbp{env_depth - ((arg_count - cur_arg)*8)}],rax",is_global)
-                
-        #advance rsp to point to 7th arg, if <7 args, advance rsp so local defs
-        #arent overwritten
+                self.emitter.emit_arg_to_stack(
+                cur_arg,env_depth,is_global,arg_count)                
+        #advance rsp to point to 7th arg, if less than 7 args, 
+        # advance rsp so local defs arent overwritten
         if arg_count > 6:
             self.emitter.subtract_rsp(
             abs(env_depth - (arg_count - 6)*8),is_global)
         else:
             self.emitter.subtract_rsp(abs(env_depth),is_global)
-            
         #now call the function
         arg_definition = self.cur_environment.find_definition(operator_name)
         arg_offset = Environment.get_offset(arg_definition)
-        self.emitter.emit_to_section(
-            f"\tmov rax,QWORD[rbp{arg_offset:+}]\n\t" + 
-            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]",is_global)
-        
-        #add back the rsp if more than 6 args
+        #must be local. If this causes issues, visit this again
+        self.emitter.emit_local_function_call(arg_offset)
+        #now add back the rsp
         if arg_count > 6:
             self.emitter.add_rsp(
             abs(env_depth - (arg_count - 6)*8),is_global)
@@ -360,7 +343,7 @@ class Parser:
                 break
             self.expression()
             #push each arg to the stack so that they're stored while evaluating each arg
-            self.emitter.push_arg(arg_count,func_obj.arity,env_depth,is_global)
+            self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
         self.cur_environment.depth += func_obj.arity*8
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
@@ -369,12 +352,12 @@ class Parser:
         for cur_arg in range(arg_count):
             if cur_arg < 6:
                 self.emitter.emit_register_arg(
-                cur_arg,arg_count,env_depth,is_global)
+                cur_arg,env_depth,is_global,arg_count)
             else:
                 #advance rsp to point to seventh arg
                 self.emitter.subtract_rsp(
                 abs(env_depth - (arg_count - 6)*8),is_global)
-                break        
+                break
         # for calls where no args are on the stack, subtract ONLY the depth if
         # there is stuff to preserve on the stack(AKA if depth != 0)
         if arg_count < 6:
@@ -383,17 +366,13 @@ class Parser:
         if func_obj.name in BUILTINS:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
         elif is_global:
-            self.emitter.emit_main_section(
-            f"\tmov rax,QWORD[{func_obj.name}]\n\t" + 
-            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
+            self.emitter.emit_global_function_call(func_obj.name)
         else:
             local_function_obj = self.cur_environment.find_definition(func_obj.name)
             function_offset = Environment.get_offset(local_function_obj)
             if function_offset is None:
                 self.abort("local function call has no offset.")
-            self.emitter.emit_function(
-            f"\tmov rax,QWORD[rbp{function_offset:+}]\n\t" + 
-            f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
+            self.emitter.emit_local_function_call(function_offset)
         #add back the rsp
         if arg_count > 6:
             self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
