@@ -236,14 +236,12 @@ class Emitter:
     def emit_identifier_to_section(self,ident_obj,cur_environment):
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
-        if env_depth != 0:
-            self.subtract_rsp(env_depth,is_global)
+        self.subtract_rsp(env_depth,is_global)
         if is_global:
             self.emit_main_section(self.compile_identifier(ident_obj))
         else:
             self.emit_function(self.compile_identifier(ident_obj))
-        if env_depth != 0:
-            self.add_rsp(env_depth,is_global)
+        self.add_rsp(env_depth,is_global)
     
     #emits asm code to corresponding section depending on the environment
     def emit_to_section(self,asm_code,is_global):
@@ -303,12 +301,18 @@ class Emitter:
     
     #for adjusting rsp after setting up args for a function
     def subtract_rsp(self,amount,is_global):
+        if amount == 0:
+            print("Subtracting rsp with 0 amount")
+            return
         if is_global:
             self.emit_main_section(f"\tsub rsp, {amount}")
         else:
             self.emit_function(f"\tsub rsp, {amount}")
             
     def add_rsp(self,amount,is_global):
+        if amount == 0:
+            print("Adding rsp with 0 amount")
+            return
         if is_global:
             self.emit_main_section(f"\tadd rsp, {amount}")
         else:
@@ -326,16 +330,14 @@ class Emitter:
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
         self.add_extern("is_function")
-        if env_depth != 0:
-            self.subtract_rsp(env_depth,is_global)
+        self.subtract_rsp(env_depth,is_global)
         if is_global:
             self.emit_main_section(
             f"\tmov rdi,rax\n\tcall is_function")
         else:
             self.emit_function(
             f"\tmov rdi,rax\n\tcall is_function")
-        if env_depth != 0:
-            self.add_rsp(env_depth,is_global)
+        self.add_rsp(env_depth,is_global)
 
     #emits asm for calling builtin function
     def emit_builtin_call(self,builtin_name,is_global):

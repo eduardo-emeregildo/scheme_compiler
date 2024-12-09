@@ -10,11 +10,8 @@ from scheme_builtins import *
 # overwritten. Basically I have to account for this everywhere there is a call
 # instruction.
 
-#todo: test that function_call isnt overwritting the stack when using local 
-#function definitions. i.e. (define (func x)  (define (op y) (display y))(op y))
 
 #then fix arg_function_call to not overwrite stack
-
 #Things to do: 
     
     #5. figure out how to check arity during function call that uses
@@ -310,7 +307,9 @@ class Parser:
             arg_count += 1
             self.expression()
             self.emitter.emit_to_section(
-            f"\tmov QWORD[rbp{env_depth - (8*arg_count):+}],rax",is_global)    
+            f"\tmov QWORD[rbp{env_depth - (8*arg_count):+}],rax",is_global)
+            self.cur_environment.depth -= 8
+        self.cur_environment.depth += arg_count*8
         #now put args in the right place and call function
         # -8 is where last arg on the stack, ex: (func 1 2 3 4 5 6 7 8)
         # the 8th arg is -8, 7th is -16
@@ -324,10 +323,13 @@ class Parser:
                 f"\tmov rax, QWORD [rbp{env_depth - (8*(cur_arg + 1)):+}]\n\t" +
                 f"mov QWORD [rbp{env_depth - ((arg_count - cur_arg)*8)}],rax",is_global)
                 
-        #advance rsp to point to 7th arg
+        #advance rsp to point to 7th arg, if <7 args, advance rsp so local defs
+        #arent overwritten
         if arg_count > 6:
             self.emitter.subtract_rsp(
             abs(env_depth - (arg_count - 6)*8),is_global)
+        else:
+            self.emitter.subtract_rsp(abs(env_depth),is_global)
             
         #now call the function
         arg_definition = self.cur_environment.find_definition(operator_name)
@@ -339,16 +341,17 @@ class Parser:
         #add back the rsp if more than 6 args
         if arg_count > 6:
             self.emitter.add_rsp(
-            abs(env_depth - (arg_count - 6)*8),is_global)            
+            abs(env_depth - (arg_count - 6)*8),is_global)
+        else:
+            self.emitter.add_rsp(abs(env_depth),is_global)
         self.next_token()
-        
         
     def function_call(self,func_obj):
         arg_count = 0
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
         #subtract environment's depth temporarily to compute the args without 
-        #overwritting things on the stack
+        #overwritting the stack,i.e. the local definitions
         self.cur_environment.depth -= func_obj.arity*8
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
@@ -356,8 +359,7 @@ class Parser:
             if arg_count > func_obj.arity:
                 break
             self.expression()
-            #pushes each arg to the stack so that they're stored while 
-            # evaluating each arg
+            #push each arg to the stack so that they're stored while evaluating each arg
             self.emitter.push_arg(arg_count,func_obj.arity,env_depth,is_global)
         self.cur_environment.depth += func_obj.arity*8
         if arg_count != func_obj.arity:
@@ -372,17 +374,14 @@ class Parser:
                 #advance rsp to point to seventh arg
                 self.emitter.subtract_rsp(
                 abs(env_depth - (arg_count - 6)*8),is_global)
-                break
-        #function call using the pointer in a value object of type function(in c)
-        
+                break        
         # for calls where no args are on the stack, subtract ONLY the depth if
         # there is stuff to preserve on the stack(AKA if depth != 0)
-        if arg_count < 6 and env_depth != 0:
+        if arg_count < 6:
             self.emitter.subtract_rsp(abs(env_depth),is_global)
             
         if func_obj.name in BUILTINS:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
-            
         elif is_global:
             self.emitter.emit_main_section(
             f"\tmov rax,QWORD[{func_obj.name}]\n\t" + 
@@ -398,7 +397,7 @@ class Parser:
         #add back the rsp
         if arg_count > 6:
             self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
-        elif env_depth != 0:
+        else:
             self.emitter.add_rsp(abs(env_depth),is_global)
         self.next_token()
         
@@ -821,7 +820,7 @@ class Parser:
                     self.add_param_to_env(arg_count)
                     self.next_token()
                 else:
-                    self.abort(self.cur_token.text + " is not an identifier.")
+                    self.abort(str(self.cur_token.text) + " is not an identifier.")
             self.next_token()
         else:
             self.abort("Incorrect syntax for call pattern.")
