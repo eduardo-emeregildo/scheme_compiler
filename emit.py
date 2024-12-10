@@ -106,6 +106,8 @@ class Emitter:
                 self.emit_local_label(f"'{ident_obj.value}'")
                 return(f"\tmov rdi, main.LC{len(self.local_labels) - 1}\n\t" +
                 f"call allocate_str\n\tmov rdi,rax\n\tcall make_value_symbol")
+            case IdentifierType.PARAM:
+                sys.exit("Error, cant compile an arg since its type is not known.")
     
     # emits code for set_ith_value_x. Assumes that the first arg is set in rdi
     def set_ith_value(self,ident_obj,index):
@@ -342,9 +344,10 @@ class Emitter:
         f"\tmov rax, {builtin_name}\n\t" + 
         f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]",is_global)
     
-    def emit_global_function_call(self,func_name):
-        self.emit_main_section(f"\tmov rax,QWORD[{func_name}]\n\t" + 
-        f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
+    #calls a defined function which exists in global scope
+    def emit_global_function_call(self,func_name,is_global):
+        self.emit_to_section(f"\tmov rax,QWORD[{func_name}]\n\t" + 
+        f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]",is_global)
 
     def emit_local_function_call(self,func_offset):
         self.emit_function(f"\tmov rax,QWORD[rbp{func_offset:+}]\n\t" + 

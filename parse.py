@@ -5,6 +5,15 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
+#figure out what identifier type function_call and arg_function_call need to
+#return. Rn arg_function_call is returning the Identifier of type PARAM, but cant
+#differentiate between evaluating an arg and evaluating an arg function call.
+
+#For example, the defines: 
+#(define (func op) op) 
+#(define (func op) (op 3))
+#both bodies will return Identifier of type arg, so cant differentiate b/n the two
+
 #Things to do:     
     #5. figure out how to check arity during function call that uses
     # one of its args as a function. i.e. if we have the definition:
@@ -41,8 +50,6 @@ class Parser:
         self.last_exp_res = Identifier(typeof,val)
     
     def get_last_exp_type(self):
-        if self.last_exp_res is None:
-            self.abort("Cant get type, last expression evaluated to None.")
         return self.last_exp_res.typeof
         
     def is_token_any(self,type,type_arr):
@@ -92,6 +99,9 @@ class Parser:
     
     def evaluate_function(self,function_obj):
         self.set_last_exp_res(IdentifierType.FUNCTION,function_obj)
+    
+    def evaluate_param(self,arg_name):
+        self.set_last_exp_res(IdentifierType.PARAM,arg_name)
     
     #sets last_exp_res to a vector. Might need to rename other functions above
     #to have set in the name instead of evaluate
@@ -153,12 +163,7 @@ class Parser:
             definition = self.cur_environment.find_definition(
             self.cur_token.text)
             def_ident_obj = Environment.get_ident_obj(definition)
-            
-            if def_ident_obj is not None:
-                self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
-            else:
-                self.last_exp_res = None
-            
+            self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
             if is_global:
                 self.emitter.emit_var_to_global(self.cur_token.text,definition)
             else:
@@ -267,12 +272,12 @@ class Parser:
             else:
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
-                operator_name = self.cur_token.text
                 self.expression()
+                operator_name = self.last_exp_res.value
                 #for issuing a function call with a function arg. Have to check
                 #that this arg is indeed a function, which can only be done at
                 #runtime
-                if self.last_exp_res is None:
+                if self.last_exp_res.typeof == IdentifierType.PARAM:
                     self.emitter.emit_is_function(self.cur_environment)
                     #function call using an arg, have to somehow get info on the
                     # function
@@ -327,6 +332,8 @@ class Parser:
             abs(env_depth - (arg_count - 6)*8),is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
+        #for an arg_function_call, the call evaluates to the name of the arg
+        #self.evaluate_param(operator_name)
         self.next_token()
         
     def function_call(self,func_obj):
@@ -362,17 +369,16 @@ class Parser:
         # there is stuff to preserve on the stack(AKA if depth != 0)
         if arg_count < 6:
             self.emitter.subtract_rsp(abs(env_depth),is_global)
-            
         if func_obj.name in BUILTINS:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
-        elif is_global:
-            self.emitter.emit_global_function_call(func_obj.name)
         else:
-            local_function_obj = self.cur_environment.find_definition(func_obj.name)
-            function_offset = Environment.get_offset(local_function_obj)
+            function_obj = self.cur_environment.find_definition(func_obj.name)
+            function_offset = Environment.get_offset(function_obj)
             if function_offset is None:
-                self.abort("local function call has no offset.")
-            self.emitter.emit_local_function_call(function_offset)
+                #calling a global function from within a function
+                self.emitter.emit_global_function_call(func_obj.name,is_global)
+            else:
+                self.emitter.emit_local_function_call(function_offset)
         #add back the rsp
         if arg_count > 6:
             self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
@@ -747,7 +753,8 @@ class Parser:
     #used in call_pattern
     def add_param_to_env(self,arg_count):
         if arg_count < 7:
-            self.cur_environment.add_definition(self.cur_token.text,None)
+            self.cur_environment.add_definition(self.cur_token.text,
+            Identifier(IdentifierType.PARAM,self.cur_token.text))
             self.emitter.emit_register_param(arg_count)
         else:
             #add stack definition to env. 
@@ -806,18 +813,19 @@ class Parser:
 
     # the definitions are the local variables declared (within the function) 
     # which will be usable in the sequence.
-    # <body> ::= <definition>* <sequence>   
+    # <body> ::= <definition>* <sequence>
     def body(self,function):
         print("BODY")
         #Process all definitions, then call self.expression to create function
         #body
         while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):
             self.next_token()
-            self.next_token()            
+            self.next_token()
             definition_name = self.definition_exp()
             function.add_local_definition(definition_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         self.expression()
+        print(self.last_exp_res.typeof,self.last_exp_res.value)
         self.emitter.emit_function_epilog()
         
     def is_constant(self):

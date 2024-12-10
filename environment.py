@@ -14,6 +14,9 @@ class IdentifierType(Enum):
     FUNCTION = 7
     #an identifier that you dont evaluate. Ex would be if you do 'x, x is a symbol and we dont eval. an Identifier of this type would have the symbol name as the value
     SYMBOL = 8
+    #signifies the evaluation of an arg. since type is not known the value
+    #is just the name of the arg
+    PARAM = 9
 class Identifier:
     def __init__(self,typeof,value):
         self.typeof = typeof
@@ -31,11 +34,6 @@ class Identifier:
 #which has the identifier name as the key,
 #each key will store a 2 elt aray, first elt is the offset, second elt is the
 #Identifier object, detailing what type it is ands its value.
-
-#when adding register args to symbol_table, they will have the identifier obj
-#set to None since it is not known what the type is.
-# (type checking at runtime is done in the actual function)
-
 
 #global vars will have an offset of None, since they will be retrieved 
 #differently (from the bss section)
@@ -60,7 +58,8 @@ class Environment:
     
     #for adding arguments 7 and on. They'll already be on the stack
     def add_stack_definition(self,ident_name,offset):
-        self.symbol_table[ident_name] = [offset,None]
+        self.symbol_table[ident_name] = [offset,
+        Identifier(IdentifierType.PARAM,ident_name)]
     
     def is_defined(self,ident_name):
         return ident_name in self.symbol_table
