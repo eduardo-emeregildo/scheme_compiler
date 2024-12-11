@@ -4,23 +4,8 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-
-#figure out what identifier type function_call and arg_function_call need to
-#return. Rn arg_function_call is returning the Identifier of type PARAM, but cant
-#differentiate between evaluating an arg and evaluating an arg function call.
-
-#For example, the defines: 
-#(define (func op) op) 
-#(define (func op) (op 3))
-#both bodies will return Identifier of type arg, so cant differentiate b/n the two
-
-#Things to do:     
-    #5. figure out how to check arity during function call that uses
-    # one of its args as a function. i.e. if we have the definition:
-    # (define (func op) (op 10)) ,
-    #calling with: (func display) should check that the arity in the
-    #body of func's body function call matches with display's arity.
-    
+#test using params as functions some more.
+#Things to do:         
     #6. implement variadic function call for normal and builtin functions
 
     #7. right now function_call doesnt have the prettiest code. especially with
@@ -31,9 +16,7 @@ class Parser:
     def __init__(self, lexer,emitter):
         self.lexer = lexer
         self.emitter = emitter
-        #store last result of an expression as an identifier class.
-        #For pairs ans vecs will store an array of identifier objs.
-        #how to denote empty list?
+        #store last result of an expression as an identifier class
         self.last_exp_res = None
         self.cur_token = None
         self.peek_token = None
@@ -51,6 +34,11 @@ class Parser:
     
     def get_last_exp_type(self):
         return self.last_exp_res.typeof
+    
+    def get_last_exp_value(self):
+        if self.last_exp_res is None:
+            self.abort("Cannot get last_exp_value since it is set to None.")
+        return self.last_exp_res.value
         
     def is_token_any(self,type,type_arr):
         return type in type_arr
@@ -274,13 +262,9 @@ class Parser:
                 print("OPERATOR")
                 self.expression()
                 operator_name = self.last_exp_res.value
-                #for issuing a function call with a function arg. Have to check
-                #that this arg is indeed a function, which can only be done at
-                #runtime
+                #for issuing a function call with a function arg.
                 if self.last_exp_res.typeof == IdentifierType.PARAM:
-                    self.emitter.emit_is_function(self.cur_environment)
-                    #function call using an arg, have to somehow get info on the
-                    # function
+                    #self.emitter.emit_is_function(self.cur_environment)
                     self.arg_function_call(operator_name)
                 elif self.get_last_exp_type() != IdentifierType.FUNCTION:
                     self.abort(f"Application not a procedure.")
@@ -332,10 +316,16 @@ class Parser:
             abs(env_depth - (arg_count - 6)*8),is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
-        #for an arg_function_call, the call evaluates to the name of the arg
-        #self.evaluate_param(operator_name)
+        #construct a function obj and set that to last_exp_res
+        #dont think i have to set is_variadic member
+        arg_func = Function()
+        arg_func.name = operator_name
+        arg_func.arity = arg_count
+        self.evaluate_function(arg_func)
         self.next_token()
-        
+    
+    #given a function object, does a function call. last_exp_res will be set to
+    #the function that was called
     def function_call(self,func_obj):
         arg_count = 0
         is_global = self.cur_environment.is_global()
@@ -349,6 +339,17 @@ class Parser:
             if arg_count > func_obj.arity:
                 break
             self.expression()
+            #checking if the ith param was used as a function, if so check 
+            # that expression is indeed a function, and that it has correct arity
+            if arg_count in func_obj.params_as_functions:
+                if self.last_exp_res.typeof != IdentifierType.FUNCTION:
+                    self.abort("in compilation. Argument is not a function")
+                param_arity = func_obj.params_as_functions[arg_count]
+                last_exp_arity = self.get_last_exp_value().arity
+                if last_exp_arity != param_arity:
+                    self.abort(f"Arity mismatch: Number of args does not match." 
+                    + f" Expected {param_arity}, given {last_exp_arity}")
+                
             #push each arg to the stack so that they're stored while evaluating each arg
             self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
         self.cur_environment.depth += func_obj.arity*8
@@ -384,6 +385,7 @@ class Parser:
             self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
+        self.evaluate_function(func_obj)
         self.next_token()
         
     #returns a string which contains the next expression. used to extract body 
@@ -825,7 +827,13 @@ class Parser:
             function.add_local_definition(definition_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         self.expression()
-        print(self.last_exp_res.typeof,self.last_exp_res.value)
+        last_exp_obj = self.last_exp_res.value        
+        #if param was used as a function in body, store in params_as_functions
+        if self.last_exp_res.typeof == IdentifierType.FUNCTION:
+            for param_index,param_name in enumerate(function.param_list):
+                if param_name == last_exp_obj.name:
+                    function.add_function_param(param_index + 1,last_exp_obj.arity)
+                    break            
         self.emitter.emit_function_epilog()
         
     def is_constant(self):

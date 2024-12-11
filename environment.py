@@ -12,7 +12,6 @@ class IdentifierType(Enum):
     PAIR = 5
     VECTOR = 6
     FUNCTION = 7
-    #an identifier that you dont evaluate. Ex would be if you do 'x, x is a symbol and we dont eval. an Identifier of this type would have the symbol name as the value
     SYMBOL = 8
     #signifies the evaluation of an arg. since type is not known the value
     #is just the name of the arg

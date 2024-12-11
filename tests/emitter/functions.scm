@@ -53,5 +53,14 @@
 ;(display (func 1) )
 
 ;(define (func op) op)
-(define (func op) (op 1))
-;(func display)
+
+;(define (func op) (op 1 2))
+;(func display) ; should give error, works!
+
+;example of a definition using more than one arg as a function: works!
+(define (func op1 op2) (op1 (op2 3)))
+(define (arg2 val) 4)
+(func display arg2)
+
+;Also, stuff like this should work:
+;(define (func op) (op (op 2)))

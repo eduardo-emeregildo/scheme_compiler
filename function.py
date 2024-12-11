@@ -10,11 +10,13 @@ import sys
 
 #arity  is number of args the function accepts
 #is_variadic indicates if function was defined with dot notation in call pattrn
+#if the function is variadic, arity represents the minimum amt of args required
+#for the function.
+
 #if procedure has more than six args, they'll be on the stack
 
-#function_args_arity are for params that are being used as functions in the body.
-#it will hold the arity in this dictionary, the key being the param name, which
-#is already in param_list
+#params_as_functions are for params that are being used as functions in the body.
+#the key will be the param number, with the value being the arity
 class Function():
     def __init__(self):
         self.name = ""
@@ -22,9 +24,11 @@ class Function():
         self.local_definitions = {}
         self.arity = 0
         self.is_variadic = False
-        #self.function_args_arity = {}
+        self.params_as_functions = {}
     
     def add_param(self,param:str):
+        if param in self.param_list:
+            sys.exit("Error. Duplicate argument name in " + param)
         self.param_list.append(param)
         self.arity += 1
     
@@ -42,6 +46,14 @@ class Function():
     
     def set_variadic(self):
         self.is_variadic = True
+        
+    def add_function_param(self,param_number,function_arity):
+        if param_number not in self.params_as_functions:
+            self.params_as_functions[param_number] = function_arity
+            return
+        print("Redifing a value in Function.params_as_functions")
+        self.param_as_functions[param_number] = min(function_arity,
+        self.param_as_functions[param_number])
     
     #should only be used for builtin functions
     def set(self,name,param_list,local_defs,arity,is_variadic):
