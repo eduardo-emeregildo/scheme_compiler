@@ -10,8 +10,7 @@ import sys
 
 #arity  is number of args the function accepts
 #is_variadic indicates if function was defined with dot notation in call pattrn
-#if the function is variadic, arity represents the minimum amt of args required
-#for the function.
+#if the function is variadic, arity - 1 represents the minimum amt of args required
 
 #if procedure has more than six args, they'll be on the stack
 

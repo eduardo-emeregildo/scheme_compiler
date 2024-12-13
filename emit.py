@@ -1,5 +1,5 @@
 from environment import *
-from generation import *
+from scheme_builtins import *
 import sys
 # Emitter object keeps track of the generated main_code and outputs it.
 #If i run into performance issues modify functions to use less concatenations or 
@@ -97,6 +97,9 @@ class Emitter:
                 # asm_code.append("\tmov rdi,rax\n\tcall print_vector")
                 return '\n'.join(asm_code)
             case IdentifierType.FUNCTION:
+                if ident_obj.value.name in BUILTINS:
+                    self.add_extern(ident_obj.value.name)
+                    return f"\tmov rax, {ident_obj.value.name}"
                 self.add_extern("make_value_function")
                 function_name = ident_obj.value.name
                 return f"\tmov rdi, ..@{function_name}\n\tcall make_value_function"
@@ -151,10 +154,24 @@ class Emitter:
             asm_code.append("\tcall allocate_vector\n\tpop rdi\n\tmov rsi,rax")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_vector")
         elif TYPE == IdentifierType.FUNCTION:
+            
+            #this is wrong, have to move the address of the function to rsi
+            # if ident_obj.value.name in BUILTINS:
+            #     self.add_extern(ident_obj.value.name)
+            #     return f"\tmov rax, {ident_obj.value.name}"
+            
             self.add_extern("set_ith_value_function")
             function_name = ident_obj.value.name
-            asm_code.append(f"\tmov rsi, ..@{function_name}\n\tmov rdx, {index}")
-            asm_code.append("\tcall set_ith_value_function")
+            if function_name in BUILTINS:
+                self.add_extern(function_name)
+                asm_code.append(f"\tmov rax, {function_name}") 
+                asm_code.append(f"\tlea rax, QWORD[rax + 8]")
+                asm_code.append(f"\tmov rsi, QWORD[rax]\n\tmov rdx, {index}")
+                asm_code.append("\tcall set_ith_value_function")
+            else:
+                asm_code.append(
+                f"\tmov rsi, ..@{function_name}\n\tmov rdx, {index}")
+                asm_code.append("\tcall set_ith_value_function")
         elif TYPE == IdentifierType.SYMBOL:
             self.add_extern("set_ith_value_symbol")
             self.emit_local_label(f"'{ident_obj.value}'")
@@ -183,7 +200,7 @@ class Emitter:
         last_elt_index = len(ident_obj.value) - 1
         self.add_extern("allocate_pair")
         if len(ident_obj.value) == 0: #empty list
-            return "\tcall allocate_pair\n\t mov rsi,rax"
+            return "\tcall allocate_pair\n\tmov rsi,rax"
         asm_code.append("\tcall allocate_pair\n\tpush rax\n\tpush rax")
         # now build the list
         for i,ident in enumerate(ident_obj.value):

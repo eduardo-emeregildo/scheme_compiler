@@ -25,7 +25,7 @@ void print_value_type(Value *value_obj)
                 print_vector(value_obj);
                 break;
         case VAL_FUNCTION:
-                printf("function at: %p\n",value_obj->as.function);
+                printf("function at: %p",value_obj->as.function);
                 break;
         case VAL_SYMBOL:
                 printf("'%s",value_obj->as.str->chars);

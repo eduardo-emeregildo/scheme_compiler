@@ -58,9 +58,15 @@
 ;(func display) ; should give error, works!
 
 ;example of a definition using more than one arg as a function: works!
-(define (func op1 op2) (op1 (op2 3)))
-(define (arg2 val) 4)
-(func display arg2)
+;(define (func op1 op2) (op1 (op2 3)))
+;(define (arg2 val) 4)
+;(func display arg2)
 
-;Also, stuff like this should work:
+;Also, stuff like this should work: works!
 ;(define (func op) (op (op 2)))
+;(func display)
+
+;variadic functions:
+(define (variadic_func  foo . args) (foo args))
+(variadic_func display 1 2 '(3 4) display)
+(display display)

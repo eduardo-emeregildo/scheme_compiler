@@ -4,7 +4,12 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-#test using params as functions some more.
+
+# test variadic function calls, maybe refactor the part that puts args in right
+#place and calls the function for function_call and variadic_function_call
+#since they are practically the same. 
+
+#then implement addition/subtraction as builtin proceudures
 #Things to do:         
     #6. implement variadic function call for normal and builtin functions
 
@@ -43,7 +48,6 @@ class Parser:
     def is_token_any(self,type,type_arr):
         return type in type_arr
     
-
     # Return true if the next token matches.
     def check_peek(self, type):
         return type == self.peek_token.type
@@ -81,9 +85,10 @@ class Parser:
                                 
     def evaluate_symbol(self):
         self.set_last_exp_res(IdentifierType.SYMBOL,self.cur_token.text)
-        
-    def evaluate_pair(self,pair_obj):
-        self.set_last_exp_res(IdentifierType.PAIR,pair_obj)
+    
+    #pair_list is just a list of Identifiers
+    def evaluate_pair(self,pair_list):
+        self.set_last_exp_res(IdentifierType.PAIR,pair_list)
     
     def evaluate_function(self,function_obj):
         self.set_last_exp_res(IdentifierType.FUNCTION,function_obj)
@@ -182,7 +187,10 @@ class Parser:
             elif self.check_token(TokenType.BUILTIN):
                 func_obj = BUILTINS[self.cur_token.text]
                 self.next_token()
-                self.function_call(func_obj)
+                if func_obj.is_variadic:
+                    self.variadic_function_call(func_obj)
+                else:
+                    self.function_call(func_obj)
             
             elif self.check_token(TokenType.QUOTE):
                 self.next_token()
@@ -266,14 +274,14 @@ class Parser:
                 if self.last_exp_res.typeof == IdentifierType.PARAM:
                     #self.emitter.emit_is_function(self.cur_environment)
                     self.arg_function_call(operator_name)
+                    return
                 elif self.get_last_exp_type() != IdentifierType.FUNCTION:
                     self.abort(f"Application not a procedure.")
+                func_obj = self.last_exp_res.value
+                if func_obj.is_variadic:
+                    self.variadic_function_call(func_obj)
                 else:
-                    func_obj = self.last_exp_res.value
-                    if func_obj.is_variadic:
-                        pass #function call for variadic
-                    else:
-                        self.function_call(func_obj)
+                    self.function_call(func_obj)
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
                     
@@ -327,6 +335,7 @@ class Parser:
     #given a function object, does a function call. last_exp_res will be set to
     #the function that was called
     def function_call(self,func_obj):
+        print("FUNCTION CALL")
         arg_count = 0
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
@@ -387,6 +396,73 @@ class Parser:
             self.emitter.add_rsp(abs(env_depth),is_global)
         self.evaluate_function(func_obj)
         self.next_token()
+    
+    def variadic_function_call(self,func_obj):
+        print("VARIADIC FUNCTION CALL")
+        arg_count = 0
+        is_global = self.cur_environment.is_global()
+        env_depth = self.cur_environment.depth
+        min_args = func_obj.arity - 1
+        variadic_args = []
+        self.cur_environment.depth -= func_obj.arity*8
+        #handle the args that are regular
+        while not self.check_token(TokenType.EXPR_END):
+            if arg_count == min_args:
+                break
+            arg_count += 1
+            self.expression()
+            self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
+        if arg_count != min_args:
+            self.abort(f"Arity mismatch. {func_obj.name} requires at least" + 
+            f" {min_args} arguments")
+            
+        #evaluate the args that are variadic
+        # i.e. make a list and put that as the last arg. each elt in list is treated
+        #as an expression
+        while not self.check_token(TokenType.EXPR_END):
+            self.expression()
+            variadic_args.append(self.last_exp_res)
+            if self.check_token(TokenType.EXPR_END):
+                variadic_args.append(None)
+        arg_count += 1
+        self.evaluate_pair(variadic_args)
+        #push the variadic args, which is really a list
+        self.emitter.emit_identifier_to_section(self.last_exp_res,
+        self.cur_environment)
+        self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
+        self.cur_environment.depth += func_obj.arity*8
+        #now put args in right place, and call the function
+        for cur_arg in range(arg_count):
+            if cur_arg < 6:
+                self.emitter.emit_register_arg(
+                cur_arg,env_depth,is_global,arg_count)
+            else:
+                #advance rsp to point to seventh arg
+                self.emitter.subtract_rsp(
+                abs(env_depth - (arg_count - 6)*8),is_global)
+                break
+        # for calls where no args are on the stack, subtract ONLY the depth if
+        # there is stuff to preserve on the stack(AKA if depth != 0)
+        if arg_count < 6:
+            self.emitter.subtract_rsp(abs(env_depth),is_global)
+        if func_obj.name in BUILTINS:
+            self.emitter.emit_builtin_call(func_obj.name,is_global)
+        else:
+            function_obj = self.cur_environment.find_definition(func_obj.name)
+            function_offset = Environment.get_offset(function_obj)
+            if function_offset is None:
+                #calling a global function from within a function
+                self.emitter.emit_global_function_call(func_obj.name,is_global)
+            else:
+                self.emitter.emit_local_function_call(function_offset)
+        #add back the rsp
+        if arg_count > 6:
+            self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
+        else:
+            self.emitter.add_rsp(abs(env_depth),is_global)
+        self.evaluate_function(func_obj)
+        self.next_token()
+        
         
     #returns a string which contains the next expression. used to extract body 
     # of a function. self.cur_token will be set to next char after exp
@@ -794,6 +870,7 @@ class Parser:
                     if not self.check_token(TokenType.IDENTIFIER):
                         self.abort(
                         "Incorrect syntax for call pattern. Illegal use of '.'")
+                    function.add_param(self.cur_token.text)
                     arg_count += 1
                     self.add_param_to_env(arg_count)
                     self.next_token()
