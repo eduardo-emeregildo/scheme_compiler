@@ -68,5 +68,10 @@
 
 ;variadic functions:
 (define (variadic_func  foo . args) (foo args))
-(variadic_func display 1 2 '(3 4) display)
-(display display)
+(variadic_func display 1 2 '(3 4) +)
+;(display display)
+;(define (add a b) b)
+;(display (add 1 2))
+(display +)
+(display (+ 1 2 3 4 5 6 7 8 9))
+(display (+ 3.5 4))

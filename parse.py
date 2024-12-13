@@ -5,11 +5,11 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-# test variadic function calls, maybe refactor the part that puts args in right
+# maybe refactor the part that puts args in right
 #place and calls the function for function_call and variadic_function_call
 #since they are practically the same. 
 
-#then implement addition/subtraction as builtin proceudures
+#implement subtraction as builtin proceudures
 #Things to do:         
     #6. implement variadic function call for normal and builtin functions
 
@@ -55,7 +55,8 @@ class Parser:
     # Try to match current token. If not, error. Advances the current token.
     def match(self, type):
         if not self.check_token(type):
-            self.abort("Expected " + type.name + ", got " + self.cur_token.type.name)
+            self.abort(
+            "Expected " + type.name + ", got " + self.cur_token.type.name)
         self.next_token()
         
     # Advances the current token.
@@ -272,7 +273,6 @@ class Parser:
                 operator_name = self.last_exp_res.value
                 #for issuing a function call with a function arg.
                 if self.last_exp_res.typeof == IdentifierType.PARAM:
-                    #self.emitter.emit_is_function(self.cur_environment)
                     self.arg_function_call(operator_name)
                     return
                 elif self.get_last_exp_type() != IdentifierType.FUNCTION:
@@ -936,7 +936,7 @@ class Parser:
             self.next_token()
             self.evaluate_vector()
         else:
-            self.abort(self.cur_token.text + "Is not a valid datum.")
+            self.abort(self.cur_token.text + " Is not a valid datum.")
 
     #empty list is denoted by Identifier(IdentifierType.PAIR,[])
     #end of list is denoted by a None at the end. If no None at the end, then

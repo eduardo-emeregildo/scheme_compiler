@@ -68,8 +68,10 @@ class Lexer:
             token = Token(self.cur_char,TokenType.EOF)
         elif self.cur_char == "." and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
             token = Token(self.cur_char,TokenType.DOT)
-        elif self.cur_char == "+" and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
-            token = Token(self.cur_char,TokenType.PLUS)
+        elif self.cur_char == "+" and (not self.peek().isdigit()) and (self.peek() != "."):
+            #(self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"): 
+            #token = Token(self.cur_char,TokenType.PLUS)
+            token = Token("add",TokenType.BUILTIN)
         elif self.cur_char == "-" and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
             token = Token(self.cur_char,TokenType.MINUS)
         elif self.cur_char == "*":

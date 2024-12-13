@@ -99,6 +99,30 @@ void _display(void *type)
         printf("\n");
 }
 
+long _add(Value *param_list){
+        long num_sum = 0;
+        double double_sum = 0.0;
+        struct Pair *cur_param = param_list->as.pair;
+        while (cur_param->car.type != VAL_EMPTY_LIST) {
+                if (cur_param->car.type == VAL_INT) {
+                        num_sum += untag_int(cur_param->car.as.tagged_type);
+                } else if (cur_param->car.type == VAL_DOUBLE) {
+                        double_sum += cur_param->car.as._double;
+                } else {
+                        abort_message("In +. Expected a number.\n");
+                }
+                if (cur_param->cdr.type == VAL_EMPTY_LIST) {
+                        break;
+                }
+                cur_param = cur_param->cdr.as.pair;
+        }
+        if (double_sum == 0) {
+                return make_tagged_int(num_sum);
+        }
+        return (long)make_value_double((double)num_sum + double_sum);
+
+}
+
 void is_function(long type)
 {
         Value *value_type = (Value*)type;

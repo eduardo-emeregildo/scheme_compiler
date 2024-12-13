@@ -3,4 +3,5 @@
 from function import *
 BUILTINS = {
     "display": Function().set("display",["item"],{},1,False),
+    "add": Function().set("add",["args"],{},1,True),
 }
