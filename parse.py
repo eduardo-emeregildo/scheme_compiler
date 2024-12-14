@@ -6,9 +6,8 @@ from function import *
 from scheme_builtins import *
 
 # maybe refactor the part that puts args in right
-#place and calls the function for function_call and variadic_function_call
-#since they are practically the same. 
 
+#test addition some more
 #implement subtraction as builtin proceudures
 #Things to do:         
     #6. implement variadic function call for normal and builtin functions
@@ -332,6 +331,39 @@ class Parser:
         self.evaluate_function(arg_func)
         self.next_token()
     
+    #places args in correct registers for function call and emits a function call
+    #This is a helper for function_call and variadic_function_call.
+    def place_args_and_call_function(
+        self,env_depth,is_global,arg_count,func_obj):
+        for cur_arg in range(arg_count):
+            if cur_arg < 6:
+                self.emitter.emit_register_arg(
+                cur_arg,env_depth,is_global,arg_count)
+            else:
+                seventh_arg_offset =  abs(env_depth - (arg_count - 6)*8)
+                self.emitter.subtract_rsp(seventh_arg_offset,is_global)
+                break
+        # for calls where no args are on the stack, subtract ONLY the depth if
+        # there is stuff to preserve on the stack(AKA if depth != 0)
+        if arg_count < 6:
+            self.emitter.subtract_rsp(abs(env_depth),is_global)
+        if func_obj.name in BUILTINS:
+            self.emitter.emit_builtin_call(func_obj.name,is_global)
+        else:
+            function_obj = self.cur_environment.find_definition(func_obj.name)
+            function_offset = Environment.get_offset(function_obj)
+            if function_offset is None:
+                #calling a global function from within a function
+                self.emitter.emit_global_function_call(func_obj.name,is_global)
+            else:
+                self.emitter.emit_local_function_call(function_offset)
+        #add back the rsp
+        if arg_count > 6:
+            self.emitter.add_rsp(seventh_arg_offset,is_global)
+        else:
+            self.emitter.add_rsp(abs(env_depth),is_global)
+        self.evaluate_function(func_obj)
+    
     #given a function object, does a function call. last_exp_res will be set to
     #the function that was called
     def function_call(self,func_obj):
@@ -365,36 +397,7 @@ class Parser:
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
                 f"{func_obj.name} requires {str(func_obj.arity)} arguments.")
-        #now put args in the right place and advance rsp if applicable
-        for cur_arg in range(arg_count):
-            if cur_arg < 6:
-                self.emitter.emit_register_arg(
-                cur_arg,env_depth,is_global,arg_count)
-            else:
-                #advance rsp to point to seventh arg
-                self.emitter.subtract_rsp(
-                abs(env_depth - (arg_count - 6)*8),is_global)
-                break
-        # for calls where no args are on the stack, subtract ONLY the depth if
-        # there is stuff to preserve on the stack(AKA if depth != 0)
-        if arg_count < 6:
-            self.emitter.subtract_rsp(abs(env_depth),is_global)
-        if func_obj.name in BUILTINS:
-            self.emitter.emit_builtin_call(func_obj.name,is_global)
-        else:
-            function_obj = self.cur_environment.find_definition(func_obj.name)
-            function_offset = Environment.get_offset(function_obj)
-            if function_offset is None:
-                #calling a global function from within a function
-                self.emitter.emit_global_function_call(func_obj.name,is_global)
-            else:
-                self.emitter.emit_local_function_call(function_offset)
-        #add back the rsp
-        if arg_count > 6:
-            self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
-        else:
-            self.emitter.add_rsp(abs(env_depth),is_global)
-        self.evaluate_function(func_obj)
+        self.place_args_and_call_function(env_depth,is_global,arg_count,func_obj)
         self.next_token()
     
     def variadic_function_call(self,func_obj):
@@ -431,36 +434,7 @@ class Parser:
         self.cur_environment)
         self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
         self.cur_environment.depth += func_obj.arity*8
-        #now put args in right place, and call the function
-        for cur_arg in range(arg_count):
-            if cur_arg < 6:
-                self.emitter.emit_register_arg(
-                cur_arg,env_depth,is_global,arg_count)
-            else:
-                #advance rsp to point to seventh arg
-                self.emitter.subtract_rsp(
-                abs(env_depth - (arg_count - 6)*8),is_global)
-                break
-        # for calls where no args are on the stack, subtract ONLY the depth if
-        # there is stuff to preserve on the stack(AKA if depth != 0)
-        if arg_count < 6:
-            self.emitter.subtract_rsp(abs(env_depth),is_global)
-        if func_obj.name in BUILTINS:
-            self.emitter.emit_builtin_call(func_obj.name,is_global)
-        else:
-            function_obj = self.cur_environment.find_definition(func_obj.name)
-            function_offset = Environment.get_offset(function_obj)
-            if function_offset is None:
-                #calling a global function from within a function
-                self.emitter.emit_global_function_call(func_obj.name,is_global)
-            else:
-                self.emitter.emit_local_function_call(function_offset)
-        #add back the rsp
-        if arg_count > 6:
-            self.emitter.add_rsp(abs(env_depth - (arg_count - 6)*8),is_global)
-        else:
-            self.emitter.add_rsp(abs(env_depth),is_global)
-        self.evaluate_function(func_obj)
+        self.place_args_and_call_function(env_depth,is_global,arg_count,func_obj)
         self.next_token()
         
         

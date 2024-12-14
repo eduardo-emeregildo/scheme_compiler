@@ -3,7 +3,7 @@
 ;(define (monkey a b c d e f g) g)
 
 ;(define (one_arg x y) (define (inner z) 8) (inner 1))
-;(one_arg 1 2)
+;(display(one_arg 1 2))
 
 ;(define (outer) (define (middle) (define (inner) 2)(inner)) (inner))
 ;(outer)
@@ -70,8 +70,9 @@
 (define (variadic_func  foo . args) (foo args))
 (variadic_func display 1 2 '(3 4) +)
 ;(display display)
-;(define (add a b) b)
-;(display (add 1 2))
+;(define (add a b) b) ; "add" is lexed as a builtin
+;(display (+ 1 2))
+;(display add)
 (display +)
 (display (+ 1 2 3 4 5 6 7 8 9))
 (display (+ 3.5 4))
