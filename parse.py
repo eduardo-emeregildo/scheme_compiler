@@ -5,8 +5,9 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-# maybe refactor the part that puts args in right
 
+#fix bug with addition that uses a param as an arg(ex in functions.scm)
+#to fix go to set_ith_value and implement case for IdentifierType.PARAM
 #test addition some more
 #implement subtraction as builtin proceudures
 #Things to do:         
@@ -152,11 +153,13 @@ class Parser:
         
         elif self.check_token(TokenType.IDENTIFIER):
             print("EXPRESSION-VARIABLE")
-            is_global = self.cur_environment.is_global()            
+            is_global = self.cur_environment.is_global()
             definition = self.cur_environment.find_definition(
             self.cur_token.text)
             def_ident_obj = Environment.get_ident_obj(definition)
             self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
+            print("aaaaaaaaaaa", self.last_exp_res.typeof)
+            print(definition)
             if is_global:
                 self.emitter.emit_var_to_global(self.cur_token.text,definition)
             else:
@@ -185,6 +188,7 @@ class Parser:
             
             #calling a builtin function
             elif self.check_token(TokenType.BUILTIN):
+                print("BUILTIN FUNCTION CALL")
                 func_obj = BUILTINS[self.cur_token.text]
                 self.next_token()
                 if func_obj.is_variadic:
@@ -424,6 +428,7 @@ class Parser:
         #as an expression
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
+            print("VARIADIC ARG: ",self.last_exp_res.typeof,self.last_exp_res.value)
             variadic_args.append(self.last_exp_res)
             if self.check_token(TokenType.EXPR_END):
                 variadic_args.append(None)

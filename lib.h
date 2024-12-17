@@ -17,5 +17,5 @@ function
 void _display(void *value_ptr);
 long _add(Value *param_list);
 Value display = {VAL_FUNCTION,.as = {.function = &_display}};
-Value add = {VAL_FUNCTION,.as = {.function = &_add}};
+Value addition = {VAL_FUNCTION,.as = {.function = &_add}};
 #endif

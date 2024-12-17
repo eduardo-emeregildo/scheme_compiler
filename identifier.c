@@ -314,3 +314,28 @@ Value *make_value_function(void *addr)
         ptr_value_function->as.function = addr;
         return ptr_value_function;
 }
+
+//similar to set_value_x, but in this case its not known if the input is a value
+// object or not(i.e. could be a value ptr, or a tagged type(int,bool,char)) 
+void set_ith_value_unknown(Value *val_ptr, long type,size_t index) 
+{
+
+        if (is_ptr(type)) {
+                Value *value_type = (Value *)type;
+                val_ptr[index] = *value_type;
+                return;
+        }
+        if (is_int(type)) {
+                val_ptr[index].type = VAL_INT;
+                val_ptr[index].as.tagged_type = type;
+        } else if (is_bool(type)) {
+                val_ptr[index].type = VAL_BOOLEAN;
+                val_ptr[index].as.tagged_type = type;
+        } else if (is_char(type)) {
+                val_ptr[index].type = VAL_CHAR;
+                val_ptr[index].as.tagged_type = type;
+        } else {
+                abort_message("in set_ith_value_unknown. Type is unknown.\n");
+        }
+
+}

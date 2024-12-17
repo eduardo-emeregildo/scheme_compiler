@@ -154,12 +154,6 @@ class Emitter:
             asm_code.append("\tcall allocate_vector\n\tpop rdi\n\tmov rsi,rax")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_vector")
         elif TYPE == IdentifierType.FUNCTION:
-            
-            #this is wrong, have to move the address of the function to rsi
-            # if ident_obj.value.name in BUILTINS:
-            #     self.add_extern(ident_obj.value.name)
-            #     return f"\tmov rax, {ident_obj.value.name}"
-            
             self.add_extern("set_ith_value_function")
             function_name = ident_obj.value.name
             if function_name in BUILTINS:
@@ -177,6 +171,12 @@ class Emitter:
             self.emit_local_label(f"'{ident_obj.value}'")
             asm_code.append(f"\tmov rsi, main.LC{len(self.local_labels) - 1}")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_symbol")
+        elif TYPE == IdentifierType.PARAM:
+            sys.exit("IN PARAM BLOCK :DDDDDDD")
+            #self.add_extern("set_ith_value_unknown")
+        else:
+            sys.exit(
+            f"Error setting ith value, {ident_obj.typeof} not supported")
         return '\n'.join(asm_code)
     
     #given that current pair addr is at the top of the stack, will get the
@@ -209,7 +209,7 @@ class Emitter:
             asm_code.append(self.set_ith_value(ident,0))
             #now set the cdr
             if i + 1 == last_elt_index:
-                if ident_obj.value[last_elt_index] == None:
+                if ident_obj.value[last_elt_index] is None:
                     break
                 else:
                     #dot notation case, set the cdr to last ident and break
@@ -217,7 +217,6 @@ class Emitter:
                     asm_code.append(
                     self.set_ith_value(ident_obj.value[last_elt_index],0))
                     break
-                    
             else:
                 self.add_extern("set_ith_value_pair")
                 #set cdr to empty pair
