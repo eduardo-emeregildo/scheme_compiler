@@ -6,8 +6,9 @@ from function import *
 from scheme_builtins import *
 
 
-#fix bug with addition that uses a param as an arg(ex in functions.scm)
-#to fix go to set_ith_value and implement case for IdentifierType.PARAM
+
+#Todo: make  variadic functions support using params as functions
+
 #test addition some more
 #implement subtraction as builtin proceudures
 #Things to do:         

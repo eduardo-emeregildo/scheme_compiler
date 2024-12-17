@@ -76,8 +76,12 @@
 ;(display +)
 ;(display (+ 1 2 3 4 5 6 7 8 9))
 ;(display (+ 3.5 4))
-
-(define (yeo arg) (+ arg 1))
-;(display (yeo 1))
 ;(define x 3)
 ;(display (+ x 1))
+
+;make this work next:
+;(define (yeo arg1 arg2 arg3) (arg1 arg2 arg3))
+;(display (yeo + 2 3))
+
+(define (yeo arg1 arg2 arg3 ) (+ arg1 arg2 arg3 7))
+(display (yeo 1 2 3))

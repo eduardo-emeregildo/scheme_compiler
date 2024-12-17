@@ -56,7 +56,7 @@ class Emitter:
     
     #given an Identifier obj, will return the corresponding asm. 
     # The result will be a value ptr, located in rax
-    def compile_identifier(self,ident_obj):
+    def compile_identifier(self,ident_obj,cur_environment):
         match ident_obj.typeof:
             case IdentifierType.CHAR:
                 self.add_extern("make_tagged_char")
@@ -82,7 +82,7 @@ class Emitter:
             case IdentifierType.PAIR:    
                 self.add_extern("make_value_pair")
                 asm_code = []
-                asm_code.append(self.compile_list(ident_obj))
+                asm_code.append(self.compile_list(ident_obj,cur_environment))
                 asm_code.append("\tmov rdi, rsi\n\tcall make_value_pair")                
                 # self.add_extern("print_list")
                 # asm_code.append("\tmov rdi,rax\n\tcall print_list")
@@ -90,7 +90,7 @@ class Emitter:
             case IdentifierType.VECTOR:
                 self.add_extern("make_value_vector")
                 asm_code = []
-                asm_code.append(self.compile_vector(ident_obj))
+                asm_code.append(self.compile_vector(ident_obj,cur_environment))
                 asm_code.append(f"\tmov rdi,rsi\n\tmov rsi,{len(ident_obj.value)}")
                 asm_code.append("\tcall make_value_vector")
                 # self.add_extern("print_vector")
@@ -110,10 +110,11 @@ class Emitter:
                 return(f"\tmov rdi, main.LC{len(self.local_labels) - 1}\n\t" +
                 f"call allocate_str\n\tmov rdi,rax\n\tcall make_value_symbol")
             case _:
-                sys.exit("Error, cant compile an arg since its type is not known.")
+                sys.exit(
+                "Error, cant compile an identifier since its type is not known.")
     
     # emits code for set_ith_value_x. Assumes that the first arg is set in rdi
-    def set_ith_value(self,ident_obj,index):
+    def set_ith_value(self,ident_obj,index,cur_environment):
         asm_code = []
         TYPE = ident_obj.typeof
         if TYPE == IdentifierType.CHAR:
@@ -141,7 +142,7 @@ class Emitter:
         elif TYPE == IdentifierType.PAIR:
             self.add_extern("set_ith_value_pair")
             asm_code.append("\tpush rdi") #store the first arg
-            asm_code.append(self.compile_list(ident_obj))
+            asm_code.append(self.compile_list(ident_obj,cur_environment))
             asm_code.append("\tpop rdi") #pop first arg
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_pair")
         elif TYPE == IdentifierType.VECTOR:
@@ -172,8 +173,11 @@ class Emitter:
             asm_code.append(f"\tmov rsi, main.LC{len(self.local_labels) - 1}")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_symbol")
         elif TYPE == IdentifierType.PARAM:
-            sys.exit("IN PARAM BLOCK :DDDDDDD")
-            #self.add_extern("set_ith_value_unknown")
+            self.add_extern("set_ith_value_unknown")
+            definition = cur_environment.find_definition(ident_obj.value)
+            offset = Environment().get_offset(definition)
+            asm_code.append(f"\tmov rsi, QWORD [rbp{offset:+}]")
+            asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_unknown")
         else:
             sys.exit(
             f"Error setting ith value, {ident_obj.typeof} not supported")
@@ -195,7 +199,7 @@ class Emitter:
     #end of list is denoted by a None at the end. If no None at the end, then
     #it fell in to the DOT branch when evaluating list.
     #Note: None value can ONLY appear at the end
-    def compile_list(self,ident_obj):
+    def compile_list(self,ident_obj,cur_environment):
         asm_code = []
         last_elt_index = len(ident_obj.value) - 1
         self.add_extern("allocate_pair")
@@ -206,7 +210,7 @@ class Emitter:
         for i,ident in enumerate(ident_obj.value):
             #set car
             asm_code.append(self.emit_car_ptr())
-            asm_code.append(self.set_ith_value(ident,0))
+            asm_code.append(self.set_ith_value(ident,0,cur_environment))
             #now set the cdr
             if i + 1 == last_elt_index:
                 if ident_obj.value[last_elt_index] is None:
@@ -215,7 +219,8 @@ class Emitter:
                     #dot notation case, set the cdr to last ident and break
                     asm_code.append(self.emit_cdr_ptr())
                     asm_code.append(
-                    self.set_ith_value(ident_obj.value[last_elt_index],0))
+                    self.set_ith_value(
+                    ident_obj.value[last_elt_index],0,cur_environment))
                     break
             else:
                 self.add_extern("set_ith_value_pair")
@@ -236,7 +241,7 @@ class Emitter:
             
     #this function creates the value obj array required for make_value_vector.
     #the ptr to this array will be in rsi. 
-    def compile_vector(self,ident_obj):
+    def compile_vector(self,ident_obj,cur_environment):
         asm_code = []
         vec_len = len(ident_obj.value)
         if vec_len == 0:
@@ -246,7 +251,7 @@ class Emitter:
         asm_code.append("\tpush rax")
         for i,ident in enumerate(ident_obj.value):
             asm_code.append("\tmov rdi, QWORD [rsp]")
-            asm_code.append(self.set_ith_value(ident,i))
+            asm_code.append(self.set_ith_value(ident,i,cur_environment))
         asm_code.append("\tpop rsi")
         return '\n'.join(asm_code)
     
@@ -255,7 +260,8 @@ class Emitter:
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
         self.subtract_rsp(env_depth,is_global)
-        self.emit_to_section(self.compile_identifier(ident_obj),is_global)
+        self.emit_to_section(
+        self.compile_identifier(ident_obj,cur_environment),is_global)
         self.add_rsp(env_depth,is_global)
     
     #emits asm code to corresponding section depending on the environment
