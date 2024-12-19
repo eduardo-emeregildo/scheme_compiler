@@ -16,3 +16,4 @@ runtime.o
 me.c
 me.s
 lib.o
+lib_test*

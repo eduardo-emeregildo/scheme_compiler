@@ -79,9 +79,21 @@
 ;(define x 3)
 ;(display (+ x 1))
 
+;(define (yeo arg1 arg2 arg3 ) (+ arg1 arg2 arg3 7))
+;(display (yeo 1 2 3))
+
 ;make this work next:
 ;(define (yeo arg1 arg2 arg3) (arg1 arg2 arg3))
-;(display (yeo + 2 3))
+;(yeo + 2 3)
 
-(define (yeo arg1 arg2 arg3 ) (+ arg1 arg2 arg3 7))
-(display (yeo 1 2 3))
+;(define (func op) (op 1))
+;(func +)
+
+
+;test area
+;(define (func arg1 arg2) arg2)
+;(func 1 2)
+;(display (func 7 8))
+
+;After i make the above work, make recursion work. Have to add the function sooner
+;(define (func op1 op2) (func 1 2))

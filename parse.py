@@ -4,18 +4,25 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
+#Todo1: when using params as functions, handle the case where the arg that fills
+# this param is a variadic function. the varargs must be packaged into a list
 
+#Ex: given the program:
 
+#(define (func op) (op 1))
+#(func +)
 
-#Todo: make  variadic functions support using params as functions
+#the first arg is +, which is a variadic function. Since variadic functions handle
+#their args differently, this must be taken care of.
 
+#https://www.quora.com/How-are-varargs-typically-implemented-in-C-under-the-hood
+# the possible soln is to pass args normally in varargs, But inside the function,
+# create the list of args. For builtin functions, use c's varargs, that way 
+# the calling convention for user defined arargs and builtin varargs matches
+
+#Todo2:
 #test addition some more
 #implement subtraction as builtin proceudures
-#Things to do:         
-    #6. implement variadic function call for normal and builtin functions
-
-    #7. right now function_call doesnt have the prettiest code. especially with
-    #all the is_global checks. definitely refactor
     
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
@@ -275,9 +282,9 @@ class Parser:
                 print("OPERATOR")
                 self.expression()
                 operator_name = self.last_exp_res.value
-                #for issuing a function call with a function arg.
+                #for issuing a function call with a function param.
                 if self.last_exp_res.typeof == IdentifierType.PARAM:
-                    self.arg_function_call(operator_name)
+                    self.param_function_call(operator_name)
                     return
                 elif self.get_last_exp_type() != IdentifierType.FUNCTION:
                     self.abort(f"Application not a procedure.")
@@ -289,9 +296,10 @@ class Parser:
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
                     
-    # when an arg is used as a function. Arity not being checked since it is
+    # when a param is used as a function. Arity not being checked since it is
     #not known which function the user will pass in.
-    def arg_function_call(self,operator_name):
+    def param_function_call(self,operator_name):
+        print("PARAM FUNCTION CALL")
         arg_count = 0
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
@@ -318,10 +326,10 @@ class Parser:
         else:
             self.emitter.subtract_rsp(abs(env_depth),is_global)
         #now call the function
-        arg_definition = self.cur_environment.find_definition(operator_name)
-        arg_offset = Environment.get_offset(arg_definition)
+        param_definition = self.cur_environment.find_definition(operator_name)
+        param_offset = Environment.get_offset(param_definition)
         #must be local. If this causes issues, visit this again
-        self.emitter.emit_local_function_call(arg_offset)
+        self.emitter.emit_local_function_call(param_offset)
         #now add back the rsp
         if arg_count > 6:
             self.emitter.add_rsp(
@@ -369,6 +377,17 @@ class Parser:
             self.emitter.add_rsp(abs(env_depth),is_global)
         self.evaluate_function(func_obj)
     
+    #checks if arg arity matches param arity. Factors in if the arg is variadic
+    def compare_param_and_arg_arity(self,arg_variadic,arg_arity,param_arity):
+        if not arg_variadic and arg_arity != param_arity:
+            self.abort(f"Arity mismatch: Number of args does not match." 
+            + f" Expected {param_arity}, given {arg_arity}")
+        elif arg_variadic:
+            min_args = arg_arity - 1
+            if param_arity < min_args:
+                self.abort(f"Arity mismatch: Number of args does not match." 
+                + f" Expected at least {min_args}, given {param_arity}")
+
     #given a function object, does a function call. last_exp_res will be set to
     #the function that was called
     def function_call(self,func_obj):
@@ -391,11 +410,9 @@ class Parser:
                 if self.last_exp_res.typeof != IdentifierType.FUNCTION:
                     self.abort("in compilation. Argument is not a function")
                 param_arity = func_obj.params_as_functions[arg_count]
-                last_exp_arity = self.get_last_exp_value().arity
-                if last_exp_arity != param_arity:
-                    self.abort(f"Arity mismatch: Number of args does not match." 
-                    + f" Expected {param_arity}, given {last_exp_arity}")
-                
+                arg_arity = self.get_last_exp_value().arity
+                arg_variadic = self.get_last_exp_value().is_variadic
+                self.compare_param_and_arg_arity(arg_variadic,arg_arity,param_arity)
             #push each arg to the stack so that they're stored while evaluating each arg
             self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
         self.cur_environment.depth += func_obj.arity*8
@@ -819,7 +836,14 @@ class Parser:
             # no need to emit since on the other side of the stack
             self.cur_environment.add_stack_definition(
             self.cur_token.text,(arg_count-5)*8)
-    
+            
+    #for adding the hidden variadic arg in nonvariadic functions.
+    def add_hidden_arg(self,arg_count):
+        hidden_arg_number = arg_count + 1
+        self.cur_environment.depth -= 8
+        if (hidden_arg_number) < 7:
+            self.emitter.emit_register_param(hidden_arg_number)
+            
     # <call pattern> ::= (<pattern> <variable>*) | 
     # (<pattern> <variable>* . <variable>) where pattern ::= variable
     # populates Function obj with everything except local definitions and body
@@ -864,6 +888,9 @@ class Parser:
                     arg_count += 1
                     self.add_param_to_env(arg_count)
                     self.next_token()
+                    # if self.check_token(TokenType.EXPR_END):
+                    #     self.add_hidden_arg(arg_count)
+                    #     break
                 else:
                     self.abort(str(self.cur_token.text) + " is not an identifier.")
             self.next_token()
@@ -884,7 +911,7 @@ class Parser:
             function.add_local_definition(definition_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         self.expression()
-        last_exp_obj = self.last_exp_res.value        
+        last_exp_obj = self.last_exp_res.value
         #if param was used as a function in body, store in params_as_functions
         if self.last_exp_res.typeof == IdentifierType.FUNCTION:
             for param_index,param_name in enumerate(function.param_list):
