@@ -4,21 +4,31 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-#Todo1: when using params as functions, handle the case where the arg that fills
-# this param is a variadic function. the varargs must be packaged into a list
 
-#Ex: given the program:
+#The big problem that I need to solve is: how to pass everything in the caller 
+# the same way, and tell from the callee what type of function it is
+# (variadic,nonvariadic,builtin)?
 
-#(define (func op) (op 1))
-#(func +)
-
-#the first arg is +, which is a variadic function. Since variadic functions handle
-#their args differently, this must be taken care of.
-
-#https://www.quora.com/How-are-varargs-typically-implemented-in-C-under-the-hood
-# the possible soln is to pass args normally in varargs, But inside the function,
-# create the list of args. For builtin functions, use c's varargs, that way 
-# the calling convention for user defined arargs and builtin varargs matches
+#I have two choices:
+    #1. put args in registers and also pass two extra args which hold the arity,
+    #and varargs number. This has the disadvantage of relying on variadic functions
+    #in c, which are hacky. Also, they are a bit more expensive.
+    
+    #2. every function in the asm will be called by passing only one arg 
+    # (maybe another that holds the vararg count) which is an array of args.
+    #This has the disadvantage of indirection and not using registers, which are
+    #fast.
+    
+#Try this:
+    # 1) Work on the function calling part. i.e. function_call, builtin_function_call,
+    #variadic function call. These will basically be the same with the exception
+    #of builtin variadic calls(rax has to be set to 0 to adhere c variadic func). 
+    # rdi will have the total amt of args, rsi will will have the vararg count 
+    # (should be 0 for non variadic)
+    
+    
+    # 2) Work on the callee (i.e. call_pattern). If rsi not 0, use the varargs
+    #to generate a list of them. Make c a function that does this and call it.
 
 #Todo2:
 #test addition some more

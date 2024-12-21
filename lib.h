@@ -5,7 +5,7 @@
 #ifndef lib
 #define lib
 #include "identifier.h"
-#include <stdarg.h>
+//#include <stdarg.h>
 void print_value_type(Value *value_obj);
 void print_list(Value *value_obj);
 void print_vector(Value *value_obj);
@@ -17,7 +17,7 @@ function
 */
 void _display(void *value_ptr);
 long _add(Value *param_list);
-long new_add(long type,...); 
+//long new_add(long type,...); 
 Value display = {VAL_FUNCTION,.as = {.function = &_display}};
 Value addition = {VAL_FUNCTION,.as = {.function = &_add}};
 #endif

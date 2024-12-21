@@ -86,10 +86,7 @@
 ;(define (yeo arg1 arg2 arg3) (arg1 arg2 arg3))
 ;(yeo + 2 3)
 
-;(define (func op) (op 1))
-;(func +)
-
-
+(define (func op) (op 1))
 ;test area
 ;(define (func arg1 arg2) arg2)
 ;(func 1 2)
