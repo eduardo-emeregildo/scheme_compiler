@@ -9,26 +9,25 @@ from scheme_builtins import *
 # the same way, and tell from the callee what type of function it is
 # (variadic,nonvariadic,builtin)?
 
-#I have two choices:
-    #1. put args in registers and also pass two extra args which hold the arity,
-    #and varargs number. This has the disadvantage of relying on variadic functions
-    #in c, which are hacky. Also, they are a bit more expensive.
-    
-    #2. every function in the asm will be called by passing only one arg 
-    # (maybe another that holds the vararg count) which is an array of args.
-    #This has the disadvantage of indirection and not using registers, which are
-    #fast.
-    
-#Try this:
-    # 1) Work on the function calling part. i.e. function_call, builtin_function_call,
-    #variadic function call. These will basically be the same with the exception
-    #of builtin variadic calls(rax has to be set to 0 to adhere c variadic func). 
-    # rdi will have the total amt of args, rsi will will have the vararg count 
-    # (should be 0 for non variadic)
-    
-    
-    # 2) Work on the callee (i.e. call_pattern). If rsi not 0, use the varargs
-    #to generate a list of them. Make c a function that does this and call it.
+#maybe the solution is to just make a function struct that holds the function ptr,
+#arity and is_variadic. That way when you pass it, you have this info.
+#in the assembly if the function obj is variadic, now you know to set up the args
+#like a list.
+
+#The callee should for the most part remain unchanged. It assumes that the args
+#are correctly given.
+
+#in the caller however, when you do a call, it checks is_variadic in the 
+# runtime, and if it is, make sure to package args in a list.
+#how to package args in a list in the runtime? I guess make a c function that takes
+#in all the varargs and returns list.(Since when you enter a function the args are
+# int their registers, you can take advantage of this and call a function).
+
+#All of this should simplify code for calling in parse.py. Since the runtime is 
+#the one that checks, the parser doesnt have to.
+
+#first change function to use function struct and make sure everything is working
+#like before. Then work on changing the calling convention 
 
 #Todo2:
 #test addition some more
