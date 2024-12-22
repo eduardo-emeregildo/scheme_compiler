@@ -100,9 +100,15 @@ class Emitter:
                 if ident_obj.value.name in BUILTINS:
                     self.add_extern(ident_obj.value.name)
                     return f"\tmov rax, {ident_obj.value.name}"
+                asm_code = []
+                self.add_extern("allocate_function")
                 self.add_extern("make_value_function")
-                function_name = ident_obj.value.name
-                return f"\tmov rdi, ..@{function_name}\n\tcall make_value_function"
+                func_obj = ident_obj.value
+                asm_code.append(f"\tmov rdi, ..@{func_obj.name}")
+                asm_code.append(f"\tmov rsi, {'1' if func_obj.is_variadic else '0'}")
+                asm_code.append(f"\tmov rdx, {func_obj.arity}\n\tcall allocate_function")
+                asm_code.append(f"\tmov rdi, rax\n\tcall make_value_function")
+                return '\n'.join(asm_code)
             case IdentifierType.SYMBOL:
                 self.add_extern("allocate_str")
                 self.add_extern("make_value_symbol")
@@ -152,21 +158,27 @@ class Emitter:
             asm_code.append("\tpush rdi")
             asm_code.append(self.compile_vector(ident_obj))
             asm_code.append(f"\tmov rdi, rsi\n\tmov rsi, {len(ident_obj.value)}")
-            asm_code.append("\tcall allocate_vector\n\tpop rdi\n\tmov rsi,rax")
+            asm_code.append("\tcall allocate_vector\n\tpop rdi\n\tmov rsi, rax")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_vector")
         elif TYPE == IdentifierType.FUNCTION:
             self.add_extern("set_ith_value_function")
-            function_name = ident_obj.value.name
-            if function_name in BUILTINS:
-                self.add_extern(function_name)
-                asm_code.append(f"\tmov rax, {function_name}") 
+            func_obj = ident_obj.value
+            if func_obj.name in BUILTINS:
+                self.add_extern(func_obj.name)
+                asm_code.append(f"\tmov rax, {func_obj.name}") 
                 asm_code.append(f"\tlea rax, QWORD[rax + 8]")
                 asm_code.append(f"\tmov rsi, QWORD[rax]\n\tmov rdx, {index}")
                 asm_code.append("\tcall set_ith_value_function")
             else:
-                asm_code.append(
-                f"\tmov rsi, ..@{function_name}\n\tmov rdx, {index}")
-                asm_code.append("\tcall set_ith_value_function")
+                self.add_extern("allocate_function")
+                asm_code.append("\tpush rdi")
+                asm_code.append(f"\tmov rdi, ..@{func_obj.name}")
+                asm_code.append(f"\tmov rsi, {'1' if func_obj.is_variadic else '0'}")
+                asm_code.append(f"\tmov rdx, {func_obj.arity}\n\tcall allocate_function")
+                asm_code.append("pop rdi")
+                asm_code.append(f"\t mov rsi, rax\n\tmov rdx, {index}")
+                asm_code.append(f"\tcall set_ith_value_function")
+                
         elif TYPE == IdentifierType.SYMBOL:
             self.add_extern("set_ith_value_symbol")
             self.emit_local_label(f"'{ident_obj.value}'")

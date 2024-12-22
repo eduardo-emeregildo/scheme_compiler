@@ -17,7 +17,6 @@ function
 */
 void _display(void *value_ptr);
 long _add(Value *param_list);
-//long new_add(long type,...); 
-Value display = {VAL_FUNCTION,.as = {.function = &_display}};
-Value addition = {VAL_FUNCTION,.as = {.function = &_add}};
+Value display = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_display,false,1}}};
+Value addition = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_add,true,1}}};
 #endif

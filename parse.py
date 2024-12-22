@@ -5,6 +5,12 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
+
+#Todo: update parse.py to see updates I need to make after adding function objects
+#in the runtime. Then start working on the caller code(
+# i.e. function_call,variadic_function_call,etc.)
+
+
 #The big problem that I need to solve is: how to pass everything in the caller 
 # the same way, and tell from the callee what type of function it is
 # (variadic,nonvariadic,builtin)?

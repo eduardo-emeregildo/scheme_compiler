@@ -30,7 +30,6 @@ typedef struct {
                 double _double;
                 struct Pair *pair;
                 struct Vector *vector;
-                //void *function;
                 struct FuncObj *function;
                 long tagged_type; //only exists if a elt in lst is int,char,bool
         } as;

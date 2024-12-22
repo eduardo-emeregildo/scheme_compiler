@@ -123,33 +123,6 @@ long _add(Value *param_list){
 
 }
 
-// long new_add(long varargs_count,...)
-// {
-//         long num_sum = 0;
-//         double double_sum = 0.0;
-//         va_list varargs;
-//         va_start(varargs,varargs_count);
-//         for (int i = 0; i < varargs_count ; i++) {
-//                 long cur_arg = va_arg(varargs,long);
-//                 if (is_int(cur_arg)) {
-//                         num_sum += untag_int(cur_arg);
-//                 } else if (is_ptr(cur_arg)) {
-//                         Value *cur_arg_obj = (Value *)cur_arg;
-//                         if (cur_arg_obj->type != VAL_DOUBLE) {
-//                                 abort_message("In +. Expected a number.\n");
-//                         }
-//                         double_sum += cur_arg_obj->as._double;
-//                 } else {
-//                         abort_message("in +. Expected a number.\n");
-//                 }
-//         }
-//         va_end(varargs);
-//         if (double_sum == 0) {
-//                 return make_tagged_int(num_sum);
-//         }
-//         return (long)make_value_double((double)num_sum + double_sum);
-// }
-
 //long sub(long var_args_count,long req1,...)
 
 void is_function(long type)
