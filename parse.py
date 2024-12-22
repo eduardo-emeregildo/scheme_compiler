@@ -8,7 +8,9 @@ from scheme_builtins import *
 
 #Todo: update parse.py to see updates I need to make after adding function objects
 #in the runtime. Then start working on the caller code(
-# i.e. function_call,variadic_function_call,etc.)
+# i.e. function_call,variadic_function_call,etc.) might not need some of 
+# the call functions functions anymore, in particular variadic_function_call and
+#param_function_call are probably not needed
 
 
 #The big problem that I need to solve is: how to pass everything in the caller 

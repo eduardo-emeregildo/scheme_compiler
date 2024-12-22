@@ -167,6 +167,7 @@ class Emitter:
                 self.add_extern(func_obj.name)
                 asm_code.append(f"\tmov rax, {func_obj.name}") 
                 asm_code.append(f"\tlea rax, QWORD[rax + 8]")
+                asm_code.append("\tmov rax, QWORD [rax];set ith value where value is builtin")
                 asm_code.append(f"\tmov rsi, QWORD[rax]\n\tmov rdx, {index}")
                 asm_code.append("\tcall set_ith_value_function")
             else:
@@ -376,16 +377,16 @@ class Emitter:
         self.add_extern(builtin_name)
         self.emit_to_section(
         f"\tmov rax, {builtin_name}\n\t" + 
-        f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]",is_global)
+        f"lea rax,QWORD [rax + 8]\n\tmov rax, QWORD[rax]\n\tcall QWORD [rax]",is_global)
     
     #calls a defined function which exists in global scope
     def emit_global_function_call(self,func_name,is_global):
         self.emit_to_section(f"\tmov rax,QWORD[{func_name}]\n\t" + 
-        f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]",is_global)
+        f"lea rax,QWORD [rax + 8]\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
 
     def emit_local_function_call(self,func_offset):
         self.emit_function(f"\tmov rax,QWORD[rbp{func_offset:+}]\n\t" + 
-        f"lea rax,QWORD[rax + 8]\n\tcall QWORD[rax]")
+        f"lea rax,QWORD [rax + 8]\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]")
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 
