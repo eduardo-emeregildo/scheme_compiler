@@ -30,8 +30,8 @@ typedef struct {
                 double _double;
                 struct Pair *pair;
                 struct Vector *vector;
-                //will hold the addr of the label to the function
-                void *function;
+                //void *function;
+                struct FuncObj *function;
                 long tagged_type; //only exists if a elt in lst is int,char,bool
         } as;
 } Value;
@@ -56,6 +56,12 @@ struct Vector {
         Value *items;
 };
 
+struct FuncObj {
+        void *function_ptr;
+        bool is_variadic;
+        int arity;
+};
+
 bool is_int(long item);
 bool is_ptr(long item);
 bool is_bool(long item);
@@ -75,6 +81,7 @@ Value *make_value_bool(bool boolean);
 struct Str *allocate_str(char *str);
 struct Pair *allocate_pair();
 struct Vector *allocate_vector(Value *vec_elts,size_t size);
+struct FuncObj *allocate_function(void *function_addr,bool variadic,int arity);
 void set_ith_value_int(Value *val_ptr,long integer,size_t index);
 void set_ith_value_char(Value *val_ptr,char character,size_t index);
 void set_ith_value_bool(Value *val_ptr,bool boolean,size_t index);
@@ -83,7 +90,7 @@ void set_ith_value_str(Value *val_ptr,char *str,size_t index);
 void set_ith_value_symbol(Value *val_ptr,char *str,size_t index);
 void set_ith_value_pair(Value *val_ptr,struct Pair *pair_obj,size_t index);
 void set_ith_value_vector(Value *val_ptr,struct Vector *vec,size_t index);
-void set_ith_value_function(Value *val_ptr,void *func_addr,size_t index);
+void set_ith_value_function(Value *val_ptr,struct FuncObj *func_obj,size_t index);
 void set_ith_value_unknown(Value *val_ptr, long type,size_t index);
 Value *get_car_ptr(struct Pair *pair_obj);
 Value *get_cdr_ptr(struct Pair *pair_obj);
@@ -93,5 +100,5 @@ Value *make_value_symbol(struct Str *str_obj);
 Value *make_value_pair(struct Pair *pair_obj);
 Value *make_value_list(Value *value_obj_array, size_t len);
 Value *make_value_vector(Value *value_obj_array, size_t len);
-Value *make_value_function(void *addr);
+Value *make_value_function(struct FuncObj *func_obj);
 #endif

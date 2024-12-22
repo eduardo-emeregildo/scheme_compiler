@@ -158,6 +158,16 @@ struct Vector *allocate_vector(Value *vec_elts,size_t size)
         return vec_obj;
 }
 
+struct FuncObj *allocate_function(void *function_addr,bool is_variadic,int arity)
+{
+        struct FuncObj *func = (struct FuncObj *)malloc(sizeof(struct FuncObj));
+        validate_ptr(func);
+        func->function_ptr = function_addr;
+        func->is_variadic = is_variadic;
+        func->arity = arity;
+        return func;
+}
+
 /*
 some helpers to help with creation of vec/lists
 set_ith_value_x setters can be used to set a pair struct's car/cdr, if you
@@ -213,10 +223,10 @@ void set_ith_value_vector(Value *val_ptr,struct Vector *vec,size_t index)
         val_ptr[index].as.vector = vec;
 }
 
-void set_ith_value_function(Value *val_ptr,void *func_addr,size_t index)
+void set_ith_value_function(Value *val_ptr,struct FuncObj *func_obj,size_t index)
 {
         val_ptr[index].type = VAL_FUNCTION;
-        val_ptr[index].as.function = func_addr;
+        val_ptr[index].as.function = func_obj;
 
 }
 
@@ -307,11 +317,11 @@ Value *make_value_vector(Value *value_obj_array, size_t len)
 }
 
 
-Value *make_value_function(void *addr)
+Value *make_value_function(struct FuncObj *func_obj)
 {
         Value *ptr_value_function = make_tagged_ptr(1);
         ptr_value_function->type = VAL_FUNCTION;
-        ptr_value_function->as.function = addr;
+        ptr_value_function->as.function = func_obj;
         return ptr_value_function;
 }
 
@@ -319,7 +329,6 @@ Value *make_value_function(void *addr)
 // object or not(i.e. could be a value ptr, or a tagged type(int,bool,char)) 
 void set_ith_value_unknown(Value *val_ptr, long type,size_t index) 
 {
-
         if (is_ptr(type)) {
                 Value *value_type = (Value *)type;
                 val_ptr[index] = *value_type;
