@@ -348,3 +348,75 @@ void set_ith_value_unknown(Value *val_ptr, long type,size_t index)
         }
 
 }
+//turns into an int,bool or char and sets this to the Value obj given.
+void turn_to_val_type(long non_ptr_type,Value val_obj)
+{
+        if (is_int(non_ptr_type)) {
+                val_obj.type = VAL_INT;
+        } else if (is_bool(non_ptr_type)) {
+                val_obj.type = VAL_BOOLEAN;
+        } else if (is_char(non_ptr_type)) {
+                val_obj.type = VAL_CHAR;
+        } else {
+                abort_message("not a non pointer type.\n");
+        }
+        val_obj.as.tagged_type = non_ptr_type;
+}
+
+/*
+performs runtime checks on a param that was used as a function. Checks if param
+is a function, and if the the function is variadic, returns a list of the varargs.
+Otherwise returns null ptr indicating that the param is non variadic
+*/
+Value *check_param_function_call(long function,long *args,int arg_amount)
+{
+        Value *func_obj = (Value *)function;
+        if (!is_ptr(function) || (func_obj->type != VAL_FUNCTION)) {
+                abort_message("application not a procedure.");
+        }
+        int function_arity = func_obj->as.function->arity;
+        if (func_obj->as.function->is_variadic) {
+                // variadic logic
+                int min_args = function_arity - 1;
+                if (arg_amount < (min_args)) {
+                        printf(
+                        "Runtime error, arity mismatch: Number of args does \
+                        not match. Expected at least %d, given %d.\n",
+                        min_args,arg_amount);
+                        exit(EXIT_FAILURE);
+                }
+                return make_arg_list(func_obj,args,arg_amount);
+
+        } else if (function_arity != arg_amount) {
+                printf(
+                "Runtime error, arity mismatch: Number of args does not match. \
+                Expected %d, given %d.\n",function_arity,arg_amount);
+                exit(EXIT_FAILURE);
+        }
+        return NULL;
+}
+/*
+makes the pair obj containing the varargs. iterates the args array backwards.
+*/
+Value *make_arg_list(Value *func_obj,long *args,int arg_amount)
+{
+        int min_args = func_obj->as.function->arity - 1;
+        Value *vararg_list = make_tagged_ptr(1);
+        vararg_list->type = VAL_PAIR;
+        struct Pair *head = allocate_pair();
+        struct Pair *cur_pair = head;
+        for (size_t i = arg_amount - 1; i > min_args - 1;i --) {
+                if (is_ptr(args[i])) {
+                        cur_pair->car = *(Value *)args[i];
+                } else {
+                        turn_to_val_type(args[i],cur_pair->car);
+                }
+                if (i != min_args) {
+                        cur_pair->cdr.type = VAL_PAIR;
+                        cur_pair->cdr.as.pair = allocate_pair();
+                        cur_pair = cur_pair->cdr.as.pair;
+                }
+        }
+        vararg_list->as.pair = head;
+        return vararg_list;
+}

@@ -6,12 +6,14 @@ from function import *
 from scheme_builtins import *
 
 
-#Todo: update parse.py to see updates I need to make after adding function objects
-#in the runtime. Then start working on the caller code(
-# i.e. function_call,variadic_function_call,etc.) might not need some of 
-# the call functions functions anymore, in particular variadic_function_call and
-#param_function_call are probably not needed
+#Todo1: test the new functions in identifier.c to see if they correctly make the 
+#varargs list and check the function correctly.
 
+#Todo2: work on param_function_call. call the functions in the runtime to check
+#what function it is and the and how to set up the args. Also, im pretty certain
+#that params_as_functions in function.py is not needed anymore, so remove that,
+# as well as its uses in parse.py(used in function_call to check some things),
+#but its not needed since now the runtime performs these checks.
 
 #The big problem that I need to solve is: how to pass everything in the caller 
 # the same way, and tell from the callee what type of function it is
@@ -320,6 +322,7 @@ class Parser:
         arg_count = 0
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
+        self.emitter.emit_to_section("\t;param function call",is_global)
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
             arg_count += 1
@@ -327,6 +330,7 @@ class Parser:
             self.emitter.push_arg(arg_count,env_depth,is_global)
             self.cur_environment.depth -= 8
         self.cur_environment.depth += arg_count*8
+        self.emitter.emit_to_section("\t;finished pushing args",is_global)
         #now put args in the right place
         # -8 is offset of last arg (assuming env depth is 0)
         for cur_arg in range(arg_count):
@@ -463,7 +467,6 @@ class Parser:
         #as an expression
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
-            print("VARIADIC ARG: ",self.last_exp_res.typeof,self.last_exp_res.value)
             variadic_args.append(self.last_exp_res)
             if self.check_token(TokenType.EXPR_END):
                 variadic_args.append(None)

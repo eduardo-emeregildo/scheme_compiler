@@ -39,7 +39,7 @@
 ;(define (func one two) two)
 ;(func 1 2)
 ;(define (func one two three four) four)
-;(func 1 2 3 4)
+;(display (func 1 2 3 4))
 ;(define (func x)  (define (op y) (display x))(op x))
 ;(func 4)
 ;(define (yeo one two three four five six seven eight) 
@@ -68,8 +68,7 @@
 
 ;variadic functions:
 ;(define (variadic_func  foo . args) (foo args))
-;(variadic_func display 1 2 '(3 4) +)
-;(display display)
+;(variadic_func display 1 2 '(3 4) display +)
 ;(define (add a b) b) ; "add" is lexed as a builtin
 ;(display (+ 1 2))
 ;(display add)
@@ -85,8 +84,9 @@
 ;make this work next:
 ;(define (yeo arg1 arg2 arg3) (arg1 arg2 arg3))
 ;(yeo + 2 3)
-(define (func op) op)
-(func 1)
+;(define (func op) (op 1))
+;(func '#(1 2 3 4 #t))
+;(display (func 1))
 ;(func display)
 ;(func +)
 ;test area
@@ -94,5 +94,8 @@
 ;(func 1 2)
 ;(display (func 7 8))
 
+(define (func op) op)
+
 ;After i make the above work, make recursion work. Have to add the function sooner
 ;(define (func op1 op2) (func 1 2))
+;(func display)
