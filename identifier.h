@@ -102,5 +102,5 @@ Value *make_value_vector(Value *value_obj_array, size_t len);
 Value *make_value_function(struct FuncObj *func_obj);
 Value *check_param_function_call(long function,long *args,int arg_amount);
 Value *make_arg_list(Value *func_obj,long *args,int arg_amount);
-void turn_to_val_type(long non_ptr_type,Value val_obj);
+void turn_to_val_type(long non_ptr_type,Value *val_obj);
 #endif

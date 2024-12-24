@@ -1,5 +1,6 @@
 // gcc -Wall -O3 -o identifier_test identifier_test.c identifier.c
-#include "identifier.h"
+//gcc -Wall -o identifier_test identifier_test.c lib.c identifier.c
+#include "lib.h"
 
 int main()
 {
@@ -68,6 +69,7 @@ int main()
         printf("%d\n",value_obj_str->type);
         printf("%s\n",value_obj_str->as.str->chars);
         print_list(asm_pair);
+        printf("\n");
         printf("%ld\n",sizeof(struct Pair));
         printf("%ld\n",sizeof(Value));
         printf("PAIR OBJECT: %p\n",pair_obj);
@@ -75,7 +77,24 @@ int main()
         printf("ADDRESS OF CDR OF PAIR_OBJECT: %p\n",get_cdr_ptr(pair_obj));
         printf("ARITHMETIC(should match cdr): %p\n",get_car_ptr(pair_obj) + 1);
         Value *new_pair = make_value_pair(pair_obj);
-        print_list(new_pair);
-        print_vector(vec);
+        // testing check param_function_call.
+        long args[4] = 
+        {make_tagged_int(1),(long)new_pair,make_tagged_int(3),make_tagged_int(4)};
+        int arg_amount = 4;
+        struct FuncObj *func_obj = allocate_function(&main,true,2);
+        Value *func_val_type = make_value_function(func_obj);
+        Value *varargs = check_param_function_call((long)func_val_type,&args[3],arg_amount);
+        print_list(varargs);
+        printf("  Expected answer is: ((1 2) 3 4)\n");
+        //changing arity
+        func_val_type->as.function->arity = 3;
+        varargs = check_param_function_call((long)func_val_type,&args[3],arg_amount);
+        print_list(varargs);
+        printf("  Expected answer is: (3 4)\n");
+        //changing arity to 
+        func_val_type->as.function->arity = 5;
+        varargs = check_param_function_call((long)func_val_type,&args[3],arg_amount);
+        print_list(varargs);
+        printf("  Expected answer is: ()\n");
         return 0;
 }

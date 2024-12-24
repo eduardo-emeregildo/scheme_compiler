@@ -5,10 +5,6 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-
-#Todo1: test the new functions in identifier.c to see if they correctly make the 
-#varargs list and check the function correctly.
-
 #Todo2: work on param_function_call. call the functions in the runtime to check
 #what function it is and the and how to set up the args. Also, im pretty certain
 #that params_as_functions in function.py is not needed anymore, so remove that,
