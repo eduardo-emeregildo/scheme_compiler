@@ -267,11 +267,26 @@ class Emitter:
         asm_code.append("\tpop rsi")
         return '\n'.join(asm_code)
     
-    #performs runtime checks against a function object. This happens during
-    #param_function_call to check for arity/variadic in the runtime. Assumes the 
+    #performs runtime checks against a function object by calling check_param_function_call
+    # in the runtime. Checks for arity/variadic in the runtime. Assumes the 
     #function is in rax
-    def check_param_call(self,cur_environment):
-        pass
+    def emit_function_check(self,cur_environment,operator_name,arg_count):
+        self.add_extern("check_param_function_call")
+        function_info = cur_environment.find_definition(operator_name)
+        function_offset = Environment.get_offset(function_info)
+        first_arg_offset = cur_environment.depth - 8
+        is_global = cur_environment.is_global()
+        env_depth = abs(cur_environment.depth)
+        asm_code = []
+        asm_code.append(f"\tmov rdi, QWORD [rbp{function_offset:+}]")
+        asm_code.append(f"\tmov rsi, QWORD [rbp{first_arg_offset:+}]")
+        asm_code.append(f"\tmov rdx, {arg_count}")
+        asm_code.append("\tcall check_param_function_call")
+        self.subtract_rsp(env_depth + 8*arg_count,is_global)
+        self.emit_to_section('\n'.join(asm_code),is_global)
+        self.add_rsp(env_depth + 8*arg_count,is_global)
+        
+        
     
     #given ident_obj and the current environment, emit in the corresponding place
     def emit_identifier_to_section(self,ident_obj,cur_environment):

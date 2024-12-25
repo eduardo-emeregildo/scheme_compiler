@@ -399,18 +399,18 @@ Value *check_param_function_call(long function,long *args,int arg_amount)
 makes the pair obj containing the varargs. iterates the args array backwards.
 */
 Value *make_arg_list(Value *func_obj,long *args,int arg_amount)
-{
-        int min_args = (-(arg_amount  - 1))  + (func_obj->as.function->arity - 1);
+{       
+        int min_args = func_obj->as.function->arity - 1;
+        int varargs_index = (-(arg_amount  - 1))  + min_args;
         Value *vararg_list = make_tagged_ptr(1);
         vararg_list->type = VAL_PAIR;
         struct Pair *head = allocate_pair();
         struct Pair *cur_pair = head;
-        for (int i = min_args; i < 1;i++) {
+        for (int i = varargs_index; i < 1;i++) {
                 if (is_ptr(args[i])) {
                         cur_pair->car = *(Value *)args[i];
                 } else {
                         turn_to_val_type(args[i],&cur_pair->car);
-                        printf("%ld: args[%d] = %ld\n",cur_pair->car.as.tagged_type,i ,untag_int(args[i]));
                 }
                 if (i != 0) {
                         cur_pair->cdr.type = VAL_PAIR;

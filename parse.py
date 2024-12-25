@@ -5,6 +5,8 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
+
+#Finish up param_function_call.line 335. write the conditional to pack args 
 #Todo2: work on param_function_call. call the functions in the runtime to check
 #what function it is and the and how to set up the args. Also, im pretty certain
 #that params_as_functions in function.py is not needed anymore, so remove that,
@@ -327,6 +329,11 @@ class Parser:
             self.cur_environment.depth -= 8
         self.cur_environment.depth += arg_count*8
         self.emitter.emit_to_section("\t;finished pushing args",is_global)
+        
+        # now call runtime to check what kinda function it is:
+        self.emitter.emit_function_check(self.cur_environment,operator_name,arg_count)
+        #now pack args
+        
         #now put args in the right place
         # -8 is offset of last arg (assuming env depth is 0)
         for cur_arg in range(arg_count):
@@ -423,13 +430,18 @@ class Parser:
             self.expression()
             #checking if the ith param was used as a function, if so check 
             # that expression is indeed a function, and that it has correct arity
-            if arg_count in func_obj.params_as_functions:
-                if self.last_exp_res.typeof != IdentifierType.FUNCTION:
-                    self.abort("in compilation. Argument is not a function")
-                param_arity = func_obj.params_as_functions[arg_count]
-                arg_arity = self.get_last_exp_value().arity
-                arg_variadic = self.get_last_exp_value().is_variadic
-                self.compare_param_and_arg_arity(arg_variadic,arg_arity,param_arity)
+            
+            # not needed anymore, this check for params as functions is done in 
+            # the runtime
+            
+            # if arg_count in func_obj.params_as_functions:
+            #     if self.last_exp_res.typeof != IdentifierType.FUNCTION:
+            #         self.abort("in compilation. Argument is not a function")
+            #     param_arity = func_obj.params_as_functions[arg_count]
+            #     arg_arity = self.get_last_exp_value().arity
+            #     arg_variadic = self.get_last_exp_value().is_variadic
+            #     self.compare_param_and_arg_arity(arg_variadic,arg_arity,param_arity)
+            
             #push each arg to the stack so that they're stored while evaluating each arg
             self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
         self.cur_environment.depth += func_obj.arity*8
