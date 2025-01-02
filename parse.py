@@ -5,8 +5,14 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
+#Todo1: 
+# Figure out the part in the macro where the ith register arg uses the ith 
+#register in the linux convention. I think I have to rewrite the macro to use
+# %rep
 
-#Finish up param_function_call.line 335. write the conditional to pack args 
+# test the macro for packing args. Make sure that it terminates gracefully
+#and the control flow is correct(i.e. doesnt fall into a label when it shouldnt)
+
 #Todo2: work on param_function_call. call the functions in the runtime to check
 #what function it is and the and how to set up the args. Also, im pretty certain
 #that params_as_functions in function.py is not needed anymore, so remove that,
@@ -37,7 +43,7 @@ from scheme_builtins import *
 #first change function to use function struct and make sure everything is working
 #like before. Then work on changing the calling convention 
 
-#Todo2:
+#Todo3:
 #test addition some more
 #implement subtraction as builtin proceudures
     
@@ -320,6 +326,8 @@ class Parser:
         arg_count = 0
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
+        param_definition = self.cur_environment.find_definition(operator_name)
+        param_offset = Environment.get_offset(param_definition)
         self.emitter.emit_to_section("\t;param function call",is_global)
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
@@ -331,17 +339,17 @@ class Parser:
         self.emitter.emit_to_section("\t;finished pushing args",is_global)
         
         # now call runtime to check what kinda function it is:
-        self.emitter.emit_function_check(self.cur_environment,operator_name,arg_count)
-        #now pack args
-        
-        #now put args in the right place
+        self.emitter.emit_function_check(self.cur_environment,param_offset,arg_count)
+        self.emitter.emit_to_section("\t;done doing runtime checks", is_global)
+        #now put args in the right place for non variadic case
         # -8 is offset of last arg (assuming env depth is 0)
         for cur_arg in range(arg_count):
             if cur_arg < 6:                
                 self.emitter.emit_register_arg(cur_arg,env_depth,is_global)
             else:
                 self.emitter.emit_arg_to_stack(
-                cur_arg,env_depth,is_global,arg_count)                
+                cur_arg,env_depth,is_global,arg_count)
+        self.emitter.emit_to_section("\t;finished putting args non variadic",is_global)
         #advance rsp to point to 7th arg, if less than 7 args, 
         # advance rsp so local defs arent overwritten
         if arg_count > 6:
@@ -350,8 +358,6 @@ class Parser:
         else:
             self.emitter.subtract_rsp(abs(env_depth),is_global)
         #now call the function
-        param_definition = self.cur_environment.find_definition(operator_name)
-        param_offset = Environment.get_offset(param_definition)
         #must be local. If this causes issues, visit this again
         self.emitter.emit_local_function_call(param_offset)
         #now add back the rsp

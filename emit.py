@@ -268,26 +268,44 @@ class Emitter:
         return '\n'.join(asm_code)
     
     #performs runtime checks against a function object by calling check_param_function_call
-    # in the runtime. Checks for arity/variadic in the runtime. Assumes the 
-    #function is in rax
-    def emit_function_check(self,cur_environment,operator_name,arg_count):
+    # in the runtime. Checks for arity/variadic in the runtime. 
+    # the varargs will be in rax if variadic func, else NULL will be there
+    def emit_function_check(self,cur_environment,param_offset,arg_count):
         self.add_extern("check_param_function_call")
-        function_info = cur_environment.find_definition(operator_name)
-        function_offset = Environment.get_offset(function_info)
         first_arg_offset = cur_environment.depth - 8
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
         asm_code = []
-        asm_code.append(f"\tmov rdi, QWORD [rbp{function_offset:+}]")
+        asm_code.append(f"\tmov rdi, QWORD [rbp{param_offset:+}]")
         asm_code.append(f"\tmov rsi, QWORD [rbp{first_arg_offset:+}]")
         asm_code.append(f"\tmov rdx, {arg_count}")
         asm_code.append("\tcall check_param_function_call")
         self.subtract_rsp(env_depth + 8*arg_count,is_global)
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(env_depth + 8*arg_count,is_global)
-        
-        
     
+    def emit_conditional_jump(self,is_global):
+        asm_code = []
+        asm_code.append("\tcmp rax, 0\n\tjnz .L1")
+        self.emit_to_section('\n'.join(asm_code),is_global)
+
+    #to get arity from value object ptr with the as field thats a Function ptr                
+    def get_arity_in_runtime(self,param_offset):
+        asm_code = []
+        asm_code.append(f"\tmov rbx, QWORD [rbp{param_offset:+}]")
+        asm_code.append(f"\tmov rbx, QWORD [rbx + 8]")
+        asm_code.append("\tmov ebx, DWORD [rbx + 12]")
+        return '\n'.join(asm_code)
+    
+    #emits code for variadic call. assumes the vararg array is in rax
+    def emit_variadic_call(self,param_offset,is_global):
+        asm_code = []
+        asm_code.append(".L1:")
+        asm_code.append(self.get_arity_in_runtime(param_offset))
+        asm_code.append("\tmov rcx,rbx\n\tdec rcx") #rcx has min_args
+                
+        self.emit_to_section('\n'.join(asm_code),is_global)
+        
     #given ident_obj and the current environment, emit in the corresponding place
     def emit_identifier_to_section(self,ident_obj,cur_environment):
         is_global = cur_environment.is_global()
