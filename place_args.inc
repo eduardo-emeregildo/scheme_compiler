@@ -6,29 +6,28 @@
 
 ;assume arity is 5, min_args is 4
 
-;regs in use, rax,rbx,r10,r11,r12
+;regs in use, rax,rbx,r10,r11,r12,r13
 
 ; ill use r14 reg and others for temporary storage
 %define ith_regarg_offset (r11 + (8*(r12 + 1)))
 %define ith_stackarg_offset (r11 + ((rbx - r12) * 8))
 %define seventh_arg_offset (r11 + ((r14 + 1) * 8))
 
-%macro move_to_reg 1
-        %if %1 = 0
-                mov rdi, QWORD [rbp - ith_regarg_offset]
-        %elif %1 = 1
-                mov rsi, QWORD [rbp - ith_regarg_offset]
-        %elif %1 = 2
-                mov rdx, QWORD [rbp - ith_regarg_offset]
-        %elif %1 = 3
-                mov rcx, QWORD [rbp - ith_regarg_offset]
-        %elif %1 = 4
-                mov r8, QWORD [rbp - ith_regarg_offset]
-        %elif %1 = 5
-                mov r9, QWORD [rbp - ith_regarg_offset]
-        %endif
+%macro move_to_reg 0
+        cmove r9, QWORD [rbp - ith_regarg_offset]
+        cmp r12,0
+        cmove rdi, QWORD [rbp - ith_regarg_offset]
+        cmp r12,1
+        cmove rsi, QWORD [rbp - ith_regarg_offset]
+        cmp r12,2
+        cmove rdx, QWORD [rbp - ith_regarg_offset]
+        cmp r12,3
+        cmove rcx, QWORD [rbp - ith_regarg_offset]
+        cmp r12,4
+        cmove r8, QWORD [rbp - ith_regarg_offset]
 %endmacro
 
+%macro place_args 0
         %%loop:
                 cmp r12, rbx
                 jge %%function_call
@@ -36,7 +35,7 @@
         %%register_args:
                 cmp r12, 5
                 jg %%stack_args
-                ;mov rdi/rsi.. , QWORD [rbp - ith_regarg_offset]
+                move_to_reg
                 inc r12
                 cmp r12, r10
                 je %%varargs

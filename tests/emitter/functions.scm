@@ -94,7 +94,7 @@
 ;(func 1 2)
 ;(display (func 7 8))
 
-(define (func op) (op 1 2 3 4 5 6 7))
+(define (func op) (op 1 2 3 4 5 6 7 8))
 ;(func display)
 
 ;After i make the above work, make recursion work. Have to add the function sooner

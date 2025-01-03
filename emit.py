@@ -8,6 +8,7 @@ LINUX_CALLING_CONVENTION = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
 class Emitter:
     def __init__(self, fullPath):
         self.fullPath = fullPath
+        self.includes = {f'%include "place_args.inc"'}
         self.externs = set() #for tracking which externs need to be added
         self.local_labels = [] #for creating character arrays. will go under
         #main section. if i wanna add string interning this is where i would have to look
@@ -429,10 +430,13 @@ class Emitter:
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 
         else f"extern {','.join(list(self.externs))}\n")
-        
+    
+    def get_includes(self):
+        return '\n'.join(self.includes) + '\n'
     def writeFile(self):
         with open(self.fullPath, 'w') as outputFile:
             self.emit_externs()
-            outputFile.write(self.bss_section + self.text_section 
+            outputFile.write(self.get_includes() + 
+            self.bss_section + self.text_section 
             + ''.join(self.functions.values()) + self.main_code 
             +'\n'.join(self.local_labels))
