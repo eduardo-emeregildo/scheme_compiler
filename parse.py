@@ -5,10 +5,11 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo1: 
-# Figure out the part in the macro where the ith register arg uses the ith 
-#register in the linux convention. I think I have to rewrite the macro to use
-# %rep
+#keep debugging program
+
+#Todo1:
+# write whats needed in parse.py. After doing so, test to see if the assembly in
+#the macro is working as intended
 
 # test the macro for packing args. Make sure that it terminates gracefully
 #and the control flow is correct(i.e. doesnt fall into a label when it shouldnt)
@@ -341,8 +342,10 @@ class Parser:
         # now call runtime to check what kinda function it is:
         self.emitter.emit_function_check(self.cur_environment,param_offset,arg_count)
         self.emitter.emit_to_section("\t;done doing runtime checks", is_global)
+        
+        self.emitter.emit_variadic_jump(is_global)
         #now put args in the right place for non variadic case
-        # -8 is offset of last arg (assuming env depth is 0)
+        #-8 is offset of last arg (assuming env depth is 0)
         for cur_arg in range(arg_count):
             if cur_arg < 6:                
                 self.emitter.emit_register_arg(cur_arg,env_depth,is_global)
@@ -366,6 +369,11 @@ class Parser:
             abs(env_depth - (arg_count - 6)*8),is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
+        
+        self.emitter.emit_to_section("\tjmp .L2",is_global)
+        #variadic branch:
+        self.emitter.emit_variadic_call(param_offset,env_depth,is_global)
+        self.emitter.emit_to_section(".L2:",is_global)
         #construct a function obj and set that to last_exp_res
         #dont think i have to set is_variadic member
         arg_func = Function()

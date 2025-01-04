@@ -350,7 +350,7 @@ void set_ith_value_unknown(Value *val_ptr, long type,size_t index)
 }
 //turns into an int,bool or char and sets this to the Value obj given.
 void turn_to_val_type(long non_ptr_type,Value *val_obj)
-{
+{       
         if (is_int(non_ptr_type)) {
                 val_obj->type = VAL_INT;
         } else if (is_bool(non_ptr_type)) {
@@ -401,12 +401,12 @@ makes the pair obj containing the varargs. iterates the args array backwards.
 Value *make_arg_list(Value *func_obj,long *args,int arg_amount)
 {       
         int min_args = func_obj->as.function->arity - 1;
-        int varargs_index = (-(arg_amount  - 1))  + min_args;
+        int varargs_index = (arg_amount  - 1)  - min_args;
         Value *vararg_list = make_tagged_ptr(1);
         vararg_list->type = VAL_PAIR;
         struct Pair *head = allocate_pair();
         struct Pair *cur_pair = head;
-        for (int i = varargs_index; i < 1;i++) {
+        for (int i = varargs_index; i > -1;i--) {
                 if (is_ptr(args[i])) {
                         cur_pair->car = *(Value *)args[i];
                 } else {

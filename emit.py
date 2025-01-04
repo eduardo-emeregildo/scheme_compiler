@@ -273,38 +273,50 @@ class Emitter:
     # the varargs will be in rax if variadic func, else NULL will be there
     def emit_function_check(self,cur_environment,param_offset,arg_count):
         self.add_extern("check_param_function_call")
-        first_arg_offset = cur_environment.depth - 8
+        first_arg_offset = cur_environment.depth - 8*arg_count
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
         asm_code = []
         asm_code.append(f"\tmov rdi, QWORD [rbp{param_offset:+}]")
-        asm_code.append(f"\tmov rsi, QWORD [rbp{first_arg_offset:+}]")
+        asm_code.append(f"\tlea rsi, QWORD [rbp{first_arg_offset:+}]")
+        #asm_code.append(f"\tlea rax, QWORD [rbp{first_arg_offset:+}]")
+        #asm_code.append("\tmov rsi,rax")
         asm_code.append(f"\tmov rdx, {arg_count}")
         asm_code.append("\tcall check_param_function_call")
         self.subtract_rsp(env_depth + 8*arg_count,is_global)
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(env_depth + 8*arg_count,is_global)
     
-    def emit_conditional_jump(self,is_global):
+    def emit_variadic_jump(self,is_global):
         asm_code = []
         asm_code.append("\tcmp rax, 0\n\tjnz .L1")
         self.emit_to_section('\n'.join(asm_code),is_global)
 
-    #to get arity from value object ptr with the as field thats a Function ptr                
+    #used to satisfy criteria of macro in place_args. rbx holds arity and 
+    # r10 holds min_args
     def get_arity_in_runtime(self,param_offset):
         asm_code = []
         asm_code.append(f"\tmov rbx, QWORD [rbp{param_offset:+}]")
         asm_code.append(f"\tmov rbx, QWORD [rbx + 8]")
         asm_code.append("\tmov ebx, DWORD [rbx + 12]")
+        asm_code.append("\tmov r10, rbx\n\tdec r10")
         return '\n'.join(asm_code)
     
-    #emits code for variadic call. assumes the vararg array is in rax
-    def emit_variadic_call(self,param_offset,is_global):
+    #emits code for variadic call. assumes the vararg array is in rax.
+    #calls macro in place_args.inc to place args.
+    
+    #The macro requires the following:
+    #the function arity in rbx,min_args in r10,env_depth in r11,
+    #r12 is preserved for counting args, which has to be initialized to 0
+    #and r13 holds the offset of the param
+    def emit_variadic_call(self,param_offset,env_depth,is_global):
         asm_code = []
         asm_code.append(".L1:")
         asm_code.append(self.get_arity_in_runtime(param_offset))
-        asm_code.append("\tmov rcx,rbx\n\tdec rcx") #rcx has min_args
-                
+        asm_code.append(f"\tmov r11, {abs(env_depth)}")
+        asm_code.append("\txor r12, r12")
+        asm_code.append(f"\tmov r13, {param_offset:+}")
+        asm_code.append("\tplace_args")
         self.emit_to_section('\n'.join(asm_code),is_global)
         
     #given ident_obj and the current environment, emit in the corresponding place
