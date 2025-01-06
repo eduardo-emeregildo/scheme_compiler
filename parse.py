@@ -5,20 +5,20 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#keep debugging program
-
-#Todo1:
-# write whats needed in parse.py. After doing so, test to see if the assembly in
-#the macro is working as intended
+#Todo1: rn the stack_args_function_call label is assuming that r15 remains unchanged
+#when adding back the rsp. Make it so that it stores the offset so the callee
+# can do whatever he wants with r15. Then eliminate use for r11 register in macro
+#since im passing the value to the macro. Only then go to Todo2.
 
 # test the macro for packing args. Make sure that it terminates gracefully
 #and the control flow is correct(i.e. doesnt fall into a label when it shouldnt)
 
-#Todo2: work on param_function_call. call the functions in the runtime to check
-#what function it is and the and how to set up the args. Also, im pretty certain
-#that params_as_functions in function.py is not needed anymore, so remove that,
-# as well as its uses in parse.py(used in function_call to check some things),
-#but its not needed since now the runtime performs these checks.
+#Todo2: work on param_function_call. im pretty certain that params_as_functions 
+# in function.py is not needed anymore, so remove that,
+# as well as its uses in parse.py(used in function_call to check some things).
+#its not needed since because the runtime performs these checks.
+# Come up with a way to keep track of labels. This solution will be needed when
+# implementing control flow (if,cond etc.)
 
 #The big problem that I need to solve is: how to pass everything in the caller 
 # the same way, and tell from the callee what type of function it is
@@ -880,11 +880,11 @@ class Parser:
             self.cur_token.text,(arg_count-5)*8)
             
     #for adding the hidden variadic arg in nonvariadic functions.
-    def add_hidden_arg(self,arg_count):
-        hidden_arg_number = arg_count + 1
-        self.cur_environment.depth -= 8
-        if (hidden_arg_number) < 7:
-            self.emitter.emit_register_param(hidden_arg_number)
+    # def add_hidden_arg(self,arg_count):
+    #     hidden_arg_number = arg_count + 1
+    #     self.cur_environment.depth -= 8
+    #     if (hidden_arg_number) < 7:
+    #         self.emitter.emit_register_param(hidden_arg_number)
             
     # <call pattern> ::= (<pattern> <variable>*) | 
     # (<pattern> <variable>* . <variable>) where pattern ::= variable

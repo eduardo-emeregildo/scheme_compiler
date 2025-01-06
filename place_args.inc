@@ -22,11 +22,12 @@
         inc r14
         imul r14, 8
         add r14,r11
+        neg r14
 %endmacro
 
 %macro compute_stackarg_offset 0
         mov r15, rbx
-        sub rbx,r12
+        sub r15,r12
         imul r15,8
         add r15,r11
         neg r15
@@ -42,7 +43,6 @@
 
 %macro move_to_reg 0
         compute_regarg_offset
-        cmove r9, QWORD [rbp + r14]
         cmp r12,0
         cmove rdi, QWORD [rbp + r14]
         cmp r12,1
@@ -53,20 +53,36 @@
         cmove rcx, QWORD [rbp + r14]
         cmp r12,4
         cmove r8, QWORD [rbp + r14]
+        cmp r12, 5
+        cmove r9, QWORD [rbp + r14]
 %endmacro
+;%define ith_regarg_offset (r11 + (8*(r12 + 1)))
+;%define ith_stackarg_offset (r11 + ((rbx - r12) * 8))
+;%define seventh_arg_offset (r11 + ((r14 + 1) * 8))
 
-%macro place_args 0
+;rax = varargs
+;rbx = arity
+;r10 = min_args
+;r11 = env_depth (positive)
+;r12 = cur_arg (init to 0)
+;r13 = function offset (negative)
+
+;takes in env_depth(positive) as arg. The arg is only used in function_call label.
+;NOTE:
+;now that im passing env_depth in the macro, i can free up r11 register.
+;Do this after i fix stack_function_call
+%macro place_args 1
         %%loop:
+                cmp r12,r10
+                je %%varargs
                 cmp r12, rbx
-                jge %%function_call
+                je %%function_call
                 jl %%register_args
         %%register_args:
                 cmp r12, 5
                 jg %%stack_args
                 move_to_reg
                 inc r12
-                cmp r12, r10
-                je %%varargs
                 jmp %%loop
         %%stack_args:
                 ;for the stack args. -8, is the offset of the last arg,
@@ -92,14 +108,13 @@
                 sub r14, 7
                 jge %%stack_args_function_call
                 ; no stack args case
-                neg r11
-                lea rsp, QWORD [rsp + r11]
+                sub rsp, %1
                 mov rax,  QWORD [rbp + r13] ; varargs already placed so rax is free
                 add rax, 8
                 mov rax, QWORD [rax]
                 call QWORD [rax]
-                neg r11
-                lea rsp, QWORD [rsp + r11]
+                add rsp, %1
+                jmp %%end
 
                 ;stack args case, rsp has to point to 7th arg
         %%stack_args_function_call:
@@ -111,4 +126,7 @@
                 call QWORD [rax]
                 neg r15
                 lea rsp, QWORD [rsp + r15]
+        
+        %%end:
+                nop
 %endmacro

@@ -46,6 +46,9 @@ void print_list(Value *value_obj)
                 return;
         }
         printf("(");
+        if (lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+                print_value_type(get_car_ptr(lst_cur_pair));
+        }
         while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {        
                 print_value_type(get_car_ptr(lst_cur_pair));
                 printf(" ");
