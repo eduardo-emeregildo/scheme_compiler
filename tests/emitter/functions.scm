@@ -63,12 +63,12 @@
 ;(func display arg2)
 
 ;Also, stuff like this should work: works!
-;(define (func op) (op (op 2)))
-;(func display)
+(define (func1 op) (op (op 2)))
+(func1 display)
 
 ; Another more complex variation of the above is:
-;(define (func2 op) (op 1 2 (op 3 4) (op 5 6)))
-;(display (func2 +))
+(define (func2 op) (op 1 2 (op 3 4) (op 5 6)))
+(display (func2 +))
 
 ;variadic functions:
 ;(define (variadic_func  foo . args) (foo args))
@@ -98,12 +98,12 @@
 ;(func 1 2)
 ;(display (func 7 8))
 
-;(define (test one two three four five six . seven) (display seven))
-;(define (func op ) (define (local yeo) (+ yeo 1))(op 1 2 3 4 5 6 7 8 (local 8)))
-;(func test)
-;(display (func +))
-;(test 1 2 3 4 5 6 7 8 9 '(1 2))
-;(define aaa "hello")
+(define (test one two three four five six . seven) (display seven))
+(define (func op ) (define (local yeo) (+ yeo 1))(op 1 2 3 4 5 6 7 8 (local 8)))
+(func test)
+(display (func +))
+(test 1 2 3 4 5 6 7 8 9 '(1 2))
+(define aaa "hello")
 
 ;After i make the above work, make recursion work. Have to add the function sooner
 ;(define (func op1 op2) (func 1 2))
