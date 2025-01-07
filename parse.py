@@ -5,40 +5,17 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo2: work on param_function_call. im pretty certain that params_as_functions 
-# in function.py is not needed anymore, so remove that,
-# as well as its uses in parse.py(used in function_call to check some things).
-#its not needed since because the runtime performs these checks.
-# Come up with a way to keep track of labels. This solution will be needed when
-# implementing control flow (if,cond etc.)
-
-#The big problem that I need to solve is: how to pass everything in the caller 
-# the same way, and tell from the callee what type of function it is
-# (variadic,nonvariadic,builtin)?
-
-#maybe the solution is to just make a function struct that holds the function ptr,
-#arity and is_variadic. That way when you pass it, you have this info.
-#in the assembly if the function obj is variadic, now you know to set up the args
-#like a list.
-
-#The callee should for the most part remain unchanged. It assumes that the args
-#are correctly given.
-
-#in the caller however, when you do a call, it checks is_variadic in the 
-# runtime, and if it is, make sure to package args in a list.
-#how to package args in a list in the runtime? I guess make a c function that takes
-#in all the varargs and returns list.(Since when you enter a function the args are
-# int their registers, you can take advantage of this and call a function).
-
-#All of this should simplify code for calling in parse.py. Since the runtime is 
-#the one that checks, the parser doesnt have to.
-
-#first change function to use function struct and make sure everything is working
-#like before. Then work on changing the calling convention 
-
-#Todo3:
-#test addition some more
-#implement subtraction as builtin proceudures
+#Todo1: Implement subtraction procedure.
+#Todo2: Begin implementing if statements.
+#Todo3: implement recursion. Rn function cannot reference itself in the body
+#Todo4: Rn, when you redefine a function, the assembly of the function gets
+#overwritten. 
+# For ex:
+# (define (func op) (op (op 2)))
+# (func display)
+# (define (func op) (op 1 2 (op 3 4) (op 5 6)))
+# (display (func +))
+#gives an error because the old assembly is overwritten. Fix this.
     
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
@@ -335,7 +312,8 @@ class Parser:
         self.emitter.emit_function_check(self.cur_environment,param_offset,arg_count)
         self.emitter.emit_to_section("\t;done doing runtime checks", is_global)
         
-        self.emitter.emit_variadic_jump(is_global)
+        self.emitter.emit_variadic_check(is_global)
+        variadic_label = self.emitter.emit_conditional_jump("!=",is_global)
         #now put args in the right place for non variadic case
         #-8 is offset of last arg (assuming env depth is 0)
         for cur_arg in range(arg_count):
@@ -362,16 +340,12 @@ class Parser:
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
         
-        self.emitter.emit_to_section("\tjmp .L2",is_global)
+        #this jmp goes to rest of function
+        rest_of_function_label = self.emitter.emit_jump(is_global)
         #variadic branch:
-        self.emitter.emit_variadic_call(param_offset,env_depth,is_global)
-        self.emitter.emit_to_section(".L2:",is_global)
-        #construct a function obj and set that to last_exp_res
-        #dont think i have to set is_variadic member
-        arg_func = Function()
-        arg_func.name = operator_name
-        arg_func.arity = arg_count
-        self.evaluate_function(arg_func)
+        self.emitter.emit_variadic_call(
+        variadic_label,param_offset,env_depth,is_global)
+        self.emitter.emit_ctrl_label(is_global,rest_of_function_label)
         self.next_token()
     
     #places args in correct registers for function call and emits a function call
@@ -405,7 +379,9 @@ class Parser:
             self.emitter.add_rsp(seventh_arg_offset,is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
-        self.evaluate_function(func_obj)
+        #self.evaluate_function(func_obj) 
+        # not sure if i need a function call to set last_exp_res ill keep this
+        #commented out for now
     
     #checks if arg arity matches param arity. Factors in if the arg is variadic
     def compare_param_and_arg_arity(self,arg_variadic,arg_arity,param_arity):
@@ -434,20 +410,6 @@ class Parser:
             if arg_count > func_obj.arity:
                 break
             self.expression()
-            #checking if the ith param was used as a function, if so check 
-            # that expression is indeed a function, and that it has correct arity
-            
-            # not needed anymore, this check for params as functions is done in 
-            # the runtime
-            
-            # if arg_count in func_obj.params_as_functions:
-            #     if self.last_exp_res.typeof != IdentifierType.FUNCTION:
-            #         self.abort("in compilation. Argument is not a function")
-            #     param_arity = func_obj.params_as_functions[arg_count]
-            #     arg_arity = self.get_last_exp_value().arity
-            #     arg_variadic = self.get_last_exp_value().is_variadic
-            #     self.compare_param_and_arg_arity(arg_variadic,arg_arity,param_arity)
-            
             #push each arg to the stack so that they're stored while evaluating each arg
             self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
         self.cur_environment.depth += func_obj.arity*8
@@ -871,12 +833,6 @@ class Parser:
             self.cur_environment.add_stack_definition(
             self.cur_token.text,(arg_count-5)*8)
             
-    #for adding the hidden variadic arg in nonvariadic functions.
-    # def add_hidden_arg(self,arg_count):
-    #     hidden_arg_number = arg_count + 1
-    #     self.cur_environment.depth -= 8
-    #     if (hidden_arg_number) < 7:
-    #         self.emitter.emit_register_param(hidden_arg_number)
             
     # <call pattern> ::= (<pattern> <variable>*) | 
     # (<pattern> <variable>* . <variable>) where pattern ::= variable
@@ -945,13 +901,6 @@ class Parser:
             function.add_local_definition(definition_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
         self.expression()
-        last_exp_obj = self.last_exp_res.value
-        #if param was used as a function in body, store in params_as_functions
-        if self.last_exp_res.typeof == IdentifierType.FUNCTION:
-            for param_index,param_name in enumerate(function.param_list):
-                if param_name == last_exp_obj.name:
-                    function.add_function_param(param_index + 1,last_exp_obj.arity)
-                    break            
         self.emitter.emit_function_epilog()
         
     def is_constant(self):

@@ -1,10 +1,20 @@
 from environment import *
 from scheme_builtins import *
+from enum import Enum
 import sys
 # Emitter object keeps track of the generated main_code and outputs it.
 #If i run into performance issues modify functions to use less concatenations or 
 # to concat by putting strs in a list and calling .join
 LINUX_CALLING_CONVENTION = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
+#for control flow
+CONDITIONS = {
+    ">=" : "jge",
+    ">" : "jg",
+    "<" : "jl",
+    "<=" : "jle",
+    "=" : "je",
+    "!=" : "jne"     
+}
 class Emitter:
     def __init__(self, fullPath):
         self.fullPath = fullPath
@@ -20,6 +30,7 @@ class Emitter:
         #holds the current function name(str) to write to, which is a key in 
         #self.functions
         self.cur_function = None
+        self.ctrl_flow_label_count = 0 #counts labels which are used for control flow
     def emit_bss_section(self,code):
         self.bss_section += code + '\n'
 
@@ -40,6 +51,29 @@ class Emitter:
     def emit_function_prolog(self):
         self.emit_function(f"\tpush rbp\n\tmov rbp, rsp")
     
+    def create_new_ctrl_label(self):
+        self.ctrl_flow_label_count += 1
+        return f".L{self.ctrl_flow_label_count}"
+    
+    #emits a jump instruction depending on the condition
+    def emit_conditional_jump(self,condition,is_global,label = None):
+        if label is None:
+            label = self.create_new_ctrl_label()
+        self.emit_to_section(f"\t{CONDITIONS[condition]} {label}",is_global)
+        return label
+    
+    def emit_jump(self,is_global, label = None):
+        if label is None:
+                label = self.create_new_ctrl_label()
+        self.emit_to_section(f"\tjmp {label}",is_global)
+        return label
+    
+    def emit_ctrl_label(self,is_global,label = None):
+        if label is None:
+            label = self.create_new_ctrl_label()
+        self.emit_to_section(f"{label}:",is_global)
+        return label
+
     def emit_function_epilog(self):
         self.emit_function(f"\tpop rbp\n\tret")
                 
@@ -287,9 +321,10 @@ class Emitter:
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(env_depth + 8*arg_count,is_global)
     
-    def emit_variadic_jump(self,is_global):
+    def emit_variadic_check(self,is_global):
         asm_code = []
-        asm_code.append("\tcmp rax, 0\n\tjnz .L1")
+        #asm_code.append("\tcmp rax, 0\n\tjnz .L1")
+        asm_code.append("\tcmp rax, 0")
         self.emit_to_section('\n'.join(asm_code),is_global)
 
     #used to satisfy criteria of macro in place_args. rbx holds arity and 
@@ -309,9 +344,9 @@ class Emitter:
     #the function arity in rbx,min_args in r10,env_depth in r11,
     #r12 is preserved for counting args, which has to be initialized to 0
     #and r13 holds the offset of the param
-    def emit_variadic_call(self,param_offset,env_depth,is_global):
+    def emit_variadic_call(self,label,param_offset,env_depth,is_global):
         asm_code = []
-        asm_code.append(".L1:")
+        asm_code.append(f"{label}:")
         asm_code.append(self.get_arity_in_runtime(param_offset))
         asm_code.append("\txor r12, r12")
         asm_code.append(f"\tplace_args {abs(env_depth)}, {abs(param_offset)}")
