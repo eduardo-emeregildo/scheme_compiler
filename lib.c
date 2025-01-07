@@ -46,25 +46,24 @@ void print_list(Value *value_obj)
                 return;
         }
         printf("(");
-        if (lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+        while(lst_cur_pair->car.type != VAL_EMPTY_LIST) {        
                 print_value_type(get_car_ptr(lst_cur_pair));
-        }
-        while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) {        
-                print_value_type(get_car_ptr(lst_cur_pair));
-                printf(" ");
                 if(lst_cur_pair->cdr.type != VAL_PAIR) {
                         //dot notation case
                         if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
                                 break;
                         }
+                        printf(" ");
                         print_value_type(get_cdr_ptr(lst_cur_pair));
                         break;
                 }
                 lst_cur_pair = lst_cur_pair->cdr.as.pair;
                 if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+                        printf(" ");
                         print_value_type(get_car_ptr(lst_cur_pair));
                         break;
                 }
+                printf(" ");
         }
         printf(")");
 

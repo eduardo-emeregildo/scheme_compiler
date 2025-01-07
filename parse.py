@@ -5,14 +5,6 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo1: rn the stack_args_function_call label is assuming that r15 remains unchanged
-#when adding back the rsp. Make it so that it stores the offset so the callee
-# can do whatever he wants with r15. Then eliminate use for r11 register in macro
-#since im passing the value to the macro. Only then go to Todo2.
-
-# test the macro for packing args. Make sure that it terminates gracefully
-#and the control flow is correct(i.e. doesnt fall into a label when it shouldnt)
-
 #Todo2: work on param_function_call. im pretty certain that params_as_functions 
 # in function.py is not needed anymore, so remove that,
 # as well as its uses in parse.py(used in function_call to check some things).

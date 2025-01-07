@@ -313,10 +313,8 @@ class Emitter:
         asm_code = []
         asm_code.append(".L1:")
         asm_code.append(self.get_arity_in_runtime(param_offset))
-        asm_code.append(f"\tmov r11, {abs(env_depth)}")
         asm_code.append("\txor r12, r12")
-        asm_code.append(f"\tmov r13, {param_offset:+}")
-        asm_code.append(f"\tplace_args {abs(env_depth)}")
+        asm_code.append(f"\tplace_args {abs(env_depth)}, {abs(param_offset)}")
         self.emit_to_section('\n'.join(asm_code),is_global)
         
     #given ident_obj and the current environment, emit in the corresponding place
