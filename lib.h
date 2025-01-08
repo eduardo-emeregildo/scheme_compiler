@@ -17,6 +17,8 @@ function
 */
 void _display(void *value_ptr);
 long _add(Value *param_list);
+long _sub(long minuend,Value *varargs);
 Value display = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_display,false,1}}};
 Value addition = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_add,true,1}}};
+Value subtraction = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_sub,true,2}}};
 #endif

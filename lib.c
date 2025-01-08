@@ -112,6 +112,8 @@ long _add(Value *param_list){
                         double_sum += cur_param->car.as._double;
                 } else {
                         abort_message("In +. Expected a number.\n");
+                        // printf("Error in +, Expected a number, got %d\n", cur_param->car.type);
+                        // exit(EXIT_FAILURE);
                 }
                 if (cur_param->cdr.type == VAL_EMPTY_LIST) {
                         break;
@@ -125,7 +127,31 @@ long _add(Value *param_list){
 
 }
 
-//long sub(long var_args_count,long req1,...)
+long _sub(long minuend,Value *varargs)
+{       bool is_res_double = false;
+        double minuend_value;
+        double substrahend_value;
+        if (is_int(minuend)) {
+                minuend_value = untag_int(minuend);
+        } else if (((Value *)minuend)->type == VAL_DOUBLE) {
+                is_res_double = true;
+                minuend_value = ((Value *)minuend)->as._double;
+        } else {
+                abort_message("in -. Expected a number.\n");
+        }
+
+        long substrahend = _add(varargs);
+        if (is_int(substrahend)) {
+                substrahend_value = untag_int(substrahend);
+        } else {
+                is_res_double = true;
+                substrahend_value = ((Value *)substrahend)->as._double;
+        }
+        if (is_res_double) {
+                return (long)make_value_double(minuend_value - substrahend_value);
+        }
+        return make_tagged_int(minuend_value - substrahend_value);
+}
 
 void is_function(long type)
 {

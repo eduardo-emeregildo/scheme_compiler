@@ -5,7 +5,8 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo1: Implement subtraction procedure.
+#Todo1: Fix problem with nested +/-, i.e. (+ 2 (+ 3)). the problem is in 
+# Parser.variadic_function_call
 #Todo2: Begin implementing if statements.
 #Todo3: implement recursion. Rn function cannot reference itself in the body
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
@@ -437,7 +438,7 @@ class Parser:
         if arg_count != min_args:
             self.abort(f"Arity mismatch. {func_obj.name} requires at least" + 
             f" {min_args} arguments")
-            
+        self.emitter.emit_to_section("\t;done handling regular args",is_global)
         #evaluate the args that are variadic
         # i.e. make a list and put that as the last arg. each elt in list is treated
         #as an expression

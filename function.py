@@ -43,10 +43,9 @@ class Function():
         self.is_variadic = True
         
     #should only be used for builtin functions
-    def set(self,name,param_list,local_defs,arity,is_variadic):
+    def set(self,name,param_list,arity,is_variadic):
         self.name = name
         self.param_list = param_list
-        self.local_defs = local_defs
         self.arity = arity
         self.is_variadic = is_variadic
         return self

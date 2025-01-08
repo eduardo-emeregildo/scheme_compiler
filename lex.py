@@ -69,11 +69,10 @@ class Lexer:
         elif self.cur_char == "." and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
             token = Token(self.cur_char,TokenType.DOT)
         elif self.cur_char == "+" and (not self.peek().isdigit()) and (self.peek() != "."):
-            #(self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"): 
-            #token = Token(self.cur_char,TokenType.PLUS)
             token = Token("addition",TokenType.BUILTIN)
-        elif self.cur_char == "-" and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
-            token = Token(self.cur_char,TokenType.MINUS)
+        elif self.cur_char == "-" and (not self.peek().isdigit()) and (self.peek() != "."):
+            #token = Token(self.cur_char,TokenType.MINUS)
+            token = Token("subtraction",TokenType.BUILTIN)
         elif self.cur_char == "*":
             token = Token(self.cur_char,TokenType.ASTERISK)
         elif self.cur_char == "/":
@@ -187,8 +186,8 @@ TokenType = Enum(
         ("HASH",5),
         
         #Operators
-        ("PLUS" , 201),
-        ("MINUS" , 202),
+        # ("PLUS" , 201),
+        # ("MINUS" , 202),
         ("ASTERISK" , 203),
         ("SLASH" , 204),
         ("EQUAL_SIGN" , 205),

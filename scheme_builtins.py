@@ -2,6 +2,7 @@
 #builtins will be treated as global functions
 from function import *
 BUILTINS = {
-    "display": Function().set("display",["item"],{},1,False),
-    "addition": Function().set("addition",["args"],{},1,True),
+    "display": Function().set("display",["item"],1,False),
+    "addition": Function().set("addition",["args"],1,True),
+    "subtraction": Function().set("subtraction",["minuend,varargs"],2,True),
 }
