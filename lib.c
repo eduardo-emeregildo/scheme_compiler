@@ -101,7 +101,8 @@ void _display(void *type)
         printf("\n");
 }
 
-long _add(Value *param_list){
+long _add(Value *param_list)
+{
         long num_sum = 0;
         double double_sum = 0.0;
         struct Pair *cur_param = param_list->as.pair;

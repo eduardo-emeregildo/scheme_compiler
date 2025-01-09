@@ -421,3 +421,30 @@ Value *make_arg_list(Value *func_obj,long *args,int arg_amount)
         vararg_list->as.pair = head;
         return vararg_list;
 }
+
+/* 
+same as make_arg_list except min_args is already known at compile time, so can
+pass that instead of the function object
+*/
+Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
+{       
+        int varargs_index = (arg_amount  - 1)  - min_args;
+        Value *vararg_list = make_tagged_ptr(1);
+        vararg_list->type = VAL_PAIR;
+        struct Pair *head = allocate_pair();
+        struct Pair *cur_pair = head;
+        for (int i = varargs_index; i > -1;i--) {
+                if (is_ptr(args[i])) {
+                        cur_pair->car = *(Value *)args[i];
+                } else {
+                        turn_to_val_type(args[i],&cur_pair->car);
+                }
+                if (i != 0) {
+                        cur_pair->cdr.type = VAL_PAIR;
+                        cur_pair->cdr.as.pair = allocate_pair();
+                        cur_pair = cur_pair->cdr.as.pair;
+                }
+        }
+        vararg_list->as.pair = head;
+        return vararg_list;
+}

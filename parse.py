@@ -5,8 +5,15 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo1: Fix problem with nested +/-, i.e. (+ 2 (+ 3)). the problem is in 
-# Parser.variadic_function_call
+#Todo1: Similar to the previous problem, when doing procedure call, the first arg
+#is not being checked in the runtime that its a function, therefore the following
+#doesnt work:
+
+# (define (func op) op)
+# ((func +) 1 2)
+#because its not checking what the result of (func +) is in the runtime. 
+# Fix this
+
 #Todo2: Begin implementing if statements.
 #Todo3: implement recursion. Rn function cannot reference itself in the body
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
@@ -160,8 +167,6 @@ class Parser:
             self.cur_token.text)
             def_ident_obj = Environment.get_ident_obj(definition)
             self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
-            print("aaaaaaaaaaa", self.last_exp_res.typeof)
-            print(definition)
             if is_global:
                 self.emitter.emit_var_to_global(self.cur_token.text,definition)
             else:
@@ -340,11 +345,11 @@ class Parser:
             abs(env_depth - (arg_count - 6)*8),is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
-        
+    
         #this jmp goes to rest of function
         rest_of_function_label = self.emitter.emit_jump(is_global)
         #variadic branch:
-        self.emitter.emit_variadic_call(
+        self.emitter.emit_param_variadic_call(
         variadic_label,param_offset,env_depth,is_global)
         self.emitter.emit_ctrl_label(is_global,rest_of_function_label)
         self.next_token()
@@ -384,17 +389,6 @@ class Parser:
         # not sure if i need a function call to set last_exp_res ill keep this
         #commented out for now
     
-    #checks if arg arity matches param arity. Factors in if the arg is variadic
-    def compare_param_and_arg_arity(self,arg_variadic,arg_arity,param_arity):
-        if not arg_variadic and arg_arity != param_arity:
-            self.abort(f"Arity mismatch: Number of args does not match." 
-            + f" Expected {param_arity}, given {arg_arity}")
-        elif arg_variadic:
-            min_args = arg_arity - 1
-            if param_arity < min_args:
-                self.abort(f"Arity mismatch: Number of args does not match." 
-                + f" Expected at least {min_args}, given {param_arity}")
-
     #given a function object, does a function call. last_exp_res will be set to
     #the function that was called
     def function_call(self,func_obj):
@@ -424,37 +418,54 @@ class Parser:
         print("VARIADIC FUNCTION CALL")
         arg_count = 0
         is_global = self.cur_environment.is_global()
-        env_depth = self.cur_environment.depth
+        old_env_depth = self.cur_environment.depth
         min_args = func_obj.arity - 1
         variadic_args = []
-        self.cur_environment.depth -= func_obj.arity*8
-        #handle the args that are regular
+        #push args to stack to store while each arg gets evaluated
         while not self.check_token(TokenType.EXPR_END):
-            if arg_count == min_args:
-                break
             arg_count += 1
             self.expression()
-            self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
-        if arg_count != min_args:
+            self.emitter.push_arg(arg_count,old_env_depth,is_global)
+            self.cur_environment.depth -= 8
+        if arg_count < min_args:
             self.abort(f"Arity mismatch. {func_obj.name} requires at least" + 
             f" {min_args} arguments")
-        self.emitter.emit_to_section("\t;done handling regular args",is_global)
-        #evaluate the args that are variadic
-        # i.e. make a list and put that as the last arg. each elt in list is treated
-        #as an expression
-        while not self.check_token(TokenType.EXPR_END):
-            self.expression()
-            variadic_args.append(self.last_exp_res)
-            if self.check_token(TokenType.EXPR_END):
-                variadic_args.append(None)
-        arg_count += 1
-        self.evaluate_pair(variadic_args)
-        #push the variadic args, which is really a list
-        self.emitter.emit_identifier_to_section(self.last_exp_res,
-        self.cur_environment)
-        self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
-        self.cur_environment.depth += func_obj.arity*8
-        self.place_args_and_call_function(env_depth,is_global,arg_count,func_obj)
+        #now make varargs list
+        self.emitter.emit_make_arg_list(
+        min_args,func_obj.arity,arg_count,old_env_depth,is_global)
+        self.cur_environment.depth = old_env_depth
+        #place args in the right spot
+        for cur_arg in range(func_obj.arity):
+            if cur_arg < 6:                
+                self.emitter.emit_register_arg(cur_arg,old_env_depth,is_global)
+            else:
+                self.emitter.emit_arg_to_stack(
+                cur_arg,old_env_depth,is_global,func_obj.arity)
+        
+        #move rsp to correct spot depending on arity:
+        if func_obj.arity > 6:
+            self.emitter.subtract_rsp(
+            abs(old_env_depth - (func_obj.arity - 6)*8),is_global)
+        else:
+            self.emitter.subtract_rsp(abs(old_env_depth),is_global)
+            
+        #now call function
+        if func_obj.name in BUILTINS:
+            self.emitter.emit_builtin_call(func_obj.name,is_global)
+        else:
+            function_obj = self.cur_environment.find_definition(func_obj.name)
+            function_offset = Environment.get_offset(function_obj)
+            if function_offset is None:
+                #calling a global function from within a function
+                self.emitter.emit_global_function_call(func_obj.name,is_global)
+            else:
+                self.emitter.emit_local_function_call(function_offset)
+        #now add back rsp
+        if func_obj.arity > 6:
+            self.emitter.add_rsp(
+            abs(old_env_depth - (func_obj.arity - 6)*8),is_global)
+        else:
+            self.emitter.add_rsp(abs(old_env_depth),is_global)
         self.next_token()
         
         

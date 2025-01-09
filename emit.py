@@ -344,13 +344,29 @@ class Emitter:
     #the function arity in rbx,min_args in r10,env_depth in r11,
     #r12 is preserved for counting args, which has to be initialized to 0
     #and r13 holds the offset of the param
-    def emit_variadic_call(self,label,param_offset,env_depth,is_global):
+    def emit_param_variadic_call(self,label,param_offset,env_depth,is_global):
         asm_code = []
         asm_code.append(f"{label}:")
         asm_code.append(self.get_arity_in_runtime(param_offset))
         asm_code.append("\txor r12, r12")
         asm_code.append(f"\tplace_args {abs(env_depth)}, {abs(param_offset)}")
         self.emit_to_section('\n'.join(asm_code),is_global)
+        
+    #to be used in variadic_function_call. In this case min_args is known at
+    #compile time
+    def emit_make_arg_list(self,min_args,arity,arg_count,old_env_depth,is_global):
+        self.add_extern("make_arg_list_min_args")
+        cur_env_depth = abs(old_env_depth - (8 * arg_count))
+        self.subtract_rsp(cur_env_depth,is_global)
+        asm_code = []
+        asm_code.append(f"\tmov rdi, {min_args}")
+        asm_code.append(f"\tlea rsi, QWORD [rbp-{cur_env_depth}]")
+        asm_code.append(f"\tmov rdx, {arg_count}")
+        asm_code.append("\tcall make_arg_list_min_args")
+        #now place varargs list:
+        asm_code.append(f"\tmov QWORD [rbp{old_env_depth - (8 * arity):+}],rax")
+        self.emit_to_section('\n'.join(asm_code),is_global)
+        self.add_rsp(cur_env_depth,is_global)
         
     #given ident_obj and the current environment, emit in the corresponding place
     def emit_identifier_to_section(self,ident_obj,cur_environment):
@@ -411,7 +427,6 @@ class Emitter:
         f"QWORD [rbp{env_depth - ((arity - arg_num) * 8):+}]",is_global)
     
     #for putting args 7 and further to the stack
-    # (should only be used in arg_function_call)
     def emit_arg_to_stack(self,arg_num,env_depth,is_global,arity):
         self.emit_to_section(
         f"\tmov rax, QWORD [rbp{env_depth - (8*(arg_num + 1)):+}]\n\t" +
@@ -425,6 +440,7 @@ class Emitter:
             self.emit_to_section(
             f"\tmov QWORD [rbp{env_depth - (8*arg_num):+}],rax",is_global)
             return
+        #since arity is known, push arguments backwards
         self.emit_to_section(
         f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax",
         is_global)
