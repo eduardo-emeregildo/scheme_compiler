@@ -5,16 +5,7 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo1: Similar to the previous problem, when doing procedure call, the first arg
-#is not being checked in the runtime that its a function, therefore the following
-#doesnt work:
-
-# (define (func op) op)
-# ((func +) 1 2)
-#because its not checking what the result of (func +) is in the runtime. 
-# Fix this
-
-#Todo2: Begin implementing if statements.
+#implement  =,>,< builtins to be able to test if fully
 #Todo3: implement recursion. Rn function cannot reference itself in the body
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
@@ -469,63 +460,28 @@ class Parser:
         self.next_token()
         
         
-    #returns a string which contains the next expression. used to extract body 
-    # of a function. self.cur_token will be set to next char after exp
-    #This method does not check if the expression has correct syntax(racket doesnt either), 
-    # the error will occur will the function gets called
-    #leave this function for now, but might be deleted in the future
-    def extract_exp(self) -> str:
-        open_paren_count = 0
-        exp = []
-        if self.check_token(TokenType.QUOTE_SYMBOL):
-            exp.append(self.cur_token.text)
-            self.next_token()
-        if self.check_token(TokenType.HASH):
-            exp.append(self.cur_token.text)
-            self.next_token()
-        if self.check_token(TokenType.EXPR_START):
-            if self.check_peek(TokenType.EXPR_END):
-                self.abort("Empty expression in body.")
-            open_paren_count += 1
-            exp.append(str(self.cur_token.text))
-            self.next_token()
-            while open_paren_count != 0:
-                exp.append(f"{str(self.cur_token.text)} ")
-                if self.check_token(TokenType.EXPR_START):
-                    open_paren_count += 1
-                elif self.check_token(TokenType.EXPR_END):
-                    open_paren_count -= 1
-                elif self.check_token(TokenType.EOF):
-                    self.abort("Incorrect syntax in body. Parentheses not well formed.")
-                self.next_token()
-        elif self.check_token(TokenType.EXPR_END):
-            self.abort("No expression in body")
-        else:
-            exp.append(str(self.cur_token.text))
-            self.next_token()
-        exp.append("\0")
-        return ''.join(exp)
-      
     #(if <test> <consequent> <alternate>) | (if <test> <consequent>), where test,consequent and alternate are expressions
     def if_exp(self):
+        is_global = self.cur_environment.is_global()
+        is_alternate = False
         print("EXPRESSION-IF")
-        num_args = 0
-        while not self.check_token(TokenType.EXPR_END):
-            if self.check_token(TokenType.EOF):
-                self.abort("Parentheses are not well formed.")
-            num_args += 1
-            if num_args > 3:
-                self.abort("Too many arguments in if condition.")
-            self.expression()
-            
-        if num_args < 2 :
-            self.abort("Too few arguments in if condition.")
-        
-        # if len(self.parens) == 0:
-        #     self.abort("Parentheses are not well formed.")
-                
-        #self.parens.pop()
-        self.next_token()
+        print("TEST")
+        self.expression()
+        self.emitter.emit_false_check(is_global)
+        branch1_label = self.emitter.emit_conditional_jump("=",is_global)
+        rest_of_exp_label = self.emitter.create_new_ctrl_label()
+        print("CONSEQUENT")
+        self.expression()
+        if not self.check_token(TokenType.EXPR_END):
+            print("ALTERNATE")
+            #emit a jmp for the true branch so it can jump to the end
+            self.emitter.emit_jump(is_global,rest_of_exp_label)
+            is_alternate = True
+            self.emitter.emit_ctrl_label(is_global,branch1_label)
+            self.expression()        
+        self.emitter.emit_ctrl_label(
+        is_global,rest_of_exp_label if is_alternate else branch1_label)
+        self.match(TokenType.EXPR_END)
         
     #(quote <datum>)
     def quote_exp(self):

@@ -105,14 +105,16 @@
 ;(test 1 2 3 4 5 6 7 8 9 '(1 2))
 ;(define aaa "hello")
 
-(display (+ 1 2 (+ 3 4) (- 7 4)))
-(display (+ 2 (+ 3)))
-(define (func one . args) (+ one 1))
-(define (func2 arrg) (define (local l1) (func l1 1 2 )) (local arrg))
-(display (func2 3)); should print 4
+;nesting + and - tests:
+;(display (+ 1 2 (+ 3 4) (- 7 4)))
+;(display (+ 2 (+ 3)))
+;(define (func one . args) (+ one 1))
+;(define (func2 arrg) (define (local l1) (func l1 1 2 )) (local arrg))
+;(display (func2 3)); should print 4
 
-;(define (func op) (op 1 2 3))
-;(display (func 1 2))
 ;After i make the above work, make recursion work. Have to add the function sooner
 ;(define (func op1 op2) (func 1 2))
 ;(func display)
+(if #t 1 2)
+(define (func op) (if #t (op 1 2 (op 3 4)) (op 3 4 (op 5 6))))
+(display (func +))

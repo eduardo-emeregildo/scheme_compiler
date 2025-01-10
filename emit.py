@@ -321,11 +321,14 @@ class Emitter:
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(env_depth + 8*arg_count,is_global)
     
+    #checks if result of check_param_function_call(which is in rax) is null or not.    
     def emit_variadic_check(self,is_global):
-        asm_code = []
-        #asm_code.append("\tcmp rax, 0\n\tjnz .L1")
-        asm_code.append("\tcmp rax, 0")
-        self.emit_to_section('\n'.join(asm_code),is_global)
+        self.emit_to_section("\tcmp rax, 0",is_global)
+    
+    #checks if rax is false the false object (i.e. the value 2)
+    def emit_false_check(self, is_global):
+        self.emit_to_section("\tcmp rax, 2",is_global)
+        
 
     #used to satisfy criteria of macro in place_args. rbx holds arity and 
     # r10 holds min_args
