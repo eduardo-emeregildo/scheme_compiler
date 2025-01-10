@@ -84,19 +84,19 @@ class Environment:
     
     #creates a local environment given a function, for a function to run in
     # the caller of this method will be the parent environment
-    def create_function_env(self,function):
-        env = self.create_local_env()
-        #first add arguments to symbol table
-        for i,param in enumerate(function.param_list):
-            if i < 6:
-                env.add_definition(param,None)
-            else:
-                #params 7th and higher will be on: (rsp + x)
-                env.add_stack_definition(param,(i-4)*8)
-        #now local definitions
-        for definition in function.local_definitions:
-            env.add_definition(definition,function.local_definitions[definition])
-        return env
+    # def create_function_env(self,function):
+    #     env = self.create_local_env()
+    #     #first add arguments to symbol table
+    #     for i,param in enumerate(function.param_list):
+    #         if i < 6:
+    #             env.add_definition(param,None)
+    #         else:
+    #             #params 7th and higher will be on: (rsp + x)
+    #             env.add_stack_definition(param,(i-4)*8)
+    #     #now local definitions
+    #     for definition in function.local_definitions:
+    #         env.add_definition(definition,function.local_definitions[definition])
+    #     return env
 
     @staticmethod
     def get_offset(definition_arr):

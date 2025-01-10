@@ -115,6 +115,12 @@
 ;After i make the above work, make recursion work. Have to add the function sooner
 ;(define (func op1 op2) (func 1 2))
 ;(func display)
-(if #t 1 2)
-(define (func op) (if #t (op 1 2 (op 3 4)) (op 3 4 (op 5 6))))
-(display (func +))
+
+;if statements
+;(if #t 1 2)
+;(define (func op) (if #t (op 1 2 (op 3 4)) (op 3 4 (op 5 6))))
+;(display (func +))
+
+;recursion: should just print infinite 1's until stack runs out of memory
+(define (func1 op) (func1 (display 1)))
+(func1 #t)

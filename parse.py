@@ -5,8 +5,7 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#implement  =,>,< builtins to be able to test if fully
-#Todo3: implement recursion. Rn function cannot reference itself in the body
+#implement  =,>,< builtins to be able to test if statement/recursion fully
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
 # For ex:
@@ -710,7 +709,6 @@ class Parser:
             #self.parens.append(self.cur_token.text)
             token_count = 0
             self.next_token()
-            
             while not self.check_token(TokenType.EXPR_END):
                 if self.check_token(TokenType.DOT):
                     print("DOT")
@@ -762,17 +760,15 @@ class Parser:
             #function case
             function = Function()
             parent_env = self.cur_environment
-            previous_cur_function = self.emitter.cur_function
+            previous_function = self.emitter.cur_function
             self.cur_environment = parent_env.create_local_env()
             
             self.call_pattern(function)
             self.body(function)
-            self.emitter.set_current_function(previous_cur_function)
-            #now add function definition to parent environment
+            self.emitter.set_current_function(previous_function)
+            #now switch back to parent environment
             ident_name = function.get_name()
             self.cur_environment = parent_env
-            self.cur_environment.add_definition(ident_name,Identifier(
-            IdentifierType.FUNCTION,function))
             self.evaluate_function(function)
             #lastly, make function object in the runtime
             self.emitter.emit_identifier_to_section(self.last_exp_res,
@@ -846,9 +842,6 @@ class Parser:
                     arg_count += 1
                     self.add_param_to_env(arg_count)
                     self.next_token()
-                    # if self.check_token(TokenType.EXPR_END):
-                    #     self.add_hidden_arg(arg_count)
-                    #     break
                 else:
                     self.abort(str(self.cur_token.text) + " is not an identifier.")
             self.next_token()
@@ -868,6 +861,13 @@ class Parser:
             definition_name = self.definition_exp()
             function.add_local_definition(definition_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
+        #add current function to the parent so function can refer to itself
+        ident_name = function.get_name()
+        parent_env = self.cur_environment.parent
+        if parent_env is None:
+            self.abort("Cannot get parent of global environment.")
+        parent_env.add_definition(ident_name,Identifier(
+        IdentifierType.FUNCTION,function))
         self.expression()
         self.emitter.emit_function_epilog()
         
