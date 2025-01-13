@@ -5,4 +5,6 @@ BUILTINS = {
     "display": Function().set("display",["item"],1,False),
     "addition": Function().set("addition",["args"],1,True),
     "subtraction": Function().set("subtraction",["minuend,varargs"],2,True),
+    "equal_sign": Function().set("equal_sign",["value1,value2"],2,False),
+    
 }

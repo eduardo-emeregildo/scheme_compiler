@@ -5,7 +5,7 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#implement  =,>,< builtins to be able to test if statement/recursion fully
+#implement  =,>,<,car,cdr,*,/ builtins to be able to test if statement/recursion fully
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
 # For ex:

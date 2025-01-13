@@ -327,7 +327,7 @@ class Emitter:
     
     #checks if rax is false the false object (i.e. the value 2)
     def emit_false_check(self, is_global):
-        self.emit_to_section("\tcmp rax, 2",is_global)
+        self.emit_to_section("\tcmp rax, FALSE",is_global)
         
 
     #used to satisfy criteria of macro in place_args. rbx holds arity and 

@@ -134,7 +134,7 @@ long _sub(long minuend,Value *varargs)
         double substrahend_value;
         if (is_int(minuend)) {
                 minuend_value = untag_int(minuend);
-        } else if (((Value *)minuend)->type == VAL_DOUBLE) {
+        } else if (is_ptr(minuend) &&  ((Value *)minuend)->type == VAL_DOUBLE) {
                 is_res_double = true;
                 minuend_value = ((Value *)minuend)->as._double;
         } else {
@@ -152,6 +152,41 @@ long _sub(long minuend,Value *varargs)
                 return (long)make_value_double(minuend_value - substrahend_value);
         }
         return make_tagged_int(minuend_value - substrahend_value);
+}
+
+// checks if value1 and value2 are numbers and returns their untagged values
+double *check_and_extract_numbers(
+long value1, long value2,char *builtin_name, double untagged_values[2])
+{
+        
+        if (is_int(value1)) {
+                untagged_values[0] = untag_int(value1);
+        } else if (is_ptr(value1) && ((Value *)value1)->type == VAL_DOUBLE) {
+                untagged_values[0] = ((Value *)value1)->as._double;
+        } else {
+                printf("Error in %s. Expected a number\n",builtin_name);
+                exit(EXIT_FAILURE);
+        }
+        
+        if (is_int(value2)) {
+                untagged_values[1] = untag_int(value2);
+        } else if (is_ptr(value2) && ((Value *)value2)->type == VAL_DOUBLE) {
+                untagged_values[1] = ((Value *)value2)->as._double;
+        } else {
+                printf("Error in %s. Expected a number\n",builtin_name);
+                exit(EXIT_FAILURE);
+        }
+        return untagged_values;
+}
+
+long _equal_sign(long value1,long value2)
+{
+        double untagged_values[2];
+        check_and_extract_numbers(value1,value2,"=",untagged_values);
+        if (untagged_values[0] == untagged_values[1]) {
+                return SCHEME_TRUE;
+        }
+        return SCHEME_FALSE;
 }
 
 void is_function(long type)

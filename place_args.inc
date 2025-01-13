@@ -21,6 +21,8 @@
 ;%define ith_stackarg_offset (%1 + ((rbx - r12) * 8))
 ;%define seventh_arg_offset (%1 + ((r14 + 1) * 8))
 
+%define FALSE 2
+
 ; to compute regarg offset
 %macro compute_regarg_offset 1
         mov r14, r12

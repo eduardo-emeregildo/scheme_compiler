@@ -78,7 +78,8 @@ class Lexer:
         elif self.cur_char == "/":
             token = Token(self.cur_char,TokenType.SLASH)
         elif self.cur_char == "=":
-            token = Token(self.cur_char,TokenType.EQUAL_SIGN)
+            # token = Token(self.cur_char,TokenType.EQUAL_SIGN)
+            token = Token("equal_sign",TokenType.BUILTIN)
         elif self.cur_char == "'":
             token = Token(self.cur_char,TokenType.QUOTE_SYMBOL)
         elif self.cur_char == "<":
@@ -190,7 +191,7 @@ TokenType = Enum(
         # ("MINUS" , 202),
         ("ASTERISK" , 203),
         ("SLASH" , 204),
-        ("EQUAL_SIGN" , 205),
+        # ("EQUAL_SIGN" , 205),
         ("QUOTE_SYMBOL" , 206),
         ("LESS" , 207),
         ("GREATER" , 208),

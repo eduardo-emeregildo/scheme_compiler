@@ -117,10 +117,30 @@
 ;(func display)
 
 ;if statements
-;(if #t 1 2)
+;(display (if #t 1 2))
 ;(define (func op) (if #t (op 1 2 (op 3 4)) (op 3 4 (op 5 6))))
 ;(display (func +))
 
 ;recursion: should just print infinite 1's until stack runs out of memory
-(define (func1 op) (func1 (display 1)))
-(func1 #t)
+;(define (func1 op) (func1 (display 1)))
+;(func1 #t)
+
+;=,>,< tests
+(display (= 1 1.000000000000001)) ;precision limit
+(display (= 3 2))
+(display (= 2 2.0))
+(display (+ 3 #f))
+
+
+;example where closure is needed:
+;(define (func op) (define (local f) (+ f op))(local 3))
+;(display (func 2))
+
+; the above should print 5. The problem is when you search f in symbol table, 
+; the result has the offset with respect to its current environment, 
+; so when a more local function tries to retrieve it, it doesnt know the offset 
+; relative to its function
+
+;a variation of this
+;(define (func op) (define (local f) (display op))(local 3))
+;(func "outer")
