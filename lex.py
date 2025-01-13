@@ -86,17 +86,21 @@ class Lexer:
             if self.peek() == "=":
                 last = self.cur_char
                 self.next_char()
-                token = Token(last + self.cur_char,TokenType.LEQ)
+                # token = Token(last + self.cur_char,TokenType.LEQ)
+                token = Token("less_equal",TokenType.BUILTIN)
             else:
-                token = Token(self.cur_char,TokenType.LESS)
+                # token = Token(self.cur_char,TokenType.LESS)
+                token = Token("less",TokenType.BUILTIN)
 
         elif self.cur_char == ">":
             if self.peek() == "=":
                 last = self.cur_char
                 self.next_char()
-                token = Token(last + self.cur_char,TokenType.GEQ)
+                # token = Token(last + self.cur_char,TokenType.GEQ)
+                token = Token("greater_equal",TokenType.BUILTIN)
             else:
-                token = Token(self.cur_char,TokenType.GREATER)
+                # token = Token(self.cur_char,TokenType.GREATER)
+                token = Token("greater",TokenType.BUILTIN)
         #Now the datatypes
         elif self.cur_char == "#":
             if self.peek() == "t" or self.peek() == "T" or self.peek() == "f" or self.peek() == "F":
@@ -193,11 +197,11 @@ TokenType = Enum(
         ("SLASH" , 204),
         # ("EQUAL_SIGN" , 205),
         ("QUOTE_SYMBOL" , 206),
-        ("LESS" , 207),
-        ("GREATER" , 208),
+        # ("LESS" , 207),
+        # ("GREATER" , 208),
         #Operators longer than 1
-        ("LEQ" , 209),
-        ("GEQ" , 210),
+        # ("LEQ" , 209),
+        # ("GEQ" , 210),
         #KeyWord Operators
         ("CAR" , 301),
         ("CDR" , 302),

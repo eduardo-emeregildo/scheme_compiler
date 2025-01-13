@@ -125,12 +125,27 @@
 ;(define (func1 op) (func1 (display 1)))
 ;(func1 #t)
 
-;=,>,< tests
+;=,>,< tests:
+(display "= tests:")
 (display (= 1 1.000000000000001)) ;precision limit
 (display (= 3 2))
 (display (= 2 2.0))
-(display (+ 3 #f))
-
+(display "> tests:")
+(display (> 3 2))
+(display (> 3 4))
+(display (> 3 3))
+(display ">= tests:")
+(display (>= 3 2))
+(display (>= 3 4))
+(display (>= 3 3))
+(display "< tests:")
+(display (< 3 2))
+(display (< 3 4))
+(display (< 3 3))
+(display "<= tests:")
+(display (<= 3 2))
+(display (<= 3 4))
+(display (<= 3 3))
 
 ;example where closure is needed:
 ;(define (func op) (define (local f) (+ f op))(local 3))

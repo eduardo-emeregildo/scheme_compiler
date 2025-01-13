@@ -167,7 +167,7 @@ long value1, long value2,char *builtin_name, double untagged_values[2])
                 printf("Error in %s. Expected a number\n",builtin_name);
                 exit(EXIT_FAILURE);
         }
-        
+
         if (is_int(value2)) {
                 untagged_values[1] = untag_int(value2);
         } else if (is_ptr(value2) && ((Value *)value2)->type == VAL_DOUBLE) {
@@ -189,6 +189,45 @@ long _equal_sign(long value1,long value2)
         return SCHEME_FALSE;
 }
 
+long _greater(long value1,long value2)
+{
+        double untagged_values[2];
+        check_and_extract_numbers(value1,value2,">",untagged_values);
+        if (untagged_values[0] > untagged_values[1]) {
+                return SCHEME_TRUE;
+        }
+        return SCHEME_FALSE;
+}
+
+long _greater_equal(long value1,long value2)
+{
+        double untagged_values[2];
+        check_and_extract_numbers(value1,value2,">=",untagged_values);
+        if (untagged_values[0] >= untagged_values[1]) {
+                return SCHEME_TRUE;
+        }
+        return SCHEME_FALSE;
+}
+
+long _less(long value1,long value2)
+{
+        double untagged_values[2];
+        check_and_extract_numbers(value1,value2,"<",untagged_values);
+        if (untagged_values[0] < untagged_values[1]) {
+                return SCHEME_TRUE;
+        }
+        return SCHEME_FALSE;
+}
+
+long _less_equal(long value1,long value2)
+{
+        double untagged_values[2];
+        check_and_extract_numbers(value1,value2,"<=",untagged_values);
+        if (untagged_values[0] <= untagged_values[1]) {
+                return SCHEME_TRUE;
+        }
+        return SCHEME_FALSE;
+}
 void is_function(long type)
 {
         Value *value_type = (Value*)type;

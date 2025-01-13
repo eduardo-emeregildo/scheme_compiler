@@ -23,8 +23,16 @@ long _sub(long minuend,Value *varargs);
 double *check_and_extract_numbers(
 long value1, long value2, char *builtin_name, double untagged_values[2]);
 long _equal_sign(long value1,long value2);
+long _greater(long value1,long value2);
+long _greater_equal(long value1,long value2);
+long _less(long value1,long value2);
+long _less_equal(long value1,long value2);
 Value display = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_display,false,1}}};
 Value addition = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_add,true,1}}};
 Value subtraction = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_sub,true,2}}};
 Value equal_sign = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_equal_sign,false,2}}};
+Value greater = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_greater,false,2}}};
+Value greater_equal = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_greater_equal,false,2}}};
+Value less = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_less,false,2}}};
+Value less_equal = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_less_equal,false,2}}};
 #endif
