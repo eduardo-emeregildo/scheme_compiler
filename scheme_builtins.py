@@ -2,12 +2,14 @@
 #builtins will be treated as global functions
 from function import *
 BUILTINS = {
-    "display": Function().set("display",["item"],1,False),
-    "addition": Function().set("addition",["args"],1,True),
-    "subtraction": Function().set("subtraction",["minuend,varargs"],2,True),
-    "equal_sign": Function().set("equal_sign",["value1,value2"],2,False),
-    "greater": Function().set("greater",["value1,value2"],2,False),
-    "greater_equal": Function().set("greater_equal",["value1,value2"],2,False),
-    "less": Function().set("less",["value1,value2"],2,False),
-    "less_equal": Function().set("less_equal",["value1,value2"],2,False),
+    "DISPLAY": Function().set("DISPLAY",["item"],1,False),
+    "ADDITION": Function().set("ADDITION",["args"],1,True),
+    "SUBTRACTION": Function().set("SUBTRACTION",["minuend,varargs"],2,True),
+    "EQUAL_SIGN": Function().set("EQUAL_SIGN",["value1,value2"],2,False),
+    "GREATER": Function().set("GREATER",["value1,value2"],2,False),
+    "GREATER_EQUAL": Function().set("GREATER_EQUAL",["value1,value2"],2,False),
+    "LESS": Function().set("LESS",["value1,value2"],2,False),
+    "LESS_EQUAL": Function().set("LESS_EQUAL",["value1,value2"],2,False),
+    "CAR": Function().set("CAR",["type"],1,False),
+    "CDR": Function().set("CDR",["type"],1,False),
 }

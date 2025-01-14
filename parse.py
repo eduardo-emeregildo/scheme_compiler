@@ -5,7 +5,10 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#implement car,cdr,*,/ builtins to be able to test if statement/recursion fully
+#Todo0: make the body accept any number of expressions, but the return value will
+#be the last expression.
+#Todo1: implement *,/ builtins
+#Todo2: implement cond
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
 # For ex:

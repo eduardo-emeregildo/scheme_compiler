@@ -15,7 +15,8 @@ class Lexer:
             "EQUAL?" : TokenType.EQUAL,
             "EQ?" : TokenType.EQ,
             "SET!": TokenType.SETEXCLAM,
-            "UNQUOTE-SPLICING" : TokenType.UNQUOTESPLICING
+            "UNQUOTE-SPLICING" : TokenType.UNQUOTESPLICING,
+            "NULL?": TokenType.BUILTIN,
             
         }
         self.next_char()
@@ -69,17 +70,17 @@ class Lexer:
         elif self.cur_char == "." and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
             token = Token(self.cur_char,TokenType.DOT)
         elif self.cur_char == "+" and (not self.peek().isdigit()) and (self.peek() != "."):
-            token = Token("addition",TokenType.BUILTIN)
+            token = Token("ADDITION",TokenType.BUILTIN)
         elif self.cur_char == "-" and (not self.peek().isdigit()) and (self.peek() != "."):
             #token = Token(self.cur_char,TokenType.MINUS)
-            token = Token("subtraction",TokenType.BUILTIN)
+            token = Token("SUBTRACTION",TokenType.BUILTIN)
         elif self.cur_char == "*":
             token = Token(self.cur_char,TokenType.ASTERISK)
         elif self.cur_char == "/":
             token = Token(self.cur_char,TokenType.SLASH)
         elif self.cur_char == "=":
             # token = Token(self.cur_char,TokenType.EQUAL_SIGN)
-            token = Token("equal_sign",TokenType.BUILTIN)
+            token = Token("EQUAL_SIGN",TokenType.BUILTIN)
         elif self.cur_char == "'":
             token = Token(self.cur_char,TokenType.QUOTE_SYMBOL)
         elif self.cur_char == "<":
@@ -87,20 +88,20 @@ class Lexer:
                 last = self.cur_char
                 self.next_char()
                 # token = Token(last + self.cur_char,TokenType.LEQ)
-                token = Token("less_equal",TokenType.BUILTIN)
+                token = Token("LESS_EQUAL",TokenType.BUILTIN)
             else:
                 # token = Token(self.cur_char,TokenType.LESS)
-                token = Token("less",TokenType.BUILTIN)
+                token = Token("LESS",TokenType.BUILTIN)
 
         elif self.cur_char == ">":
             if self.peek() == "=":
                 last = self.cur_char
                 self.next_char()
                 # token = Token(last + self.cur_char,TokenType.GEQ)
-                token = Token("greater_equal",TokenType.BUILTIN)
+                token = Token("GREATER_EQUAL",TokenType.BUILTIN)
             else:
                 # token = Token(self.cur_char,TokenType.GREATER)
-                token = Token("greater",TokenType.BUILTIN)
+                token = Token("GREATER",TokenType.BUILTIN)
         #Now the datatypes
         elif self.cur_char == "#":
             if self.peek() == "t" or self.peek() == "T" or self.peek() == "f" or self.peek() == "F":
@@ -157,12 +158,11 @@ class Lexer:
                 if peek == '"' or peek == "'":
                     self.abort("Invalid identifier name.")
                 self.next_char()
-                peek = self.peek()
-                
+                peek = self.peek()                
             token_text = self.source[start : self.cur_pos + 1]
             token_text_upper = token_text.upper()
-            if token_text in BUILTINS:
-                token = Token(token_text,TokenType.BUILTIN)
+            if token_text_upper in BUILTINS:
+                token = Token(token_text_upper,TokenType.BUILTIN)
             elif token_text_upper in self.special_chars:
                 token = Token(token_text_upper,self.special_chars[token_text_upper])
             else:
@@ -203,8 +203,8 @@ TokenType = Enum(
         # ("LEQ" , 209),
         # ("GEQ" , 210),
         #KeyWord Operators
-        ("CAR" , 301),
-        ("CDR" , 302),
+        #("CAR" , 301),
+        #("CDR" , 302),
         ("CADR" , 303),
         ("CONS" , 304),
         ("LIST" , 305),

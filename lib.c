@@ -53,7 +53,7 @@ void print_list(Value *value_obj)
                         if(lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
                                 break;
                         }
-                        printf(" ");
+                        printf(" . ");
                         print_value_type(get_cdr_ptr(lst_cur_pair));
                         break;
                 }
@@ -228,6 +228,43 @@ long _less_equal(long value1,long value2)
         }
         return SCHEME_FALSE;
 }
+
+long _car(long type)
+{
+        if (!is_ptr(type)) {
+                abort_message("in car. Expected a pair.\n");
+        } else if( ((Value *)type)->type != VAL_PAIR) {
+                abort_message("in car. Expected a pair.\n");
+        }
+        Value *type_car = &((Value *)type)->as.pair->car;
+        Value *type_cdr = &((Value *)type)->as.pair->cdr;
+        if (type_car->type == VAL_EMPTY_LIST && type_cdr->type == VAL_EMPTY_LIST) {
+                abort_message("in car. Cannot get car of empty list.\n");
+        }
+        if (is_ptr(type_car->as.tagged_type)) {
+                return (long)type_car;
+        }
+        return type_car->as.tagged_type;
+}
+
+long _cdr(long type)
+{
+        if (!is_ptr(type)) {
+                abort_message("in cdr. Expected a pair.\n");
+        } else if( ((Value *)type)->type != VAL_PAIR) {
+                abort_message("in cdr. Expected a pair.\n");
+        }
+        Value *type_car = &((Value *)type)->as.pair->car;
+        Value *type_cdr = &((Value *)type)->as.pair->cdr;
+        if (type_car->type == VAL_EMPTY_LIST && type_cdr->type == VAL_EMPTY_LIST) {
+                abort_message("in cdr. Cannot get cdr of empty list.\n");
+        }
+        if (is_ptr(type_cdr->as.tagged_type)) {
+                return (long)type_cdr;
+        }
+        return type_cdr->as.tagged_type;
+}
+
 void is_function(long type)
 {
         Value *value_type = (Value*)type;

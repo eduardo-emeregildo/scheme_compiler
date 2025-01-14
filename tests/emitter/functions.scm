@@ -146,6 +146,21 @@
 (display (<= 3 2))
 (display (<= 3 4))
 (display (<= 3 3))
+(display "car tests:")
+(display (car '(1 2 3)))
+(display (car '((45 46) 2 3)))
+(display (car '(1)))
+(display (car '(1 . 2)))
+(display (car (car '( (21 22) 3 4))))
+(display (car '( (1 11 21) . 1 )))
+(display "cdr tests:")
+(display (cdr '(1 2)))
+(display (cdr '(1)))
+(display (cdr '(1 (2 3 4) 5)))
+(display (cdr '(1 . 2)))
+(display (cdr '(1 . ())))
+(display (cdr '( () 1 2 3)))
+
 
 ;example where closure is needed:
 ;(define (func op) (define (local f) (+ f op))(local 3))
