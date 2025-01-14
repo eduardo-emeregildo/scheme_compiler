@@ -5,7 +5,10 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Have to make changes in _car,_cdr,_null. make changes so failing test passes
+#test changes i did with the empty list
+#Have to make changes in _car,_cdr,_null. 
+# make changes so failing test passes, think i have to edit set_ith_value in emitter
+#for the case of empty list.
 
 #places that would have to potentially change(could be missing some):
 # 1. Emitter.compile_list ✔

@@ -160,7 +160,7 @@
 (display (cdr '(1 . 2)))
 (display (cdr '(1 . ())))
 (display (cdr '( () 1 2 3)))
-(display (cdr (car '( () 1 2 3)))) ;failing
+;(display (cdr (car '( () 1 2 3)))) ;should crash
 
 ;(display "null? tests:")
 ;(display (null? '(1)))

@@ -185,11 +185,16 @@ class Emitter:
             asm_code.append(f"\tmov rsi, {'0x1' if ident_obj.value == '#t' else '0x0'}")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_bool")
         elif TYPE == IdentifierType.PAIR:
-            self.add_extern("set_ith_value_pair")
-            asm_code.append("\tpush rdi") #store the first arg
-            asm_code.append(self.compile_list(ident_obj,cur_environment))
-            asm_code.append("\tpop rdi") #pop first arg
-            asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_pair")
+            if len(ident_obj.value) == 0:
+                self.add_extern("set_ith_value_empty_list")
+                asm_code.append(f"\tmov rsi, {index}")
+                asm_code.append("\tcall set_ith_value_empty_list")
+            else:
+                self.add_extern("set_ith_value_pair")
+                asm_code.append("\tpush rdi") #store the first arg
+                asm_code.append(self.compile_list(ident_obj,cur_environment))
+                asm_code.append("\tpop rdi") #pop first arg
+                asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_pair")
         elif TYPE == IdentifierType.VECTOR:
             self.add_extern("set_ith_value_vector,allocate_vector")
             #first make the vector object using the output of compile_vector,

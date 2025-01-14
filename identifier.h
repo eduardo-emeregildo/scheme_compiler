@@ -92,6 +92,7 @@ void set_ith_value_symbol(Value *val_ptr,char *str,size_t index);
 void set_ith_value_pair(Value *val_ptr,struct Pair *pair_obj,size_t index);
 void set_ith_value_vector(Value *val_ptr,struct Vector *vec,size_t index);
 void set_ith_value_function(Value *val_ptr,struct FuncObj *func_obj,size_t index);
+void set_ith_value_empty_list(Value *val_ptr, size_t index);
 void set_ith_value_unknown(Value *val_ptr, long type,size_t index);
 Value *get_car_ptr(struct Pair *pair_obj);
 Value *get_cdr_ptr(struct Pair *pair_obj);

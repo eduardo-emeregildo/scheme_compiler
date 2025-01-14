@@ -225,6 +225,12 @@ void set_ith_value_pair(Value *val_ptr,struct Pair *pair_obj,size_t index)
         val_ptr[index].as.pair = pair_obj;
 }
 
+void set_ith_value_empty_list(Value *val_ptr, size_t index)
+{
+        val_ptr[index].type = VAL_EMPTY_LIST;
+        val_ptr[index].as.empty_list = NULL;
+}
+
 void set_ith_value_vector(Value *val_ptr,struct Vector *vec,size_t index)
 {
         val_ptr[index].type = VAL_VECTOR;
