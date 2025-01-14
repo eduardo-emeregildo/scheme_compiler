@@ -12,4 +12,6 @@ BUILTINS = {
     "LESS_EQUAL": Function().set("LESS_EQUAL",["value1,value2"],2,False),
     "CAR": Function().set("CAR",["type"],1,False),
     "CDR": Function().set("CDR",["type"],1,False),
+    "NULLQ": Function().set("NULLQ",["type"],1,False),
+    
 }

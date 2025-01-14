@@ -33,7 +33,7 @@
 
   <quotation> ::= '<datum> | (quote <datum>)
   <body> ::= <definition>* <sequence>
-  <sequence> ::= <expression>
+  <sequence> ::= <expression>+
 
   <definition> ::= (define <variable> <expression>)
       | (define <call pattern> <body>)

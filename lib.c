@@ -264,6 +264,30 @@ long _cdr(long type)
         }
         return type_cdr->as.tagged_type;
 }
+/*
+There are two states for an empty list:
+1. A Value type of type VAL_EMPTY_LIST
+2. A pair with car.type = VAL_EMPTY_LIST and cdr.type = VAL_EMPTY_LIST
+*/
+long _null(long type)
+{       
+        if (!is_ptr(type)) {
+                return SCHEME_FALSE;
+        }
+        else if (((Value *)type)->type == VAL_EMPTY_LIST) {
+                return SCHEME_TRUE;
+        }
+
+        else if (((Value *)type)->type != VAL_PAIR) {
+                return SCHEME_FALSE;
+        }
+        int car_type = ((Value *)type)->as.pair->car.type; 
+        int cdr_type = ((Value *)type)->as.pair->cdr.type; 
+        if (car_type == VAL_EMPTY_LIST && cdr_type == VAL_EMPTY_LIST) {
+                return SCHEME_TRUE;
+        }
+        return SCHEME_FALSE;
+}
 
 void is_function(long type)
 {

@@ -29,6 +29,7 @@ long _less(long value1,long value2);
 long _less_equal(long value1,long value2);
 long _car(long value);
 long _cdr(long type);
+long _null(long type);
 Value DISPLAY = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_display,false,1}}};
 Value ADDITION = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_add,true,1}}};
 Value SUBTRACTION = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_sub,true,2}}};
@@ -39,4 +40,5 @@ Value LESS = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_less,false,2}}
 Value LESS_EQUAL = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_less_equal,false,2}}};
 Value CAR = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_car,false,1}}};
 Value CDR = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_cdr,false,1}}};
+Value NULLQ = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_null,false,1}}};
 #endif

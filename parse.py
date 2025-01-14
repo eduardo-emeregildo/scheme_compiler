@@ -5,9 +5,12 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo0: make the body accept any number of expressions, but the return value will
-#be the last expression.
-#Todo1: implement *,/ builtins
+#Todo0: Currently the empty list is represented in two ways:
+# 1. A Value type of type VAL_EMPTY_LIST
+# 2. A pair with car.type = VAL_EMPTY_LIST and cdr.type = VAL_EMPTY_LIST
+#Try to fix this, perhaps by going to compile_list and changing the chase of empty
+#list
+#Todo1: implement*,/ builtins
 #Todo2: implement cond
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
@@ -871,7 +874,8 @@ class Parser:
             self.abort("Cannot get parent of global environment.")
         parent_env.add_definition(ident_name,Identifier(
         IdentifierType.FUNCTION,function))
-        self.expression()
+        while not self.check_token(TokenType.EXPR_END):
+            self.expression()
         self.emitter.emit_function_epilog()
         
     def is_constant(self):

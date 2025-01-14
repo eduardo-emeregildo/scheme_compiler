@@ -8,19 +8,19 @@ class Lexer:
         self.cur_char = ''
         self.cur_pos = -1
         self.source_len = len(source)
-        #for the keywords that have special characters in them, so enum wont accept them as names
+        #for the keywords that have special characters in them, 
+        # since enum wont accept them as names. val is array, arr[0] is its internal
+        #name, arr[1] is the corresponding token
         self.special_chars = {
-            "LET*": TokenType.LETSTAR,
-            "EQV?": TokenType.EQV,
-            "EQUAL?" : TokenType.EQUAL,
-            "EQ?" : TokenType.EQ,
-            "SET!": TokenType.SETEXCLAM,
-            "UNQUOTE-SPLICING" : TokenType.UNQUOTESPLICING,
-            "NULL?": TokenType.BUILTIN,
-            
+            "LET*": ["LET_STAR",TokenType.LETSTAR],
+            "EQV?": ["EQV",TokenType.BUILTIN],
+            "EQUAL?" : ["EQUAL",TokenType.BUILTIN],
+            "EQ?" : ["EQ",TokenType.BUILTIN],
+            "SET!": ["SETE",TokenType.SETEXCLAM],
+            "UNQUOTE-SPLICING" : ["UNQUOTESPL",TokenType.UNQUOTESPLICING],
+            "NULL?": ["NULLQ",TokenType.BUILTIN],
         }
         self.next_char()
-        
         
      # go to next char in string.
     def next_char(self) -> None:
@@ -164,7 +164,10 @@ class Lexer:
             if token_text_upper in BUILTINS:
                 token = Token(token_text_upper,TokenType.BUILTIN)
             elif token_text_upper in self.special_chars:
-                token = Token(token_text_upper,self.special_chars[token_text_upper])
+                special_char_info = self.special_chars[token_text_upper]
+                internal_name = special_char_info[0]
+                char_token = special_char_info[1]
+                token = Token(internal_name,char_token)
             else:
                 keyword = Token.check_if_keyword(token_text_upper)
                 if keyword == None:
