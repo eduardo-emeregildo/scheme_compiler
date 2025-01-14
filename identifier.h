@@ -31,6 +31,7 @@ typedef struct {
                 struct Pair *pair;
                 struct Vector *vector;
                 struct FuncObj *function;
+                void *empty_list; // will point to NULL
                 long tagged_type; //only exists if a elt in lst is int,char,bool
         } as;
 } Value;
@@ -77,6 +78,7 @@ void validate_ptr(void *ptr);
 Value *make_value_int(long integer);
 Value *make_value_char(char character);
 Value *make_value_bool(bool boolean);
+Value *make_empty_list();
 struct Str *allocate_str(char *str);
 struct Pair *allocate_pair();
 struct Vector *allocate_vector(Value *vec_elts,size_t size);

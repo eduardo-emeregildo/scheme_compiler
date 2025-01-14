@@ -5,11 +5,15 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo0: Currently the empty list is represented in two ways:
-# 1. A Value type of type VAL_EMPTY_LIST
-# 2. A pair with car.type = VAL_EMPTY_LIST and cdr.type = VAL_EMPTY_LIST
-#Try to fix this, perhaps by going to compile_list and changing the chase of empty
-#list
+#Have to make changes in _car,_cdr,_null. make changes so failing test passes
+
+#places that would have to potentially change(could be missing some):
+# 1. Emitter.compile_list ✔
+# 2. print_list
+# 3. make_arg_list in identifier.c
+# 4. All the builtins that use pairs, _car,_cdr and _null
+# 5. set_ith_value 
+
 #Todo1: implement*,/ builtins
 #Todo2: implement cond
 #Todo4: Rn, when you redefine a function, the assembly of the function gets

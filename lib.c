@@ -251,14 +251,16 @@ long _cdr(long type)
 {
         if (!is_ptr(type)) {
                 abort_message("in cdr. Expected a pair.\n");
+        } else if (((Value *)type)->type == VAL_EMPTY_LIST) {
+                abort_message("in cdr. Cannot get cdr of empty list.\n");
         } else if( ((Value *)type)->type != VAL_PAIR) {
                 abort_message("in cdr. Expected a pair.\n");
         }
-        Value *type_car = &((Value *)type)->as.pair->car;
+        //Value *type_car = &((Value *)type)->as.pair->car;
         Value *type_cdr = &((Value *)type)->as.pair->cdr;
-        if (type_car->type == VAL_EMPTY_LIST && type_cdr->type == VAL_EMPTY_LIST) {
-                abort_message("in cdr. Cannot get cdr of empty list.\n");
-        }
+        // if (type_car->type == VAL_EMPTY_LIST && type_cdr->type == VAL_EMPTY_LIST) {
+        //         abort_message("in cdr. Cannot get cdr of empty list.\n");
+        // }
         if (is_ptr(type_cdr->as.tagged_type)) {
                 return (long)type_cdr;
         }

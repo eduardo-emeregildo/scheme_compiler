@@ -117,6 +117,10 @@ class Emitter:
             case IdentifierType.PAIR:    
                 self.add_extern("make_value_pair")
                 asm_code = []
+                if len(ident_obj.value) == 0:
+                    self.add_extern("make_empty_list")
+                    asm_code.append("\tcall make_empty_list")
+                    return '\n'.join(asm_code)
                 asm_code.append(self.compile_list(ident_obj,cur_environment))
                 asm_code.append("\tmov rdi, rsi\n\tcall make_value_pair")                
                 # self.add_extern("print_list")
@@ -251,7 +255,9 @@ class Emitter:
         last_elt_index = len(ident_obj.value) - 1
         self.add_extern("allocate_pair")
         if len(ident_obj.value) == 0: #empty list
+            # self.add_extern("make_empty_list")
             return "\tcall allocate_pair\n\tmov rsi,rax"
+            # return "\tcall make_empty_list\n\tmov rsi,rax"
         asm_code.append("\tcall allocate_pair\n\tpush rax\n\tpush rax")
         # now build the list
         for i,ident in enumerate(ident_obj.value):

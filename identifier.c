@@ -124,6 +124,14 @@ Value *make_value_bool(bool boolean)
         return ptr_value_bool;
 }
 
+Value *make_empty_list()
+{
+        Value* ptr_empty_list = make_tagged_ptr(1);
+        ptr_empty_list->type = VAL_EMPTY_LIST;
+        ptr_empty_list->as.empty_list = NULL;
+        return ptr_empty_list;
+}
+
 /*
 given a character arr(that is declared in a local label), return ptr to 
 Str object. symbol types will also use this object
