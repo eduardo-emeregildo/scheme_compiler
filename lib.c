@@ -116,8 +116,6 @@ long _add(Value *param_list)
                         double_sum += cur_param->car.as._double;
                 } else {
                         abort_message("In +. Expected a number.\n");
-                        // printf("Error in +, Expected a number, got %d\n", cur_param->car.type);
-                        // exit(EXIT_FAILURE);
                 }
                 if (cur_param->cdr.type == VAL_EMPTY_LIST) {
                         break;
@@ -133,9 +131,6 @@ long _add(Value *param_list)
 
 long _sub(long minuend,Value *varargs)
 {       
-        if (varargs->type == VAL_EMPTY_LIST) {
-                return make_tagged_int(0);
-        }
         bool is_res_double = false;
         double minuend_value;
         double substrahend_value;
@@ -155,6 +150,13 @@ long _sub(long minuend,Value *varargs)
                 is_res_double = true;
                 substrahend_value = ((Value *)substrahend)->as._double;
         }
+
+        // in case varargs is empty, scheme does 0 - minuend, so swap values
+        if (varargs->type == VAL_EMPTY_LIST) {
+                double temp = minuend_value;
+                minuend_value = substrahend_value;
+                substrahend_value = temp;
+        }
         if (is_res_double) {
                 return (long)make_value_double(minuend_value - substrahend_value);
         }
@@ -163,7 +165,69 @@ long _sub(long minuend,Value *varargs)
 
 long _mul(Value *param_list)
 {
-        //implement
+        if (param_list->type == VAL_EMPTY_LIST) {
+                return make_tagged_int(1);
+        }
+        bool is_res_double = false;
+        double product = 1;
+        struct Pair *cur_param = param_list->as.pair;
+        while (cur_param->car.type != VAL_EMPTY_LIST) {
+                int cur_param_type = cur_param->car.type;
+                if (cur_param_type == VAL_INT) {
+                        product *= untag_int(cur_param->car.as.tagged_type);
+                } else if (cur_param_type == VAL_DOUBLE) {
+                        is_res_double = true;
+                        product *= cur_param->car.as._double;
+                } else {
+                        abort_message("in *. Expected a number.\n");
+                }
+                if (cur_param->cdr.type == VAL_EMPTY_LIST) {
+                        break;
+                }
+                cur_param = cur_param->cdr.as.pair;
+        }
+
+        if (is_res_double) {
+                return (long)make_value_double(product);
+        }
+        return make_tagged_int(product);
+}
+
+long _div(long dividend, Value* varargs) {
+        bool is_res_double = false;
+        double dividend_value;
+        double divisor_value;
+        if (is_int(dividend)) {
+                dividend_value = untag_int(dividend);
+        } else if (is_ptr(dividend) &&  ((Value *)dividend)->type == VAL_DOUBLE) {
+                is_res_double = true;
+                dividend_value = ((Value *)dividend)->as._double;
+        } else {
+                abort_message("in /. Expected a number.\n");
+        }
+
+        long divisor = _mul(varargs);
+        if (is_int(divisor)) {
+                divisor_value = untag_int(divisor);
+        } else {
+                is_res_double = true;
+                divisor_value = ((Value *)divisor)->as._double;
+        }
+
+        // in case varargs is empty, scheme does 1 / dividend, so swap values
+        if (varargs->type == VAL_EMPTY_LIST) {
+                double temp = dividend_value;
+                dividend_value = divisor_value;
+                divisor_value = temp;
+        }
+        if (divisor_value == 0.0) {
+                abort_message("In /. Division by 0.\n");
+        }
+        double res = dividend_value / divisor_value;
+        if (floor(res) != res || is_res_double) {
+                return (long)make_value_double(res);
+        }
+        return make_tagged_int(res);
 }
 
 // checks if value1 and value2 are numbers and returns their untagged values

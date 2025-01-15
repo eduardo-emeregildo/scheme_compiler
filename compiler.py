@@ -39,9 +39,6 @@ def main():
     # final version wont have this
     os.system("gcc -c identifier.c")
     os.system("gcc -c lib.c")
-    os.system("gcc out.o identifier.o lib.o -o out -no-pie -z noexecstack")
+    os.system("gcc out.o identifier.o lib.o -lm -o out -no-pie -z noexecstack")
     print("Compiling completed.")
-    
-
-            
 main()

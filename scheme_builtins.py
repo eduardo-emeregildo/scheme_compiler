@@ -4,7 +4,9 @@ from function import *
 BUILTINS = {
     "DISPLAY": Function().set("DISPLAY",["item"],1,False),
     "ADDITION": Function().set("ADDITION",["args"],1,True),
-    "SUBTRACTION": Function().set("SUBTRACTION",["minuend,varargs"],2,True),
+    "SUBTRACTION": Function().set("SUBTRACTION",["minuend","varargs"],2,True),
+    "MULT": Function().set("MULT",["param_list"],1,True),
+    "DIVISION": Function().set("DIVISION",["dividend","varargs"],2,True),
     "EQUAL_SIGN": Function().set("EQUAL_SIGN",["value1,value2"],2,False),
     "GREATER": Function().set("GREATER",["value1,value2"],2,False),
     "GREATER_EQUAL": Function().set("GREATER_EQUAL",["value1,value2"],2,False),

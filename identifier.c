@@ -415,14 +415,13 @@ makes the pair obj containing the varargs. iterates the args array backwards.
 Value *make_arg_list(Value *func_obj,long *args,int arg_amount)
 {       
         Value *vararg_list = make_tagged_ptr(1);
+        int min_args = func_obj->as.function->arity - 1;
         //no args, so return empty list
-        if (arg_amount == 0) {               
+        if (arg_amount == min_args) {               
                 vararg_list->type = VAL_EMPTY_LIST;
                 vararg_list->as.empty_list = NULL;
                 return vararg_list;
         }
-
-        int min_args = func_obj->as.function->arity - 1;
         int varargs_index = (arg_amount  - 1)  - min_args;
         vararg_list->type = VAL_PAIR;
         struct Pair *head = allocate_pair();
@@ -451,7 +450,7 @@ Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
 {       
         Value *vararg_list = make_tagged_ptr(1);
         //no args, so return empty list
-        if (arg_amount == 0) {               
+        if (arg_amount == min_args) {               
                 vararg_list->type = VAL_EMPTY_LIST;
                 vararg_list->as.empty_list = NULL;
                 return vararg_list;

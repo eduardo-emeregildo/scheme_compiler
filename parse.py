@@ -5,7 +5,6 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo1: implement*,/ builtins
 #Todo2: implement cond
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 

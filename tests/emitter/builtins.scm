@@ -4,6 +4,7 @@
 (display (+ 2 (+ 3)))
 (display (+ 2 (+)))
 (display (- 1))
+(display (- 2))
 (display (- 5 3 4))
 (display (- 5 3.0 4))
 (display "nesting + and - tests:")
@@ -12,7 +13,20 @@
 (define (func one . args) (+ one 1))
 (define (func2 arrg) (define (local l1) (func l1 1 2 )) (local arrg))
 (display (func2 3)); should print 4
-
+(display "* tests:")
+(display (*))
+(display (* 5 (* 4 1.0)))
+(display (* 3 2 1))
+(display "/ tests:")
+(display (/ 2))
+(display (/ 3))
+(display (/ 10 5))
+(display (/ 12 3 2))
+(display (/ 5 3))
+;(display (/ 3 2 3 4 5 6 0)) ; div by 0 error
+(display (/ -3 2))
+(display (* 3 (/ 50 10.0)))
+(display (/ 15.0 3))
 ;=,>,< tests:
 (display "= tests:")
 (display (= 1 1.000000000000001)) ;precision limit

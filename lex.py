@@ -75,9 +75,11 @@ class Lexer:
             #token = Token(self.cur_char,TokenType.MINUS)
             token = Token("SUBTRACTION",TokenType.BUILTIN)
         elif self.cur_char == "*":
-            token = Token(self.cur_char,TokenType.ASTERISK)
+            #token = Token(self.cur_char,TokenType.ASTERISK)
+            token = Token("MULT",TokenType.BUILTIN)
         elif self.cur_char == "/":
-            token = Token(self.cur_char,TokenType.SLASH)
+            #token = Token(self.cur_char,TokenType.SLASH)
+            token = Token("DIVISION",TokenType.BUILTIN)
         elif self.cur_char == "=":
             # token = Token(self.cur_char,TokenType.EQUAL_SIGN)
             token = Token("EQUAL_SIGN",TokenType.BUILTIN)
@@ -196,8 +198,8 @@ TokenType = Enum(
         #Operators
         # ("PLUS" , 201),
         # ("MINUS" , 202),
-        ("ASTERISK" , 203),
-        ("SLASH" , 204),
+        #("ASTERISK" , 203),
+        #("SLASH" , 204),
         # ("EQUAL_SIGN" , 205),
         ("QUOTE_SYMBOL" , 206),
         # ("LESS" , 207),
