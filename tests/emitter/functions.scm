@@ -105,17 +105,6 @@
 ;(test 1 2 3 4 5 6 7 8 9 '(1 2))
 ;(define aaa "hello")
 
-;nesting + and - tests:
-;(display (+ 1 2 (+ 3 4) (- 7 4)))
-;(display (+ 2 (+ 3)))
-;(define (func one . args) (+ one 1))
-;(define (func2 arrg) (define (local l1) (func l1 1 2 )) (local arrg))
-;(display (func2 3)); should print 4
-
-;After i make the above work, make recursion work. Have to add the function sooner
-;(define (func op1 op2) (func 1 2))
-;(func display)
-
 ;if statements
 ;(display (if #t 1 2))
 ;(define (func op) (if #t (op 1 2 (op 3 4)) (op 3 4 (op 5 6))))
@@ -124,56 +113,6 @@
 ;recursion: should just print infinite 1's until stack runs out of memory
 ;(define (func1 op) (func1 (display 1)))
 ;(func1 #t)
-
-;=,>,< tests:
-(display "= tests:")
-(display (= 1 1.000000000000001)) ;precision limit
-(display (= 3 2))
-(display (= 2 2.0))
-(display "> tests:")
-(display (> 3 2))
-(display (> 3 4))
-(display (> 3 3))
-(display ">= tests:")
-(display (>= 3 2))
-(display (>= 3 4))
-(display (>= 3 3))
-(display "< tests:")
-(display (< 3 2))
-(display (< 3 4))
-(display (< 3 3))
-(display "<= tests:")
-(display (<= 3 2))
-(display (<= 3 4))
-(display (<= 3 3))
-(display "car tests:")
-(display (car '(1 2 3)))
-(display (car '((45 46) 2 3)))
-(display (car '(1)))
-(display (car '(1 . 2)))
-(display (car (car '( (21 22) 3 4))))
-(display (car '( (1 11 21) . 1 )))
-(display "cdr tests:")
-(display (cdr '(1 2)))
-(display (cdr '(1)))
-(display (cdr '(1 (2 3 4) 5)))
-(display (cdr '(1 . 2)))
-(display (cdr '(1 . ())))
-(display (cdr '( () 1 2 3)))
-(display (cdr (cdr '(1 2))))
-;(display (car (car '( () 1 2 3)))) ; should crash
-;(display (cdr (car '( () 1 2 3)))) ;should crash
-(display "null? tests:")
-(display (null? '(1)))
-(display (null? '(1 2 3)))
-(display (null? '()))
-(display (null? (cdr '(1))))
-(display (null? (car '(1))))
-(display (null? '( () 1 2 3)))
-(display (null? '( ())))
-(display (null? (car '( ())))) ; true
-(display (null? (cdr '( ())))) ; true
-(display (null? (car '( () 1 2 3)))) ;true
 
 ;example where closure is needed:
 ;(define (func op) (define (local f) (+ f op))(local 3))

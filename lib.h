@@ -20,6 +20,7 @@ function
 void _display(void *value_ptr);
 long _add(Value *param_list);
 long _sub(long minuend,Value *varargs);
+long _mul(Value *param_list);
 double *check_and_extract_numbers(
 long value1, long value2, char *builtin_name, double untagged_values[2]);
 long _equal_sign(long value1,long value2);

@@ -103,6 +103,9 @@ void _display(void *type)
 
 long _add(Value *param_list)
 {
+        if (param_list->type == VAL_EMPTY_LIST) {
+                return make_tagged_int(0);
+        }
         long num_sum = 0;
         double double_sum = 0.0;
         struct Pair *cur_param = param_list->as.pair;
@@ -129,7 +132,11 @@ long _add(Value *param_list)
 }
 
 long _sub(long minuend,Value *varargs)
-{       bool is_res_double = false;
+{       
+        if (varargs->type == VAL_EMPTY_LIST) {
+                return make_tagged_int(0);
+        }
+        bool is_res_double = false;
         double minuend_value;
         double substrahend_value;
         if (is_int(minuend)) {
@@ -152,6 +159,11 @@ long _sub(long minuend,Value *varargs)
                 return (long)make_value_double(minuend_value - substrahend_value);
         }
         return make_tagged_int(minuend_value - substrahend_value);
+}
+
+long _mul(Value *param_list)
+{
+        //implement
 }
 
 // checks if value1 and value2 are numbers and returns their untagged values
