@@ -5,18 +5,6 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#test changes i did with the empty list
-#Have to make changes in _car,_cdr,_null. 
-# make changes so failing test passes, think i have to edit set_ith_value in emitter
-#for the case of empty list.
-
-#places that would have to potentially change(could be missing some):
-# 1. Emitter.compile_list ✔
-# 2. print_list
-# 3. make_arg_list in identifier.c
-# 4. All the builtins that use pairs, _car,_cdr and _null
-# 5. set_ith_value 
-
 #Todo1: implement*,/ builtins
 #Todo2: implement cond
 #Todo4: Rn, when you redefine a function, the assembly of the function gets

@@ -160,19 +160,20 @@
 (display (cdr '(1 . 2)))
 (display (cdr '(1 . ())))
 (display (cdr '( () 1 2 3)))
+(display (cdr (cdr '(1 2))))
+;(display (car (car '( () 1 2 3)))) ; should crash
 ;(display (cdr (car '( () 1 2 3)))) ;should crash
-
-;(display "null? tests:")
-;(display (null? '(1)))
-;(display (null? '(1 2 3)))
-;(display (null? '()))
-;(display (null? (cdr '(1))))
-;(display (null? (car '(1))))
-;(display (null? '( () 1 2 3)))
-;(display (null? '( ())))
-;(display (null? (car '( ())))) ; true
-;(display (null? (cdr '( ())))) ; true
-;(display (null? (car '( () 1 2 3)))) ;true
+(display "null? tests:")
+(display (null? '(1)))
+(display (null? '(1 2 3)))
+(display (null? '()))
+(display (null? (cdr '(1))))
+(display (null? (car '(1))))
+(display (null? '( () 1 2 3)))
+(display (null? '( ())))
+(display (null? (car '( ())))) ; true
+(display (null? (cdr '( ())))) ; true
+(display (null? (car '( () 1 2 3)))) ;true
 
 ;example where closure is needed:
 ;(define (func op) (define (local f) (+ f op))(local 3))
