@@ -5,6 +5,10 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
+
+#i have a working solution, but for cases with no else, creates an empty label.
+#see if you can fix this
+ 
 #Todo2: implement cond
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
@@ -515,30 +519,27 @@ class Parser:
     # (cond <cond clause>*) | (cond <cond clause>* (else <sequence>))
     def cond_exp(self):
         print("EXPRESSION-COND")
-        #first, handle case where there are 0 cond clauses and no else. basically exp is: (cond)
-        if self.check_token(TokenType.EXPR_END):
-            #self.parens.pop()
-            self.next_token()
-
-        # no cond clause but an else clause, so (cond (else <sequence>))
-        elif self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
+        #if any condition is true, jump to this label, which is placed below all
+        #the comparison branches
+        # else_label = self.emitter.create_new_ctrl_label()
+        end_label = self.emitter.create_new_ctrl_label()
+        cur_label = self.emitter.create_new_ctrl_label()
+        next_label = self.emitter.create_new_ctrl_label()
+        is_global = self.cur_environment.is_global()
+        while not self.check_token(TokenType.EXPR_END):
+            if self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
+                break
+            self.emitter.emit_ctrl_label(is_global,cur_label)
+            cur_label = next_label
+            next_label = self.emitter.create_new_ctrl_label()
+            self.cond_clause(cur_label,next_label,end_label)
+            cur_label = next_label
+            next_label = self.emitter.create_new_ctrl_label()
+        self.emitter.emit_ctrl_label(is_global,cur_label)
+        if self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
             self.else_rule()
-            self.match(TokenType.EXPR_END)
-            #self.parens.pop()
-            
-        # one or more cond clauses and an optional else at the end
-        else:
-            if not self.check_token(TokenType.EXPR_START):
-                self.abort("Incorrect syntax in cond expression. Expected (, got " + str(self.cur_token.text))
-
-            while not self.check_token(TokenType.EXPR_END):
-                if self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
-                    self.else_rule()
-                    break
-                self.cond_clause()
-                
-            self.match(TokenType.EXPR_END)
-            #self.parens.pop()
+        self.emitter.emit_ctrl_label(is_global,end_label)
+        self.next_token()
             
     #(case <expression> <case clause>*) | (case <expression> <case clause>* (else <sequence>))  #<case clause> ::= ((<datum>*) <sequence>)       
     def case_exp(self):
@@ -669,15 +670,22 @@ class Parser:
         self.expression()
         self.match(TokenType.EXPR_END)
  
-    # <cond clause> ::= (<test> <sequence>), sequence will be implemented as just one expression, not 1 or more. although in r5rs one or more exp is valid scheme, it always takes the right most expression and ignores the rest, which is confusing
-    def cond_clause(self):
+    # <cond clause> ::= (<test> <sequence>)
+    def cond_clause(self,cur_label,next_label,end_label):
+        is_global = self.cur_environment.is_global()
         print("COND-CLAUSE")
         self.match(TokenType.EXPR_START)
-        #self.parens.append("(")
+        print("TEST")
         self.expression()
-        self.expression()
-        self.match(TokenType.EXPR_END)
-        #self.parens.pop()
+        self.emitter.emit_false_check(is_global)
+        self.emitter.emit_conditional_jump("=",is_global,next_label)
+        self.emitter.emit_ctrl_label(is_global,cur_label)
+        #sequence is now one or more expressions
+        print("SEQUENCE")
+        while not self.check_token(TokenType.EXPR_END):
+            self.expression()
+        self.emitter.emit_jump(is_global,end_label)
+        self.next_token()
         
     #<case clause> ::= ((<datum>*) <sequence>)
     def case_clause(self):
@@ -692,11 +700,12 @@ class Parser:
    
     # (else <sequence>)     
     def else_rule(self):
-        #no need to add and remove parens from stack since this else rule is self contained and checks for start and end parens.
         print("ELSE")
         self.match(TokenType.EXPR_START)
         self.match(TokenType.ELSE)
-        self.expression()
+        print("SEQUENCE")
+        while not self.check_token(TokenType.EXPR_END):
+            self.expression()
         self.match(TokenType.EXPR_END)
         
     #<bound var list> ::= <variable> | (<variable>*) | (<variable>+ . <variable>)

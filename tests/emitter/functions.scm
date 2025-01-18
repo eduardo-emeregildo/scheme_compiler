@@ -114,6 +114,13 @@
 ;(define (func1 op) (func1 (display 1)))
 ;(func1 #t)
 
+;cond
+(define x 1)
+;(cond ((= x 1) (display "x is one")) 
+    ;((= x 2) (display "x is two")) (else (display "x is not one or two")))
+(cond)   
+(display "After :D")
+
 ;example where closure is needed:
 ;(define (func op) (define (local f) (+ f op))(local 3))
 ;(display (func 2))
