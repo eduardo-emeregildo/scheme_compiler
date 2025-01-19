@@ -6,10 +6,8 @@ from function import *
 from scheme_builtins import *
 
 
-#i have a working solution, but for cases with no else, creates an empty label.
-#see if you can fix this
- 
-#Todo2: implement cond
+#Todo0: implement and, or
+#Todo1: implement let statement 
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
 # For ex:
@@ -519,17 +517,17 @@ class Parser:
     # (cond <cond clause>*) | (cond <cond clause>* (else <sequence>))
     def cond_exp(self):
         print("EXPRESSION-COND")
-        #if any condition is true, jump to this label, which is placed below all
-        #the comparison branches
-        # else_label = self.emitter.create_new_ctrl_label()
         end_label = self.emitter.create_new_ctrl_label()
         cur_label = self.emitter.create_new_ctrl_label()
         next_label = self.emitter.create_new_ctrl_label()
         is_global = self.cur_environment.is_global()
+        condition_count = 0
         while not self.check_token(TokenType.EXPR_END):
             if self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
                 break
-            self.emitter.emit_ctrl_label(is_global,cur_label)
+            condition_count += 1
+            if condition_count > 1:
+                self.emitter.emit_ctrl_label(is_global,cur_label)
             cur_label = next_label
             next_label = self.emitter.create_new_ctrl_label()
             self.cond_clause(cur_label,next_label,end_label)

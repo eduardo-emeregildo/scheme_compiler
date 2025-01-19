@@ -115,10 +115,16 @@
 ;(func1 #t)
 
 ;cond
-(define x 1)
-;(cond ((= x 1) (display "x is one")) 
-    ;((= x 2) (display "x is two")) (else (display "x is not one or two")))
-(cond)   
+(define (cond_test x) 
+    (cond ((= x 1) (display "x is one")) 
+    ((= x 2) (display "x is two"))))
+
+(define x 2)
+(cond ((= x 1) (display "main: x is one")) 
+    ((= x 2) (display "main: x is two")))
+(cond_test 3)
+
+(cond (else (display "just an else!")))
 (display "After :D")
 
 ;example where closure is needed:
