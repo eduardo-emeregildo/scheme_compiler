@@ -105,27 +105,6 @@
 ;(test 1 2 3 4 5 6 7 8 9 '(1 2))
 ;(define aaa "hello")
 
-;if statements
-;(display (if #t 1 2))
-;(define (func op) (if #t (op 1 2 (op 3 4)) (op 3 4 (op 5 6))))
-;(display (func +))
-
-;recursion: should just print infinite 1's until stack runs out of memory
-;(define (func1 op) (func1 (display 1)))
-;(func1 #t)
-
-;cond
-(define (cond_test x) 
-    (cond ((= x 1) (display "x is one")) 
-    ((= x 2) (display "x is two"))))
-
-(define x 2)
-(cond ((= x 1) (display "main: x is one")) 
-    ((= x 2) (display "main: x is two")))
-(cond_test 3)
-
-(cond (else (display "just an else!")))
-(display "After :D")
 
 ;example where closure is needed:
 ;(define (func op) (define (local f) (+ f op))(local 3))

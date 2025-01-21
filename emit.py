@@ -73,7 +73,13 @@ class Emitter:
             label = self.create_new_ctrl_label()
         self.emit_to_section(f"{label}:",is_global)
         return label
-
+    
+    def set_rax_false(self,is_global):
+        self.emit_to_section("\tmov rax, FALSE",is_global)
+    
+    def set_rax_true(self,is_global):
+        self.emit_to_section("\tmov rax, TRUE",is_global)
+    
     def emit_function_epilog(self):
         self.emit_function(f"\tpop rbp\n\tret")
                 
@@ -420,7 +426,7 @@ class Emitter:
             self.emit_function(f"\tmov rax, QWORD [{ident_name}]")
         else:
             self.emit_function(f"\tmov rax, QWORD [rbp{offset:+}]")
-            
+        
             
     #for creating function definition
     def emit_register_param(self,arg_num):

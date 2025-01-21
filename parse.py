@@ -6,8 +6,10 @@ from function import *
 from scheme_builtins import *
 
 
-#Todo0: implement and, or
-#Todo1: implement let statement 
+#Todo0: implement and, or, not
+#Todo1: implement let statement
+#Todo2: I suspect cond can be improved. When I make the equivalent cond using 
+#only if, less labels are used.
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
 # For ex:
@@ -498,21 +500,33 @@ class Parser:
         self.bound_var_list()
         self.body()
         self.match(TokenType.EXPR_END)
-        #self.parens.pop()
-    
+        
+    # (and <expression>*)
     def and_exp(self):
         print("EXPRESION-AND")
+        is_global = self.cur_environment.is_global()
+        rest_of_program_label = self.emitter.create_new_ctrl_label()
+        expression_count = 0
+        false_label = self.emitter.create_new_ctrl_label()
         while not self.check_token(TokenType.EXPR_END):
+            expression_count += 1
             self.expression()
+            self.emitter.emit_false_check(is_global)
+            self.emitter.emit_conditional_jump("=",is_global,false_label)
+        self.emitter.emit_jump(is_global,rest_of_program_label)
+        self.emitter.emit_ctrl_label(is_global,false_label)
+        self.emitter.set_rax_false(is_global)
+        self.emitter.emit_ctrl_label(is_global,rest_of_program_label)
+        #default case where and was used with no expressions, i.e. (and)
+        if expression_count == 0:
+            self.emitter.set_rax_true(is_global)
         self.next_token()
-        #self.parens.pop()
         
     def or_exp(self):
         print("EXPRESION-OR")
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
         self.next_token()
-        #self.parens.pop()
         
     # (cond <cond clause>*) | (cond <cond clause>* (else <sequence>))
     def cond_exp(self):
@@ -530,7 +544,7 @@ class Parser:
                 self.emitter.emit_ctrl_label(is_global,cur_label)
             cur_label = next_label
             next_label = self.emitter.create_new_ctrl_label()
-            self.cond_clause(cur_label,next_label,end_label)
+            self.cond_clause(cur_label,next_label,end_label,condition_count)
             cur_label = next_label
             next_label = self.emitter.create_new_ctrl_label()
         self.emitter.emit_ctrl_label(is_global,cur_label)
@@ -669,7 +683,7 @@ class Parser:
         self.match(TokenType.EXPR_END)
  
     # <cond clause> ::= (<test> <sequence>)
-    def cond_clause(self,cur_label,next_label,end_label):
+    def cond_clause(self,cur_label,next_label,end_label,condition_count):
         is_global = self.cur_environment.is_global()
         print("COND-CLAUSE")
         self.match(TokenType.EXPR_START)
@@ -677,7 +691,8 @@ class Parser:
         self.expression()
         self.emitter.emit_false_check(is_global)
         self.emitter.emit_conditional_jump("=",is_global,next_label)
-        self.emitter.emit_ctrl_label(is_global,cur_label)
+        if condition_count > 1:
+            self.emitter.emit_ctrl_label(is_global,cur_label)
         #sequence is now one or more expressions
         print("SEQUENCE")
         while not self.check_token(TokenType.EXPR_END):

@@ -22,6 +22,7 @@
 ;%define seventh_arg_offset (%1 + ((r14 + 1) * 8))
 
 %define FALSE 2
+%define TRUE 10
 
 ; to compute regarg offset
 %macro compute_regarg_offset 1
