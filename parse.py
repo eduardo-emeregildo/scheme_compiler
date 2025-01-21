@@ -8,8 +8,7 @@ from scheme_builtins import *
 
 #Todo0: implement and, or, not
 #Todo1: implement let statement
-#Todo2: I suspect cond can be improved. When I make the equivalent cond using 
-#only if, less labels are used.
+#Todo2: have display print out special characters, i.e. \n,\t etc
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
 # For ex:
@@ -507,25 +506,35 @@ class Parser:
         is_global = self.cur_environment.is_global()
         rest_of_program_label = self.emitter.create_new_ctrl_label()
         expression_count = 0
-        false_label = self.emitter.create_new_ctrl_label()
         while not self.check_token(TokenType.EXPR_END):
             expression_count += 1
             self.expression()
             self.emitter.emit_false_check(is_global)
-            self.emitter.emit_conditional_jump("=",is_global,false_label)
-        self.emitter.emit_jump(is_global,rest_of_program_label)
-        self.emitter.emit_ctrl_label(is_global,false_label)
-        self.emitter.set_rax_false(is_global)
+            if not self.check_token(TokenType.EXPR_END):
+                self.emitter.emit_conditional_jump(
+                "=",is_global,rest_of_program_label)
         self.emitter.emit_ctrl_label(is_global,rest_of_program_label)
         #default case where and was used with no expressions, i.e. (and)
         if expression_count == 0:
             self.emitter.set_rax_true(is_global)
         self.next_token()
         
+    # (or <expression>*)
     def or_exp(self):
         print("EXPRESION-OR")
+        is_global = self.cur_environment.is_global()
+        rest_of_program_label = self.emitter.create_new_ctrl_label()
+        expression_count = 0
         while not self.check_token(TokenType.EXPR_END):
+            expression_count += 1
             self.expression()
+            self.emitter.emit_false_check(is_global)
+            if not self.check_token(TokenType.EXPR_END):
+                self.emitter.emit_conditional_jump(
+                "!=",is_global,rest_of_program_label)
+        self.emitter.emit_ctrl_label(is_global,rest_of_program_label)
+        if expression_count == 0:
+            self.emitter.set_rax_false(is_global)
         self.next_token()
         
     # (cond <cond clause>*) | (cond <cond clause>* (else <sequence>))
