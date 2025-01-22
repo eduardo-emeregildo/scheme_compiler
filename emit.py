@@ -30,7 +30,8 @@ class Emitter:
         #holds the current function name(str) to write to, which is a key in 
         #self.functions
         self.cur_function = None
-        self.ctrl_flow_label_count = 0 #counts labels which are used for control flow
+        self.ctrl_flow_label_count = 0 #to generate local control flow labels
+        self.lambda_label_count = 0 # for generating lambda labels
     def emit_bss_section(self,code):
         self.bss_section += code + '\n'
 
@@ -46,7 +47,7 @@ class Emitter:
         self.cur_function = func_name
     
     def emit_function_label(self,label):
-        self.emit_function(f"{label}:")
+        self.emit_function(f"..@{label}:")
     
     def emit_function_prolog(self):
         self.emit_function(f"\tpush rbp\n\tmov rbp, rsp")
@@ -54,6 +55,10 @@ class Emitter:
     def create_new_ctrl_label(self):
         self.ctrl_flow_label_count += 1
         return f".L{self.ctrl_flow_label_count}"
+    
+    def create_lambda_name(self):
+        self.lambda_label_count += 1
+        return f"LA{self.ctrl_flow_label_count}"
     
     #emits a jump instruction depending on the condition
     def emit_conditional_jump(self,condition,is_global,label = None):

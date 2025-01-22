@@ -5,6 +5,10 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
+#currently, ((lambda (x) (display x)) 21) fails.
+
+#what i have to do is treat anonymous functions differently, i.e. use the result in rax,
+#and dont go looking for the definition because it isnt there
 
 #Todo1: implement lambda,let statement
 # using a lambda:
@@ -302,6 +306,7 @@ class Parser:
                 print("OPERATOR")
                 self.expression()
                 operator_name = self.last_exp_res.value
+                print("OPERATOR NAME: ",operator_name)
                 #for issuing a function call with a function param.
                 if self.last_exp_res.typeof == IdentifierType.PARAM:
                     self.param_function_call(operator_name)
@@ -524,8 +529,17 @@ class Parser:
     #(lambda <bound var list> <body>)
     def lambda_exp(self):
         print("EXPRESSION-LAMBDA")
-        self.bound_var_list()
-        self.body()
+        function = Function()
+        parent_env = self.cur_environment
+        previous_function = self.emitter.cur_function
+        self.cur_environment = parent_env.create_local_env()
+        self.bound_var_list(function)
+        self.body(function)
+        #now switch back to parent environment/ previous function
+        self.emitter.set_current_function(previous_function)
+        self.cur_environment = parent_env
+        self.evaluate_function(function)
+        self.emitter.emit_identifier_to_section(self.last_exp_res,self.cur_environment)
         self.match(TokenType.EXPR_END)
         
     # (and <expression>*)
@@ -759,37 +773,47 @@ class Parser:
         self.match(TokenType.EXPR_END)
         
     #<bound var list> ::= <variable> | (<variable>*) | (<variable>+ . <variable>)
-    def bound_var_list(self):
+    #has similarities to call pattern
+    def bound_var_list(self,function):
         print("BOUND-VAR-LIST")
+        #lambdas will be anonymous to the user, but internally they have a unique name
+        lambda_name = self.emitter.create_lambda_name()
+        function.set_name(lambda_name)
+        self.emitter.set_current_function(function.name)
+        self.emitter.emit_function_label(function.name)
+        self.emitter.emit_function_prolog()
         if self.check_token(TokenType.IDENTIFIER):
+            #lambda form that has a rest argument take care of this last
             print("VARIABLE")
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
-            #self.parens.append(self.cur_token.text)
-            token_count = 0
+            arg_count = 0
             self.next_token()
             while not self.check_token(TokenType.EXPR_END):
                 if self.check_token(TokenType.DOT):
+                    #varargs case
                     print("DOT")
-                    if token_count < 1:
-                        self.abort("Incorrect syntax in creating a pair of variables. Requires one or more variables before the " + self.cur_token.text + " token.")
+                    if arg_count < 1:
+                        self.abort(
+                        "in lambda. variadic lambda needs at least one required argument ")
                     self.next_token()
                     self.match(TokenType.IDENTIFIER)
                     print("VARIABLE")
-                    if not self.check_token(TokenType.EXPR_END):
-                        self.abort("Incorrect syntax after the" + self.cur_token.text + " token in bound var list.")
+                    self.match(TokenType.EXPR_END)
                     break
                 elif self.check_token(TokenType.IDENTIFIER):
+                    #normal case
                     print("VARIABLE")
+                    function.add_param(self.cur_token.text)
+                    arg_count += 1
+                    self.add_param_to_env(arg_count)
                     self.next_token()
-                    token_count += 1
                 else:
                     self.abort("Incorrect syntax in varlist of lambda expression.")
-            #no nesting in this grammar rule so no need to check stack 
-            #self.parens.pop()
-            self.next_token()       
+            self.next_token()
         else:
-            self.abort("Incorrect syntax in lambda expression, " + self.cur_token.text + " not a valid variable list.")
+            self.abort("Incorrect syntax in lambda expression, " 
+            + self.cur_token.text + " not an identifier.")
       
     # <definition> ::= (define <variable> <expression>) | (define <call pattern> <body>)
     # the define with the call pattern syntax essentially defines a function. The first arg in call pattern is function name and rest are the names of its args
@@ -797,7 +821,6 @@ class Parser:
     def definition_exp(self) -> str:
         print("EXPRESSION-DEFINE")
         ident_name = None
-        #num_parens = len(self.parens) - 1
         if self.check_token(TokenType.IDENTIFIER):
             print("VARIABLE")
             ident_name = self.cur_token.text
@@ -874,7 +897,7 @@ class Parser:
             ident = self.cur_token.text
             if is_parent_global and not self.cur_environment.parent.is_defined(ident):
                 self.emitter.emit_bss_section(f"\t{ident}: resq 1")
-            self.emitter.emit_function_label("..@" + function.name)
+            self.emitter.emit_function_label(function.name)
             self.emitter.emit_function_prolog()
             self.next_token()
             arg_count = 0
