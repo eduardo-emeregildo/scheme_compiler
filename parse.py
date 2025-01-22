@@ -6,8 +6,36 @@ from function import *
 from scheme_builtins import *
 
 
-#Todo0: implement and, or, not
-#Todo1: implement let statement
+#Todo1: implement lambda,let statement
+# using a lambda:
+# (lambda (x) (* x x))
+#invoking lambda, giving it the input of 5
+# ((lambda (x) (* x x)) 5)
+
+#the lambda expression # (lambda (x) (* x x))
+#returns a procedure, i.e. just return a function obj
+
+#the way scoping would work is that a local scope is created for the lambda exp,
+# and in the local env the value will be mapped there.
+#This shouldnt be a problem:
+# (define x 3)
+# ((lambda (x) (* x x)) 5)
+#because the lambda call will create a local env and searching there will find the
+#local x(i.e. x = 5) first.
+
+#My question is, lambdas are anonymous, so how am i going to store its assembly
+#code??
+
+#just create a random label name, and the function object  will just have a ptr to
+#that label
+
+#I would have to either restrict user from 
+# certain label names(i.e. lambdai, where i is any number)
+#or ensure that the labels will always be unique if this is somehow possible
+
+#keep in mind the approaches i took when making functions(i.e. first class, params
+# could be used as functions,lambda could be vararg etc.)
+
 #Todo2: have display print out special characters, i.e. \n,\t etc
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
@@ -480,7 +508,7 @@ class Parser:
             self.emitter.emit_jump(is_global,rest_of_exp_label)
             is_alternate = True
             self.emitter.emit_ctrl_label(is_global,branch1_label)
-            self.expression()        
+            self.expression()
         self.emitter.emit_ctrl_label(
         is_global,rest_of_exp_label if is_alternate else branch1_label)
         self.match(TokenType.EXPR_END)
@@ -759,8 +787,7 @@ class Parser:
                     self.abort("Incorrect syntax in varlist of lambda expression.")
             #no nesting in this grammar rule so no need to check stack 
             #self.parens.pop()
-            self.next_token()
-            
+            self.next_token()       
         else:
             self.abort("Incorrect syntax in lambda expression, " + self.cur_token.text + " not a valid variable list.")
       
