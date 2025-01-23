@@ -62,7 +62,8 @@ class Environment:
     
     def is_defined(self,ident_name):
         return ident_name in self.symbol_table
-        
+    
+    #useful for removing the item thats on top of the stack
     def remove_definition(self,ident_name):
         del self.symbol_table[ident_name]
         if self.parent is not None:

@@ -5,10 +5,12 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#currently, ((lambda (x) (display x)) 21) fails.
+#change variadic_function_call so it can take lambdas.
 
-#what i have to do is treat anonymous functions differently, i.e. use the result in rax,
-#and dont go looking for the definition because it isnt there
+# see if emit_global_function_call and emit_local_function_call are not needed anymore.
+#if so delete
+#then test variadic lambdas.
+#lastly, work on lambdas with rest argument
 
 #Todo1: implement lambda,let statement
 # using a lambda:
@@ -305,6 +307,7 @@ class Parser:
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
                 self.expression()
+                self.emitter.emit_to_section(";aaaaaa",self.cur_environment.is_global())
                 operator_name = self.last_exp_res.value
                 print("OPERATOR NAME: ",operator_name)
                 #for issuing a function call with a function param.
@@ -314,6 +317,7 @@ class Parser:
                 elif self.get_last_exp_type() != IdentifierType.FUNCTION:
                     self.abort(f"Application not a procedure.")
                 func_obj = self.last_exp_res.value
+                self.emitter.save_rax(self.cur_environment)
                 if func_obj.is_variadic:
                     self.variadic_function_call(func_obj)
                 else:
@@ -399,18 +403,20 @@ class Parser:
         if func_obj.name in BUILTINS:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
         else:
-            function_obj = self.cur_environment.find_definition(func_obj.name)
-            function_offset = Environment.get_offset(function_obj)
-            if function_offset is None:
-                #calling a global function from within a function
-                self.emitter.emit_global_function_call(func_obj.name,is_global)
-            else:
-                self.emitter.emit_local_function_call(function_offset)
+            # function_obj = self.cur_environment.find_definition(func_obj.name)
+            # function_offset = Environment.get_offset(function_obj)
+            # if function_offset is None:
+            #     #calling a global function from within a function
+            #     self.emitter.emit_global_function_call(func_obj.name,is_global)
+            # else:
+            #     self.emitter.emit_local_function_call(function_offset)
+            self.emitter.emit_function_call(env_depth,is_global)
         #add back the rsp
         if arg_count > 6:
             self.emitter.add_rsp(seventh_arg_offset,is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
+        self.emitter.undo_save_rax(self.cur_environment)
         #self.evaluate_function(func_obj) 
         # not sure if i need a function call to set last_exp_res ill keep this
         #commented out for now

@@ -58,7 +58,7 @@ class Emitter:
     
     def create_lambda_name(self):
         self.lambda_label_count += 1
-        return f"LA{self.ctrl_flow_label_count}"
+        return f"LA{self.lambda_label_count}"
     
     #emits a jump instruction depending on the condition
     def emit_conditional_jump(self,condition,is_global,label = None):
@@ -211,7 +211,7 @@ class Emitter:
             #first make the vector object using the output of compile_vector,
             #then call set_ith_value_vector
             asm_code.append("\tpush rdi")
-            asm_code.append(self.compile_vector(ident_obj))
+            asm_code.append(self.compile_vector(ident_obj,cur_environment))
             asm_code.append(f"\tmov rdi, rsi\n\tmov rsi, {len(ident_obj.value)}")
             asm_code.append("\tcall allocate_vector\n\tpop rdi\n\tmov rsi, rax")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_vector")
@@ -350,8 +350,28 @@ class Emitter:
     #checks if rax is false the false object (i.e. the value 2)
     def emit_false_check(self, is_global):
         self.emit_to_section("\tcmp rax, FALSE",is_global)
-        
+    
+    #be careful with this function
+    #saves rax to stack,not tracked by Environment's symbol table but the 
+    # environment depth accounts for this value on the stack
+    #its purpose is to temporarily store rax for function calling
+    #it changes the depth of the environment which has to be manually undone
+    #by calling undo_save_rax
+    def save_rax(self,cur_environment):
+        cur_environment.depth -= 8
+        env_depth = cur_environment.depth
+        is_global = cur_environment.is_global()
+        self.emit_to_section(
+        f"\tmov QWORD [rbp{env_depth:+}], rax ;save function object to stack",is_global)
 
+    # with the depth increased, in the environment's eyes, the last
+    #8 bytes of the stack dont belong to it anymore. 
+    def undo_save_rax(self,cur_environment):
+        cur_environment.depth += 8
+        # env_depth = cur_environment.depth
+        # is_global = cur_environment.is_global()
+        # self.emit_to_section(f"\tmov rax, QWORD [rbp{env_depth:+}]",is_global)
+        
     #used to satisfy criteria of macro in place_args. rbx holds arity and 
     # r10 holds min_args
     def get_arity_in_runtime(self,param_offset):
@@ -512,6 +532,10 @@ class Emitter:
     def emit_local_function_call(self,func_offset):
         self.emit_function(f"\tmov rax,QWORD[rbp{func_offset:+}]\n\t" + 
         f"add rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]")
+        
+    def emit_function_call(self,func_offset,is_global):
+        self.emit_to_section(f"\tmov rax,QWORD[rbp{func_offset:+}]\n\t" + 
+        f"add rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 

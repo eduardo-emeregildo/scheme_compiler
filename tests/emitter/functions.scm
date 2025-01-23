@@ -22,10 +22,10 @@
 ;(func 1 2 3 4 5 6 7 8)
 
 
-;(define (yeo x) (display x))
-;(yeo 21)
-;(yeo '(1 2 3 4 5))
-;(yeo '(1 2 #(3 4)))
+(define (yeo x) (display x))
+(yeo 21)
+(yeo '(1 2 3 4 5))
+(yeo '(1 2 #(3 4)))
 ;(display '(1 2 3))
 ;(display '#())
 ;(display '())
