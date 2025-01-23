@@ -5,8 +5,8 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#change variadic_function_call so it can take lambdas.
 
+#work on variadic case of lambdas
 # see if emit_global_function_call and emit_local_function_call are not needed anymore.
 #if so delete
 #then test variadic lambdas.
@@ -317,7 +317,7 @@ class Parser:
                 elif self.get_last_exp_type() != IdentifierType.FUNCTION:
                     self.abort(f"Application not a procedure.")
                 func_obj = self.last_exp_res.value
-                self.emitter.save_rax(self.cur_environment)
+                #self.emitter.save_rax(self.cur_environment)
                 if func_obj.is_variadic:
                     self.variadic_function_call(func_obj)
                 else:
@@ -387,7 +387,7 @@ class Parser:
     #places args in correct registers for function call and emits a function call
     #This is a helper for function_call and variadic_function_call.
     def place_args_and_call_function(
-        self,env_depth,is_global,arg_count,func_obj):
+        self,env_depth,is_global,arg_count,func_obj,is_builtin):
         for cur_arg in range(arg_count):
             if cur_arg < 6:
                 self.emitter.emit_register_arg(
@@ -400,7 +400,7 @@ class Parser:
         # there is stuff to preserve on the stack(AKA if depth != 0)
         if arg_count < 6:
             self.emitter.subtract_rsp(abs(env_depth),is_global)
-        if func_obj.name in BUILTINS:
+        if is_builtin:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
         else:
             # function_obj = self.cur_environment.find_definition(func_obj.name)
@@ -416,7 +416,7 @@ class Parser:
             self.emitter.add_rsp(seventh_arg_offset,is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
-        self.emitter.undo_save_rax(self.cur_environment)
+        #self.emitter.undo_save_rax(self.cur_environment)
         #self.evaluate_function(func_obj) 
         # not sure if i need a function call to set last_exp_res ill keep this
         #commented out for now
@@ -425,6 +425,11 @@ class Parser:
     #the function that was called
     def function_call(self,func_obj):
         print("FUNCTION CALL")
+        is_builtin = False
+        if func_obj.name in BUILTINS:
+            is_builtin = True
+        if not is_builtin:
+            self.emitter.save_rax(self.cur_environment)
         arg_count = 0
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
@@ -443,11 +448,19 @@ class Parser:
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
                 f"{func_obj.name} requires {str(func_obj.arity)} arguments.")
-        self.place_args_and_call_function(env_depth,is_global,arg_count,func_obj)
+        self.place_args_and_call_function(
+        env_depth,is_global,arg_count,func_obj,is_builtin)
+        if not is_builtin:
+            self.emitter.undo_save_rax(self.cur_environment)
         self.next_token()
     
     def variadic_function_call(self,func_obj):
         print("VARIADIC FUNCTION CALL")
+        is_builtin = False
+        if func_obj.name in BUILTINS:
+            is_builtin = True
+        if not is_builtin:
+            self.emitter.save_rax(self.cur_environment)
         arg_count = 0
         is_global = self.cur_environment.is_global()
         old_env_depth = self.cur_environment.depth
@@ -482,22 +495,25 @@ class Parser:
             self.emitter.subtract_rsp(abs(old_env_depth),is_global)
             
         #now call function
-        if func_obj.name in BUILTINS:
+        if is_builtin:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
         else:
-            function_obj = self.cur_environment.find_definition(func_obj.name)
-            function_offset = Environment.get_offset(function_obj)
-            if function_offset is None:
-                #calling a global function from within a function
-                self.emitter.emit_global_function_call(func_obj.name,is_global)
-            else:
-                self.emitter.emit_local_function_call(function_offset)
+            # function_obj = self.cur_environment.find_definition(func_obj.name)
+            # function_offset = Environment.get_offset(function_obj)
+            # if function_offset is None:
+            #     #calling a global function from within a function
+            #     self.emitter.emit_global_function_call(func_obj.name,is_global)
+            # else:
+            #     self.emitter.emit_local_function_call(function_offset)
+            self.emitter.emit_function_call(old_env_depth,is_global)
         #now add back rsp
         if func_obj.arity > 6:
             self.emitter.add_rsp(
             abs(old_env_depth - (func_obj.arity - 6)*8),is_global)
         else:
             self.emitter.add_rsp(abs(old_env_depth),is_global)
+        if not is_builtin:
+            self.emitter.undo_save_rax(self.cur_environment)
         self.next_token()
         
         

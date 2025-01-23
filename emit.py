@@ -536,6 +536,7 @@ class Emitter:
     def emit_function_call(self,func_offset,is_global):
         self.emit_to_section(f"\tmov rax,QWORD[rbp{func_offset:+}]\n\t" + 
         f"add rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
+        
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 
