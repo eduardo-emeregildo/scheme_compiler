@@ -6,7 +6,8 @@ from function import *
 from scheme_builtins import *
 
 
-#work on variadic case of lambdas
+#work on lambda rest arg
+
 # see if emit_global_function_call and emit_local_function_call are not needed anymore.
 #if so delete
 #then test variadic lambdas.
@@ -42,6 +43,7 @@ from scheme_builtins import *
 #keep in mind the approaches i took when making functions(i.e. first class, params
 # could be used as functions,lambda could be vararg etc.)
 
+#Todo 1.5: fix the problem defined in lambda.scm
 #Todo2: have display print out special characters, i.e. \n,\t etc
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
@@ -220,15 +222,17 @@ class Parser:
                 self.next_token()
                 self.if_exp()
             
+            #this block of code doesnt really do anything, it can just go straight
+            #to procedure call instead of coming here.
             #calling a builtin function
-            elif self.check_token(TokenType.BUILTIN):
-                print("BUILTIN FUNCTION CALL")
-                func_obj = BUILTINS[self.cur_token.text]
-                self.next_token()
-                if func_obj.is_variadic:
-                    self.variadic_function_call(func_obj)
-                else:
-                    self.function_call(func_obj)
+            # elif self.check_token(TokenType.BUILTIN):
+            #     print("BUILTIN FUNCTION CALL")
+            #     func_obj = BUILTINS[self.cur_token.text]
+            #     self.next_token()
+            #     if func_obj.is_variadic:
+            #         self.variadic_function_call(func_obj)
+            #     else:
+            #         self.function_call(func_obj)
             
             elif self.check_token(TokenType.QUOTE):
                 self.next_token()
@@ -307,9 +311,7 @@ class Parser:
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
                 self.expression()
-                self.emitter.emit_to_section(";aaaaaa",self.cur_environment.is_global())
                 operator_name = self.last_exp_res.value
-                print("OPERATOR NAME: ",operator_name)
                 #for issuing a function call with a function param.
                 if self.last_exp_res.typeof == IdentifierType.PARAM:
                     self.param_function_call(operator_name)
@@ -317,7 +319,6 @@ class Parser:
                 elif self.get_last_exp_type() != IdentifierType.FUNCTION:
                     self.abort(f"Application not a procedure.")
                 func_obj = self.last_exp_res.value
-                #self.emitter.save_rax(self.cur_environment)
                 if func_obj.is_variadic:
                     self.variadic_function_call(func_obj)
                 else:
@@ -818,10 +819,17 @@ class Parser:
                     if arg_count < 1:
                         self.abort(
                         "in lambda. variadic lambda needs at least one required argument ")
+                    function.set_variadic()
                     self.next_token()
-                    self.match(TokenType.IDENTIFIER)
-                    print("VARIABLE")
-                    self.match(TokenType.EXPR_END)
+                    if not self.check_token(TokenType.IDENTIFIER):
+                        self.abort(
+                        "Incorrect syntax for bound var list. Illegal use of .")
+                    function.add_param(self.cur_token.text)
+                    arg_count += 1
+                    self.add_param_to_env(arg_count)
+                    self.next_token()
+                    if not self.check_token(TokenType.EXPR_END):
+                        self.abort("Parentheses in bound var list not well formed")
                     break
                 elif self.check_token(TokenType.IDENTIFIER):
                     #normal case
