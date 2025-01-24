@@ -6,44 +6,12 @@ from function import *
 from scheme_builtins import *
 
 
-#work on lambda rest arg
-
+#Todo 1: fix the problem defined in lambda.scm
 # see if emit_global_function_call and emit_local_function_call are not needed anymore.
 #if so delete
-#then test variadic lambdas.
-#lastly, work on lambdas with rest argument
 
-#Todo1: implement lambda,let statement
-# using a lambda:
-# (lambda (x) (* x x))
-#invoking lambda, giving it the input of 5
-# ((lambda (x) (* x x)) 5)
+# restrict user from making definitions with the same name lambdas use internally
 
-#the lambda expression # (lambda (x) (* x x))
-#returns a procedure, i.e. just return a function obj
-
-#the way scoping would work is that a local scope is created for the lambda exp,
-# and in the local env the value will be mapped there.
-#This shouldnt be a problem:
-# (define x 3)
-# ((lambda (x) (* x x)) 5)
-#because the lambda call will create a local env and searching there will find the
-#local x(i.e. x = 5) first.
-
-#My question is, lambdas are anonymous, so how am i going to store its assembly
-#code??
-
-#just create a random label name, and the function object  will just have a ptr to
-#that label
-
-#I would have to either restrict user from 
-# certain label names(i.e. lambdai, where i is any number)
-#or ensure that the labels will always be unique if this is somehow possible
-
-#keep in mind the approaches i took when making functions(i.e. first class, params
-# could be used as functions,lambda could be vararg etc.)
-
-#Todo 1.5: fix the problem defined in lambda.scm
 #Todo2: have display print out special characters, i.e. \n,\t etc
 #Todo4: Rn, when you redefine a function, the assembly of the function gets
 #overwritten. 
@@ -806,8 +774,11 @@ class Parser:
         self.emitter.emit_function_label(function.name)
         self.emitter.emit_function_prolog()
         if self.check_token(TokenType.IDENTIFIER):
-            #lambda form that has a rest argument take care of this last
+            #lambda form that has a rest argument
             print("VARIABLE")
+            function.set_variadic()
+            function.add_param(self.cur_token.text)
+            self.add_param_to_env(1)
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
             arg_count = 0
@@ -832,7 +803,7 @@ class Parser:
                         self.abort("Parentheses in bound var list not well formed")
                     break
                 elif self.check_token(TokenType.IDENTIFIER):
-                    #normal case
+                    #normal case (plain lambda)
                     print("VARIABLE")
                     function.add_param(self.cur_token.text)
                     arg_count += 1

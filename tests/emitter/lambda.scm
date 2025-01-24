@@ -15,6 +15,11 @@
 ((lambda (x . args) (define tmp 45)(display args)) 71 72 73)
 ((lambda (x . args) (define tmp 45)(display args)) 71)
 
+;rest arg lambda
+((lambda x (display x)) 1 2 3 4 5)
+((lambda x (display x)))
+(display ((lambda x (cdr x)) 45 46 47))
+
 ;fix this, its failing
 ;(define (func) +)
 ;((func) 1 2)
