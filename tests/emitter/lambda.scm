@@ -22,7 +22,9 @@
 
 ;fix this, its failing
 (define (func) +)
-((func) 1 2)
+(define (func2 . args) -)
+(display ((func)))
+(display ((func2 1 2 3 4) 4 1))
 
 
 ;(define (func op) (op 1 3 2))

@@ -368,9 +368,6 @@ class Emitter:
     #8 bytes of the stack dont belong to it anymore. 
     def undo_save_rax(self,cur_environment):
         cur_environment.depth += 8
-        # env_depth = cur_environment.depth
-        # is_global = cur_environment.is_global()
-        # self.emit_to_section(f"\tmov rax, QWORD [rbp{env_depth:+}]",is_global)
         
     #used to satisfy criteria of macro in place_args. rbx holds arity and 
     # r10 holds min_args

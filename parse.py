@@ -5,6 +5,8 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
+#test general_function_call extensively. try to replace param_function_call with general_function_call
+
 #Todo 1: fix the problem defined in lambda.scm
 
 #what i have to do is to create a function for "general" function calls. This 
@@ -307,23 +309,87 @@ class Parser:
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
                 self.expression()
-                operator_name = self.last_exp_res.value
+                exp_value = self.last_exp_res.value
                 print("sadjfhlkjhb", self.last_exp_res.typeof)
-                print("operator name is: ", operator_name)
+                print("last exp_value is: ", exp_value)
                 #for issuing a function call with a function param.
                 if self.last_exp_res.typeof == IdentifierType.PARAM:
-                    self.param_function_call(operator_name)
+                    self.param_function_call(exp_value)
+                    return
+                elif self.last_exp_res.typeof == IdentifierType.FUNCTION_CALL:
+                    self.general_function_call()
                     return
                 elif self.get_last_exp_type() != IdentifierType.FUNCTION:
                     self.abort(f"Application not a procedure.")
-                func_obj = self.last_exp_res.value
+                func_obj = exp_value
                 if func_obj.is_variadic:
                     self.variadic_function_call(func_obj)
                 else:
                     self.function_call(func_obj)
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
-                    
+    
+    #for general function calling when the compiler cant tell what function 
+    # is being used. The function object is in rax.
+    def general_function_call(self):
+        print("GENERAL FUNCTION CALL")
+        is_global = self.cur_environment.is_global()
+        arg_count = 0
+        self.emitter.emit_to_section(
+        ";general function call start",self.cur_environment.is_global())
+        #save rax temporarily to perform checks on it later
+        self.emitter.save_rax(self.cur_environment)
+        env_depth = self.cur_environment.depth
+        #evaluates the args
+        while not self.check_token(TokenType.EXPR_END):
+            print("OPERAND")
+            arg_count += 1
+            self.expression()
+            self.emitter.push_arg(arg_count,env_depth,is_global)
+            self.cur_environment.depth -= 8
+        self.cur_environment.depth += 8*arg_count
+        
+        # now perform runtime checks to see if  operator is a function/ 
+        # what kind of function
+        self.emitter.emit_function_check(self.cur_environment,env_depth,arg_count)
+        self.emitter.emit_variadic_check(is_global)
+        variadic_label = self.emitter.emit_conditional_jump("!=",is_global)
+        #now put args in the right place for non variadic case
+        #-8 is offset of last arg (assuming env depth is 0)
+        for cur_arg in range(arg_count):
+            if cur_arg < 6:                
+                self.emitter.emit_register_arg(cur_arg,env_depth,is_global)
+            else:
+                self.emitter.emit_arg_to_stack(
+                cur_arg,env_depth,is_global,arg_count)
+        self.emitter.emit_to_section("\t;finished putting args non variadic",is_global)
+        #advance rsp to point to 7th arg, if less than 7 args, 
+        # advance rsp so local defs arent overwritten
+        if arg_count > 6:
+            self.emitter.subtract_rsp(
+            abs(env_depth - (arg_count - 6)*8),is_global)
+        else:
+            self.emitter.subtract_rsp(abs(env_depth),is_global)
+        #now call the function
+        self.emitter.emit_function_call(env_depth,is_global)
+        #now add back the rsp
+        if arg_count > 6:
+            self.emitter.add_rsp(
+            abs(env_depth - (arg_count - 6)*8),is_global)
+        else:
+            self.emitter.add_rsp(abs(env_depth),is_global)
+    
+        #this jmp goes to rest of function
+        rest_of_function_label = self.emitter.emit_jump(is_global)
+        #variadic branch:
+        self.emitter.emit_param_variadic_call(
+        variadic_label,env_depth,env_depth,is_global)
+        self.emitter.emit_ctrl_label(is_global,rest_of_function_label)
+        #the end. (what should general_function_call set last_exp to?? 
+        # Prob Function_Call identifier)
+        self.emitter.undo_save_rax(self.cur_environment)
+        self.next_token()
+        
     # when a param is used as a function. Arity not being checked since it is
     #not known which function the user will pass in.
     def param_function_call(self,operator_name):
