@@ -5,8 +5,6 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#test general_function_call extensively. try to replace param_function_call with general_function_call
-
 #Todo 1: fix the problem defined in lambda.scm
 
 #what i have to do is to create a function for "general" function calls. This 
@@ -309,23 +307,14 @@ class Parser:
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
                 self.expression()
-                exp_value = self.last_exp_res.value
-                print("sadjfhlkjhb", self.last_exp_res.typeof)
-                print("last exp_value is: ", exp_value)
-                #for issuing a function call with a function param.
-                if self.last_exp_res.typeof == IdentifierType.PARAM:
-                    self.param_function_call(exp_value)
-                    return
-                elif self.last_exp_res.typeof == IdentifierType.FUNCTION_CALL:
-                    self.general_function_call()
-                    return
-                elif self.get_last_exp_type() != IdentifierType.FUNCTION:
-                    self.abort(f"Application not a procedure.")
-                func_obj = exp_value
-                if func_obj.is_variadic:
-                    self.variadic_function_call(func_obj)
+                if self.last_exp_res.typeof == IdentifierType.FUNCTION:
+                    func_obj = self.last_exp_res.value
+                    if func_obj.is_variadic:
+                        self.variadic_function_call(func_obj)
+                    else:
+                        self.function_call(func_obj)
                 else:
-                    self.function_call(func_obj)
+                    self.general_function_call()
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
     
@@ -388,67 +377,9 @@ class Parser:
         #the end. (what should general_function_call set last_exp to?? 
         # Prob Function_Call identifier)
         self.emitter.undo_save_rax(self.cur_environment)
+        self.evaluate_function_call("")
         self.next_token()
         
-    # when a param is used as a function. Arity not being checked since it is
-    #not known which function the user will pass in.
-    def param_function_call(self,operator_name):
-        print("PARAM FUNCTION CALL")
-        arg_count = 0
-        is_global = self.cur_environment.is_global()
-        env_depth = self.cur_environment.depth
-        param_definition = self.cur_environment.find_definition(operator_name)
-        param_offset = Environment.get_offset(param_definition)
-        self.emitter.emit_to_section("\t;param function call",is_global)
-        while not self.check_token(TokenType.EXPR_END):
-            print("OPERAND")
-            arg_count += 1
-            self.expression()
-            self.emitter.push_arg(arg_count,env_depth,is_global)
-            self.cur_environment.depth -= 8
-        self.cur_environment.depth += arg_count*8
-        self.emitter.emit_to_section("\t;finished pushing args",is_global)
-        
-        # now call runtime to check what kinda function it is:
-        self.emitter.emit_function_check(self.cur_environment,param_offset,arg_count)
-        self.emitter.emit_to_section("\t;done doing runtime checks", is_global)
-        
-        self.emitter.emit_variadic_check(is_global)
-        variadic_label = self.emitter.emit_conditional_jump("!=",is_global)
-        #now put args in the right place for non variadic case
-        #-8 is offset of last arg (assuming env depth is 0)
-        for cur_arg in range(arg_count):
-            if cur_arg < 6:                
-                self.emitter.emit_register_arg(cur_arg,env_depth,is_global)
-            else:
-                self.emitter.emit_arg_to_stack(
-                cur_arg,env_depth,is_global,arg_count)
-        self.emitter.emit_to_section("\t;finished putting args non variadic",is_global)
-        #advance rsp to point to 7th arg, if less than 7 args, 
-        # advance rsp so local defs arent overwritten
-        if arg_count > 6:
-            self.emitter.subtract_rsp(
-            abs(env_depth - (arg_count - 6)*8),is_global)
-        else:
-            self.emitter.subtract_rsp(abs(env_depth),is_global)
-        #now call the function
-        #must be local. If this causes issues, visit this again
-        self.emitter.emit_local_function_call(param_offset)
-        #now add back the rsp
-        if arg_count > 6:
-            self.emitter.add_rsp(
-            abs(env_depth - (arg_count - 6)*8),is_global)
-        else:
-            self.emitter.add_rsp(abs(env_depth),is_global)
-    
-        #this jmp goes to rest of function
-        rest_of_function_label = self.emitter.emit_jump(is_global)
-        #variadic branch:
-        self.emitter.emit_param_variadic_call(
-        variadic_label,param_offset,env_depth,is_global)
-        self.emitter.emit_ctrl_label(is_global,rest_of_function_label)
-        self.next_token()
-    
     #places args in correct registers for function call and emits a function call
     #This is a helper for function_call and variadic_function_call.
     def place_args_and_call_function(

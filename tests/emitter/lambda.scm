@@ -19,33 +19,3 @@
 ;((lambda x (display x)) 1 2 3 4 5)
 ;((lambda x (display x)))
 ;(display ((lambda x (cdr x)) 45 46 47))
-
-;fix this, its failing
-(define (func) +)
-(define (func2 . args) -)
-(display ((func)))
-(display ((func2 1 2 3 4) 4 1))
-
-
-;(define (func op) (op 1 3 2))
-;(func +)
-
-
-; the problem is in the procedure call rule. After self.expression, you have to
-; check at runtime what the value of the expression was, since operator can be any valid
-; expression.
-;Looks like the approach i took in param_function_call is the approach that should
-;have been taken for all function calling since there's no way to know at compile
-;time what the value of an expression.
-
-; see if theres a way where i dont have to do things in the runtime, since that would
-;be slower
-;work on this after finishing up lambda
-
-;but this works:
-;(define func +)
-;(func 1 2)
-
-
-;(display ((func) 1 2))
-;(define (func op) (+ 1 2))

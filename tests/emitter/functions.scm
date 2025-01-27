@@ -57,6 +57,12 @@
 ;(define (func op) (op 1 2))
 ;(func display) ; should give error, works!
 
+;testing general_function_call
+;(define (func) +)
+;(define (func2 one . args) -)
+;(display ((func) 1 2))
+;(display ((func2 1) 4 1))
+
 ;example of a definition using more than one arg as a function: works!
 ;(define (func op1 op2) (op1 (op2 3)))
 ;(define (arg2 val) 4)
