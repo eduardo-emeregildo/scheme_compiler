@@ -5,11 +5,36 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-
 #Todo 1: fix the problem defined in lambda.scm
+
+#what i have to do is to create a function for "general" function calls. This 
+#is going to deal with nesting.
+
+#Ex: say i do (define (func) +)
+#((func) 1 2)
+#during compile time i have no idea what (func) evaluates to so i need a 
+# generalized function call to deal with these cases, which would
+#basically do all the checks(is it a function? arity, etc) on what the operator  
+# expression returns (which is in rax) at runtime. This is very similar to what
+#param_function_call is doing and param_function_call could maybe get replaced
+#by this new approach.
+
+#function_call and variadic_function_call will still remain. These will be the cases
+#where we can tell at compile time what operator is. For example:
+#(define (func arg1 arg2) (+ arg1 arg2))
+#(func 1 2)
+#will NOT use the generalized function call because the operator exp is just func
+#and the compiler knows that this is a function because it can look it up.
+#This also applies to lambdas, since they evaluate to function objects.
+
+
+#perhaps create a new identifierType called function_return, meaning that a function
+#call was previously returned, but we dont really know what it returned during compile time
+#so this identifier would be to represent this
+
+#Todo 1.5:
 # see if emit_global_function_call and emit_local_function_call are not needed anymore.
 #if so delete
-
 # restrict user from making definitions with the same name lambdas use internally
 
 #Todo2: have display print out special characters, i.e. \n,\t etc
@@ -102,6 +127,9 @@ class Parser:
     
     def evaluate_param(self,arg_name):
         self.set_last_exp_res(IdentifierType.PARAM,arg_name)
+        
+    def evaluate_function_call(self,func_name):
+        self.set_last_exp_res(IdentifierType.FUNCTION_CALL,func_name)
     
     #sets last_exp_res to a vector. Might need to rename other functions above
     #to have set in the name instead of evaluate
@@ -280,6 +308,8 @@ class Parser:
                 print("OPERATOR")
                 self.expression()
                 operator_name = self.last_exp_res.value
+                print("sadjfhlkjhb", self.last_exp_res.typeof)
+                print("operator name is: ", operator_name)
                 #for issuing a function call with a function param.
                 if self.last_exp_res.typeof == IdentifierType.PARAM:
                     self.param_function_call(operator_name)
@@ -421,6 +451,7 @@ class Parser:
         env_depth,is_global,arg_count,func_obj,is_builtin)
         if not is_builtin:
             self.emitter.undo_save_rax(self.cur_environment)
+        self.evaluate_function_call(func_obj.name)
         self.next_token()
     
     def variadic_function_call(self,func_obj):
@@ -483,6 +514,7 @@ class Parser:
             self.emitter.add_rsp(abs(old_env_depth),is_global)
         if not is_builtin:
             self.emitter.undo_save_rax(self.cur_environment)
+        self.evaluate_function_call(func_obj.name)
         self.next_token()
         
         
@@ -817,7 +849,8 @@ class Parser:
             + self.cur_token.text + " not an identifier.")
       
     # <definition> ::= (define <variable> <expression>) | (define <call pattern> <body>)
-    # the define with the call pattern syntax essentially defines a function. The first arg in call pattern is function name and rest are the names of its args
+    # the define with the call pattern syntax essentially defines a function. 
+    # The arg in call pattern is the function name
     #returns name of definition
     def definition_exp(self) -> str:
         print("EXPRESSION-DEFINE")
@@ -831,7 +864,6 @@ class Parser:
                 self.emitter.emit_bss_section(f"\t{ident_name}: resq 1")                    
             self.next_token()
             self.expression()
-            self.set_last_exp_res(self.last_exp_res.typeof,self.last_exp_res.value)
             self.cur_environment.add_definition(ident_name,
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
             offset = Environment.get_offset(

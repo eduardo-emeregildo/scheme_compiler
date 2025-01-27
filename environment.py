@@ -16,6 +16,9 @@ class IdentifierType(Enum):
     #signifies the evaluation of an arg. since type is not known the value
     #is just the name of the arg
     PARAM = 9
+    # if last exp was a function call, the value of identifier will be the name of function
+    #(Maybe add this)if function call was from a param, the value is ""
+    FUNCTION_CALL = 10 
 class Identifier:
     def __init__(self,typeof,value):
         self.typeof = typeof
