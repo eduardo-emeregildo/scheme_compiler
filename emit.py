@@ -469,10 +469,11 @@ class Emitter:
         f"QWORD [rbp{env_depth - ((arity - arg_num) * 8):+}]",is_global)
     
     #for putting args 7 and further to the stack
+    #rbx used for temporary storage
     def emit_arg_to_stack(self,arg_num,env_depth,is_global,arity):
         self.emit_to_section(
-        f"\tmov rax, QWORD [rbp{env_depth - (8*(arg_num + 1)):+}]\n\t" +
-        f"mov QWORD [rbp{env_depth - ((arity - arg_num)*8)}],rax",is_global)
+        f"\tmov rbx, QWORD [rbp{env_depth - (8*(arg_num + 1)):+}]\n\t" +
+        f"mov QWORD [rbp{env_depth - ((arity - arg_num)*8)}],rbx",is_global)
         
     
     #push the arg to the stack so that its stored while evaluating each arg
@@ -521,19 +522,21 @@ class Emitter:
         f"\tmov rax, {builtin_name}\n\t" + 
         f"add rax, 8\n\tmov rax, QWORD[rax]\n\tcall QWORD [rax]",is_global)
     
-    #calls a defined function which exists in global scope
-    def emit_global_function_call(self,func_name,is_global):
-        self.emit_to_section(f"\tmov rax,QWORD[{func_name}]\n\t" + 
-        f"add rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
-
-    def emit_local_function_call(self,func_offset):
-        self.emit_function(f"\tmov rax,QWORD[rbp{func_offset:+}]\n\t" + 
-        f"add rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]")
-        
+    #calls a defined function given the name of it
+    # def emit_global_function_call(self,func_name,is_global):
+    #     self.emit_to_section(f"\tmov rax,QWORD[{func_name}]\n\t" + 
+    #     f"add rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
+    
+    #calls function (function obj must be on the stack) given its offset on the 
+    #stack
     def emit_function_call(self,func_offset,is_global):
         self.emit_to_section(f"\tmov rax,QWORD[rbp{func_offset:+}]\n\t" + 
         f"add rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
-        
+    
+    #call function given the function object is already in rax.
+    def emit_function_call_in_rax(self,is_global):
+        self.emit_to_section( 
+        f"\tadd rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 

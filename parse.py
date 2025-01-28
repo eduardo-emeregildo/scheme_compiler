@@ -5,32 +5,23 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#Todo 1: fix the problem defined in lambda.scm
+#fix the flavor of let that names the function, ex:(display (let x ((y 10)) x))
 
-#what i have to do is to create a function for "general" function calls. This 
-#is going to deal with nesting.
+#also address the issue where a user can have a global function x, and if he
+#creates a named let called x, on the asm file, the function will be overwritten
 
-#Ex: say i do (define (func) +)
-#((func) 1 2)
-#during compile time i have no idea what (func) evaluates to so i need a 
-# generalized function call to deal with these cases, which would
-#basically do all the checks(is it a function? arity, etc) on what the operator  
-# expression returns (which is in rax) at runtime. This is very similar to what
-#param_function_call is doing and param_function_call could maybe get replaced
-#by this new approach.
+#Furthermore, address the issue with lambdas where if user defines a function
+#LA0 or LA1 for example, if he then uses a lambda function, it would override the
+#user created function
 
-#function_call and variadic_function_call will still remain. These will be the cases
-#where we can tell at compile time what operator is. For example:
-#(define (func arg1 arg2) (+ arg1 arg2))
-#(func 1 2)
-#will NOT use the generalized function call because the operator exp is just func
-#and the compiler knows that this is a function because it can look it up.
-#This also applies to lambdas, since they evaluate to function objects.
+#perhaps have a dictionary of reserved words to solve the lambda issue
 
-
-#perhaps create a new identifierType called function_return, meaning that a function
-#call was previously returned, but we dont really know what it returned during compile time
-#so this identifier would be to represent this
+#Todo1: implement let
+#Todo2: implement eq?,eqv?,equal?
+#Todo3: implement some more basic functions for dealing with lists/vectors
+# (i.e. append, joining two lists etc.)
+#Todo4: implement closures
+#Todo5: implement gc
 
 #Todo 1.5:
 # see if emit_global_function_call and emit_local_function_call are not needed anymore.
@@ -399,13 +390,6 @@ class Parser:
         if is_builtin:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
         else:
-            # function_obj = self.cur_environment.find_definition(func_obj.name)
-            # function_offset = Environment.get_offset(function_obj)
-            # if function_offset is None:
-            #     #calling a global function from within a function
-            #     self.emitter.emit_global_function_call(func_obj.name,is_global)
-            # else:
-            #     self.emitter.emit_local_function_call(function_offset)
             self.emitter.emit_function_call(env_depth,is_global)
         #add back the rsp
         if arg_count > 6:
@@ -495,13 +479,6 @@ class Parser:
         if is_builtin:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
         else:
-            # function_obj = self.cur_environment.find_definition(func_obj.name)
-            # function_offset = Environment.get_offset(function_obj)
-            # if function_offset is None:
-            #     #calling a global function from within a function
-            #     self.emitter.emit_global_function_call(func_obj.name,is_global)
-            # else:
-            #     self.emitter.emit_local_function_call(function_offset)
             self.emitter.emit_function_call(old_env_depth,is_global)
         #now add back rsp
         if func_obj.arity > 6:
@@ -651,16 +628,92 @@ class Parser:
     # (let (<binding spec>*) <body>) | (let <variable> (<binding spec>*) <body>) 
     def let_exp(self):
         print("EXPRESSION-LET")
+        function = Function()
+        #setting up new environment for let
+        parent_env = self.cur_environment
+        parent_env_depth = self.cur_environment.depth
+        previous_function = self.emitter.cur_function
+        self.cur_environment = parent_env.create_local_env()
+        let_name = None
         if self.check_token(TokenType.IDENTIFIER):
             print("VARIABLE")
+            let_name = self.cur_token.text
             self.next_token()
         self.match(TokenType.EXPR_START)
+        if let_name is None:
+            let_name = self.emitter.create_lambda_name()
+        #setting up block in asm where the function's code will live
+        function.set_name(let_name)
+        self.emitter.set_current_function(function.name)
+        self.emitter.emit_function_label(function.name)
+        self.emitter.emit_function_prolog()
+        arg_count = 0
         while not self.check_token(TokenType.EXPR_END):
-            self.binding_spec()
+            arg_count += 1
+            self.binding_spec(function,arg_count,parent_env_depth,parent_env,previous_function)
         self.next_token()
-        self.body()
+        self.body(function)
+        #now switch back to old environment
+        self.emitter.set_current_function(previous_function)
+        self.cur_environment = parent_env
+        is_global = self.cur_environment.is_global()
+        #compile function so function obj is in rax:
+        self.emitter.emit_to_section(";compiling let function:",is_global)
+        self.evaluate_function(function)
+        self.emitter.emit_identifier_to_section(self.last_exp_res,self.cur_environment)
+        
+        self.cur_environment.depth = parent_env_depth
+        self.emitter.emit_to_section(";starting function call of let",is_global)
+        #place args
+        for cur_arg in range(function.arity):
+            if cur_arg < 6:
+                self.emitter.emit_register_arg(cur_arg,parent_env_depth,is_global)
+            else:
+                self.emitter.emit_arg_to_stack(
+                cur_arg,parent_env_depth,is_global,function.arity)
+        #move rsp to correct spot depending on arity
+        if function.arity > 6:
+            self.emitter.subtract_rsp(
+            abs(parent_env_depth - (function.arity - 6)*8),is_global)
+        else:
+            self.emitter.subtract_rsp(abs(parent_env_depth),is_global)
+        #Now call function(the function obj is already in rax)
+        self.emitter.emit_function_call_in_rax(is_global)
+        #now add back rsp
+        if function.arity > 6:
+            self.emitter.add_rsp(
+            abs(parent_env_depth - (function.arity - 6)*8),is_global)
+        else:
+            self.emitter.add_rsp(abs(parent_env_depth),is_global)
         self.match(TokenType.EXPR_END)
-        #self.parens.pop()
+        self.evaluate_function_call("")
+        
+    #<binding spec> ::= (<variable> <expression>)  
+    def binding_spec(
+    self,function,arg_count,parent_env_depth,parent_env,previous_function):
+        print("BINDING-SPEC")
+        self.match(TokenType.EXPR_START)
+        if not self.check_token(TokenType.IDENTIFIER):
+            self.abort("Incorrect syntax for binding spec. Expected an identifier.")
+        print("VARIABLE")
+        function.add_param(self.cur_token.text)
+        self.add_param_to_env(arg_count)
+        self.next_token()
+        #now switch to parent env to process initial value of param, which
+        #is result of the expression
+        child_env = self.cur_environment
+        child_function = self.emitter.cur_function
+        self.emitter.set_current_function(previous_function)
+        self.cur_environment = parent_env
+        
+        self.expression()
+        is_global = self.cur_environment.is_global()
+        self.emitter.push_arg(arg_count,parent_env_depth,is_global)
+        self.cur_environment.depth -= 8
+        #switch back to child environment
+        self.emitter.set_current_function(child_function)
+        self.cur_environment = child_env
+        self.match(TokenType.EXPR_END)
     
     # (let* (<binding spec>*) <body>)
     def let_star_exp(self):
@@ -743,15 +796,6 @@ class Parser:
             self.expression()
         self.next_token()
         
-        
-    #<binding spec> ::= (<variable> <expression>)  
-    def binding_spec(self):
-        print("BINDING-SPEC")
-        self.match(TokenType.EXPR_START)
-        self.match(TokenType.IDENTIFIER)
-        print("VARIABLE")
-        self.expression()
-        self.match(TokenType.EXPR_END)
  
     # <cond clause> ::= (<test> <sequence>)
     def cond_clause(self,cur_label,next_label,end_label,condition_count):
