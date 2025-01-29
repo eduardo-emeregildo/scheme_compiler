@@ -5,9 +5,6 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#also address the issue where a user can have a global function x, and if he
-#creates a named let called x, on the asm file, the function will be overwritten
-
 #Furthermore, address the issue with lambdas where if user defines a function
 #LA0 or LA1 for example, if he then uses a lambda function, it would override the
 #user created function
@@ -605,6 +602,7 @@ class Parser:
         function = Function()
         does_let_have_name = False
         let_name = None
+        let_name_internal = self.emitter.create_lambda_name() 
         #setting up new environment for let
         parent_env = self.cur_environment
         parent_env_depth = self.cur_environment.depth
@@ -619,9 +617,9 @@ class Parser:
             self.next_token()
         self.match(TokenType.EXPR_START)
         if let_name is None:
-            let_name = self.emitter.create_lambda_name()
+            let_name = let_name_internal
         #setting up block in asm where the function's code will live
-        function.set_name(let_name)
+        function.set_name(let_name_internal)
         self.emitter.set_current_function(function.name)
         self.emitter.emit_function_label(function.name)
         self.emitter.emit_function_prolog()
@@ -635,9 +633,9 @@ class Parser:
         if does_let_have_name:
             #compile and add itself to its environment so it can reference itself
             self.emitter.emit_identifier_to_section(function_ident_obj,self.cur_environment)
-            #add definition
-            self.cur_environment.add_definition(function.name,function_ident_obj)
-            offset = Environment.get_offset(self.cur_environment.symbol_table[function.name])
+            #add definition (uses let_name because this is name we want to look up)
+            self.cur_environment.add_definition(let_name,function_ident_obj)
+            offset = Environment.get_offset(self.cur_environment.symbol_table[let_name])
             self.emitter.emit_definition(function.name,self.cur_environment.is_global(),offset)
         #compile body of function
         self.body(function)
@@ -645,7 +643,7 @@ class Parser:
         self.emitter.set_current_function(previous_function)
         self.cur_environment = parent_env
         is_global = self.cur_environment.is_global()
-        #compile function in parentso function obj is in rax:
+        #compile function in parent so function obj is in rax:
         self.emitter.emit_to_section(";compiling let function:",is_global)
         self.emitter.emit_identifier_to_section(function_ident_obj,self.cur_environment)
         

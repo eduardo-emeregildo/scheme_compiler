@@ -431,9 +431,15 @@ class Emitter:
     #offset used for local_definitions b/c they have to go on the stack
     def emit_definition(self,ident_name,is_global,offset = None):
         if is_global:
+            if offset is not None:
+                sys.exit(
+                f"Error emitting definition {ident_name}. emit_definition in " + 
+                "global scope doesn't use an offset.")
             self.emit_main_section(f"\tmov QWORD [{ident_name}],rax")
-        else:
+        elif offset is not None:
             self.emit_function(f"\tmov QWORD [rbp{offset:+}], rax")
+        else:
+            sys.exit("Error, must pass an offset when emitting local definition.")
         
     #emits identifier exp to main section. Assumes var is already in rax
     def emit_var_to_global(self,ident_name,symbol_table_arr):

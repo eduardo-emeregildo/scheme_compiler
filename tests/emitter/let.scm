@@ -10,9 +10,11 @@
 ;should print 5 forever
 ;(display (let infinite ((y 10))  (display y) (infinite 5)))
 
-;(define (func op) (define (ayo) ayo)ayo)
-;(display (func 1))
-
 ;check that default value 10 is overriden by 1
-;(define func (let x ((y 10)) (display y)x))
-;(func 1)
+(define func (let x ((y 10)) (display y)x))
+(func 1)
+
+;checking that let with name doesnt conflict with other definitions
+(define (hallo) (display "global hallo"))
+(hallo)
+(let hallo ((x 10)) (display x))
