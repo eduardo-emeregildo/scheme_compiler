@@ -5,8 +5,6 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#fix the flavor of let that names the function, ex:(display (let x ((y 10)) x))
-
 #also address the issue where a user can have a global function x, and if he
 #creates a named let called x, on the asm file, the function will be overwritten
 
@@ -343,36 +341,24 @@ class Parser:
                 self.emitter.emit_arg_to_stack(
                 cur_arg,env_depth,is_global,arg_count)
         self.emitter.emit_to_section("\t;finished putting args non variadic",is_global)
-        #advance rsp to point to 7th arg, if less than 7 args, 
-        # advance rsp so local defs arent overwritten
-        if arg_count > 6:
-            self.emitter.subtract_rsp(
-            abs(env_depth - (arg_count - 6)*8),is_global)
-        else:
-            self.emitter.subtract_rsp(abs(env_depth),is_global)
+        #advance rsp to point to 7th arg, if less than 7 args, advance rsp so 
+        # local defs arent overwritten
+        self.emitter.subtract_rsp_given_arity(arg_count,env_depth,is_global)
         #now call the function
         self.emitter.emit_function_call(env_depth,is_global)
-        #now add back the rsp
-        if arg_count > 6:
-            self.emitter.add_rsp(
-            abs(env_depth - (arg_count - 6)*8),is_global)
-        else:
-            self.emitter.add_rsp(abs(env_depth),is_global)
-    
+        self.emitter.add_rsp_given_arity(arg_count,env_depth,is_global)
         #this jmp goes to rest of function
         rest_of_function_label = self.emitter.emit_jump(is_global)
         #variadic branch:
         self.emitter.emit_param_variadic_call(
         variadic_label,env_depth,env_depth,is_global)
         self.emitter.emit_ctrl_label(is_global,rest_of_function_label)
-        #the end. (what should general_function_call set last_exp to?? 
-        # Prob Function_Call identifier)
         self.emitter.undo_save_rax(self.cur_environment)
         self.evaluate_function_call("")
         self.next_token()
         
     #places args in correct registers for function call and emits a function call
-    #This is a helper for function_call and variadic_function_call.
+    #This is a helper for function_call.
     def place_args_and_call_function(
         self,env_depth,is_global,arg_count,func_obj,is_builtin):
         for cur_arg in range(arg_count):
@@ -467,25 +453,13 @@ class Parser:
             else:
                 self.emitter.emit_arg_to_stack(
                 cur_arg,old_env_depth,is_global,func_obj.arity)
-        
-        #move rsp to correct spot depending on arity:
-        if func_obj.arity > 6:
-            self.emitter.subtract_rsp(
-            abs(old_env_depth - (func_obj.arity - 6)*8),is_global)
-        else:
-            self.emitter.subtract_rsp(abs(old_env_depth),is_global)
-            
+        self.emitter.subtract_rsp_given_arity(func_obj.arity,old_env_depth,is_global)
         #now call function
         if is_builtin:
             self.emitter.emit_builtin_call(func_obj.name,is_global)
         else:
             self.emitter.emit_function_call(old_env_depth,is_global)
-        #now add back rsp
-        if func_obj.arity > 6:
-            self.emitter.add_rsp(
-            abs(old_env_depth - (func_obj.arity - 6)*8),is_global)
-        else:
-            self.emitter.add_rsp(abs(old_env_depth),is_global)
+        self.emitter.add_rsp_given_arity(func_obj.arity,old_env_depth,is_global)
         if not is_builtin:
             self.emitter.undo_save_rax(self.cur_environment)
         self.evaluate_function_call(func_obj.name)
@@ -629,15 +603,19 @@ class Parser:
     def let_exp(self):
         print("EXPRESSION-LET")
         function = Function()
+        does_let_have_name = False
+        let_name = None
         #setting up new environment for let
         parent_env = self.cur_environment
         parent_env_depth = self.cur_environment.depth
         previous_function = self.emitter.cur_function
         self.cur_environment = parent_env.create_local_env()
-        let_name = None
+        #if user provided name to let function
         if self.check_token(TokenType.IDENTIFIER):
             print("VARIABLE")
+            does_let_have_name = True
             let_name = self.cur_token.text
+            # self.emitter.emit_definition(ident_name,is_global,offset)
             self.next_token()
         self.match(TokenType.EXPR_START)
         if let_name is None:
@@ -652,15 +630,24 @@ class Parser:
             arg_count += 1
             self.binding_spec(function,arg_count,parent_env_depth,parent_env,previous_function)
         self.next_token()
+        function_ident_obj = Identifier(IdentifierType.FUNCTION,function)
+        self.emitter.emit_to_section(";before body :D", self.cur_environment.is_global())
+        if does_let_have_name:
+            #compile and add itself to its environment so it can reference itself
+            self.emitter.emit_identifier_to_section(function_ident_obj,self.cur_environment)
+            #add definition
+            self.cur_environment.add_definition(function.name,function_ident_obj)
+            offset = Environment.get_offset(self.cur_environment.symbol_table[function.name])
+            self.emitter.emit_definition(function.name,self.cur_environment.is_global(),offset)
+        #compile body of function
         self.body(function)
         #now switch back to old environment
         self.emitter.set_current_function(previous_function)
         self.cur_environment = parent_env
         is_global = self.cur_environment.is_global()
-        #compile function so function obj is in rax:
+        #compile function in parentso function obj is in rax:
         self.emitter.emit_to_section(";compiling let function:",is_global)
-        self.evaluate_function(function)
-        self.emitter.emit_identifier_to_section(self.last_exp_res,self.cur_environment)
+        self.emitter.emit_identifier_to_section(function_ident_obj,self.cur_environment)
         
         self.cur_environment.depth = parent_env_depth
         self.emitter.emit_to_section(";starting function call of let",is_global)
@@ -671,23 +658,13 @@ class Parser:
             else:
                 self.emitter.emit_arg_to_stack(
                 cur_arg,parent_env_depth,is_global,function.arity)
-        #move rsp to correct spot depending on arity
-        if function.arity > 6:
-            self.emitter.subtract_rsp(
-            abs(parent_env_depth - (function.arity - 6)*8),is_global)
-        else:
-            self.emitter.subtract_rsp(abs(parent_env_depth),is_global)
+        self.emitter.subtract_rsp_given_arity(function.arity,parent_env_depth,is_global)
         #Now call function(the function obj is already in rax)
         self.emitter.emit_function_call_in_rax(is_global)
-        #now add back rsp
-        if function.arity > 6:
-            self.emitter.add_rsp(
-            abs(parent_env_depth - (function.arity - 6)*8),is_global)
-        else:
-            self.emitter.add_rsp(abs(parent_env_depth),is_global)
+        self.emitter.add_rsp_given_arity(function.arity,parent_env_depth,is_global)
         self.match(TokenType.EXPR_END)
         self.evaluate_function_call("")
-        
+    
     #<binding spec> ::= (<variable> <expression>)  
     def binding_spec(
     self,function,arg_count,parent_env_depth,parent_env,previous_function):

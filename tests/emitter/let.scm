@@ -5,8 +5,13 @@
 (display (let ((x 5) (y 7)) (+ x y glob)))
 
 ;with this syntax, basically giving the function a temporary name
-;fix this, currently not working
-;(display (let x ((y 10)) x))
+(display (let named_let ((y 10))  (define local 5) named_let))
+
+;should print 5 forever
+;(display (let infinite ((y 10))  (display y) (infinite 5)))
+
+;(define (func op) (define (ayo) ayo)ayo)
+;(display (func 1))
 
 ;check that default value 10 is overriden by 1
 ;(define func (let x ((y 10)) (display y)x))

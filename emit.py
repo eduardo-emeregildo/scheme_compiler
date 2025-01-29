@@ -501,6 +501,22 @@ class Emitter:
             return
         self.emit_to_section(f"\tadd rsp, {amount}",is_global)
     
+    #given arity, subtract rsp so it points to the correct spot:
+    def subtract_rsp_given_arity(self,function_arity,env_depth,is_global):
+        if function_arity > 6:
+            self.subtract_rsp(
+            abs(env_depth - (function_arity - 6)*8),is_global)
+        else:
+            self.subtract_rsp(abs(env_depth),is_global)
+            
+    #adds back to the rsp after a function call. undoes subtract_rsp_given_arity
+    def add_rsp_given_arity(self,function_arity,env_depth,is_global):
+        if function_arity > 6:
+            self.add_rsp(
+            abs(env_depth - (function_arity - 6)*8),is_global)
+        else:
+            self.add_rsp(abs(env_depth),is_global)
+    
     #emits asm for evaluating a builtin function(just the name as an exp)
     def emit_builtin_function(self,builtin_name,is_global):
         self.emit_to_section(f"\tmov rax, {builtin_name}",is_global)
