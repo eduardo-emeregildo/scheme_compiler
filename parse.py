@@ -4,7 +4,7 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-#Todo2: implement eqv?,equal?
+#Todo2: implement equal?
 #Todo3: implement some more basic functions for dealing with lists/vectors
 # (i.e. append, joining two lists,getting ith value of vector etc.)
 #Todo4: implement closures
@@ -981,6 +981,8 @@ class Parser:
     # <body> ::= <definition>* <sequence>
     def body(self,function):
         print("BODY")
+        if self.check_token(TokenType.EXPR_END):
+            self.abort("in function definition, empty body.")
         #Process all definitions, then call self.expression to create function
         #body
         while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):

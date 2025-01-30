@@ -24,5 +24,18 @@
 ;interning currently
 (display (eq? 2 2)) 
 (display (eq? "ab" "ab"))
-
 (display (eq? '\a '\a))
+(display (eq? #\a #\a))
+(display (eq? 2.5 2.5))
+(display (eq? #t #t))
+(display (eq? 3 3.0))
+;since eq? already works as intended for non ptr types, eqv? will basically
+;be a copy of eq?
+(display (eq? eq? eqv?))
+(display "eqv? tests:")
+(define (func1) (+ 1 2))
+(define (func2) (+ 3 4))
+(display (eqv? func1 func2))
+(define func1 func2)
+(display (eqv? func1 func1))
+(display (func1)); should be 7

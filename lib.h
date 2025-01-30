@@ -47,4 +47,5 @@ Value CAR = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_car,false,1}}};
 Value CDR = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_cdr,false,1}}};
 Value NULLQ = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_null,false,1}}};
 Value EQ = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_eq,false,2}}};
+Value EQV = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_eq,false,2}}};
 #endif
