@@ -18,3 +18,7 @@
 (define (hallo) (display "global hallo"))
 (hallo)
 (let hallo ((x 10)) (display x))
+
+;using let inside body of a define
+(define (ffgg) (let local_let((x 10) (y 20)) (+ x y)))
+(display (ffgg))

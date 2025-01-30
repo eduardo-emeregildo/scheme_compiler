@@ -4,14 +4,6 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-
-#Furthermore, address the issue with lambdas where if user defines a function
-#LA0 or LA1 for example, if he then uses a lambda function, it would override the
-#user created function
-
-#perhaps have a dictionary of reserved words to solve the lambda issue
-
-#Todo1: implement let
 #Todo2: implement eq?,eqv?,equal?
 #Todo3: implement some more basic functions for dealing with lists/vectors
 # (i.e. append, joining two lists etc.)
@@ -936,6 +928,8 @@ class Parser:
         self.match(TokenType.EXPR_START)
         if self.check_token(TokenType.IDENTIFIER):
             print("PATTERN")
+            if not self.emitter.is_definition_name_okay(self.cur_token.text):
+                self.abort("Reserved function name.")
             function.set_name(self.cur_token.text)
             self.emitter.set_current_function(function.name)
             if function.name in self.emitter.functions: #for redifining function

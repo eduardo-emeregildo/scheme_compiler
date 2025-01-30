@@ -60,6 +60,16 @@ class Emitter:
         self.lambda_label_count += 1
         return f"LA{self.lambda_label_count}"
     
+    #checks that definition name doesnt have a name that would conflict with
+    # lambdas and lets (i.e. LA1,LA2 etc.)
+    def is_definition_name_okay(self,name):
+        if len(name) < 3:
+            return True
+        elif name[0] == "L" and name[1] == "A":
+            return not name[2:].isnumeric()
+        else:
+            return True
+    
     #emits a jump instruction depending on the condition
     def emit_conditional_jump(self,condition,is_global,label = None):
         if label is None:
