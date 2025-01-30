@@ -4,11 +4,15 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-#Todo2: implement eq?,eqv?,equal?
+#Todo2: implement eqv?,equal?
 #Todo3: implement some more basic functions for dealing with lists/vectors
-# (i.e. append, joining two lists etc.)
+# (i.e. append, joining two lists,getting ith value of vector etc.)
 #Todo4: implement closures
 #Todo5: implement gc
+
+#Todo's in the future:
+# 1. implement string interning
+# 2. implement tail call optimization
 
 #Todo 1.5:
 # see if emit_global_function_call and emit_local_function_call are not needed anymore.

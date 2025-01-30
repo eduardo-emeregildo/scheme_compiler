@@ -149,7 +149,8 @@ struct Str *allocate_str(char *str)
 // allocates empty pair
 struct Pair *allocate_pair() 
 {
-        struct Pair *pair_obj = (struct Pair *)malloc(sizeof(struct Pair));
+        //struct Pair *pair_obj = (struct Pair *)malloc(sizeof(struct Pair));
+        struct Pair *pair_obj = (struct Pair *)calloc(1,sizeof(struct Pair));
         validate_ptr(pair_obj);
         pair_obj->car.type = VAL_EMPTY_LIST;
         pair_obj->cdr.type = VAL_EMPTY_LIST;

@@ -41,12 +41,8 @@ void print_value_type(Value *value_obj)
 void print_list(Value *value_obj)
 {
         struct Pair *lst_cur_pair = value_obj->as.pair;
-        if(lst_cur_pair->car.type == VAL_EMPTY_LIST) {
-                print_value_type(get_car_ptr(lst_cur_pair));
-                return;
-        }
         printf("(");
-        while(lst_cur_pair->car.type != VAL_EMPTY_LIST) {        
+        while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) { 
                 print_value_type(get_car_ptr(lst_cur_pair));
                 if(lst_cur_pair->cdr.type != VAL_PAIR) {
                         //dot notation case
@@ -346,6 +342,26 @@ long _null(long type)
                 return SCHEME_TRUE;
         }
         return SCHEME_FALSE;
+}
+
+long _eq(long value1,long value2)
+{
+        bool is_val1_ptr = is_ptr(value1);
+        bool is_val2_ptr = is_ptr(value2);
+        long res = SCHEME_FALSE;
+        if (is_val1_ptr != is_val2_ptr) {
+                return SCHEME_FALSE;
+        } else if (is_val1_ptr) {
+                //it doesnt really matter how i cast the union
+                long val1_ptr = ((Value *)value1)->as.tagged_type;
+                long val2_ptr = ((Value *)value2)->as.tagged_type;
+                if (val1_ptr == val2_ptr) {
+                        res = SCHEME_TRUE; 
+                }
+        } else if(value1 == value2) {
+                res = SCHEME_TRUE;
+        }
+        return res;
 }
 
 void is_function(long type)

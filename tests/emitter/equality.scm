@@ -1,0 +1,28 @@
+;testing eq? eqv? equal? and =
+(display "testing eq?")
+(display (eq? 1 2))
+(display (eq? #t #f))
+(display (eq? '(1 2 3) '(1 2 3)))
+(display (eq? 1 (cdr '(1 4 5 6))))
+(display (eq? #t #t))
+(display (eq? '() '()))
+(display (eq? 1 (car '(1 4 5 6))))
+(display "more complex eq? tests:")
+(define x '( 2 3))
+(define y '( 2 3))
+(display "should be false")
+(display (eq? x y))
+(define y x)
+(display "should be true")
+(display (eq? x y))
+(define a '())
+(define b '())
+(display "should be true")
+(display (eq? a b))
+(display "implementation specific tests:")
+;first should be true, the next two should be false since there is no string 
+;interning currently
+(display (eq? 2 2)) 
+(display (eq? "ab" "ab"))
+
+(display (eq? '\a '\a))
