@@ -13,21 +13,8 @@ from scheme_builtins import *
 #Todo's in the future:
 # 1. implement string interning
 # 2. implement tail call optimization
-
-#Todo 1.5:
-# see if emit_global_function_call and emit_local_function_call are not needed anymore.
-#if so delete
-# restrict user from making definitions with the same name lambdas use internally
-
-#Todo2: have display print out special characters, i.e. \n,\t etc
-#Todo4: Rn, when you redefine a function, the assembly of the function gets
-#overwritten. 
-# For ex:
-# (define (func op) (op (op 2)))
-# (func display)
-# (define (func op) (op 1 2 (op 3 4) (op 5 6)))
-# (display (func +))
-#gives an error because the old assembly is overwritten. Fix this.
+# 3. have display print out special characters, i.e. \n,\t etc
+# 4. imports
     
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:

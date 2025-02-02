@@ -350,7 +350,7 @@ long _eq(long value1,long value2)
         bool is_val2_ptr = is_ptr(value2);
         long res = SCHEME_FALSE;
         if (is_val1_ptr != is_val2_ptr) {
-                return SCHEME_FALSE;
+                return res;
         } else if (is_val1_ptr) {
                 //it doesnt really matter how i cast the union
                 long val1_ptr = ((Value *)value1)->as.tagged_type;
@@ -364,6 +364,55 @@ long _eq(long value1,long value2)
         return res;
 }
 
+/*
+for structural equality. when values are not string,list,vector symbol, 
+does the same thing as eqv?. otherwise check elt by elt the values
+*/
+long _equal(long value1,long value2)
+{
+        bool is_val1_ptr = is_ptr(value1);
+        bool is_val2_ptr = is_ptr(value2);
+        long res = SCHEME_FALSE;
+        if (is_val1_ptr != is_val2_ptr) {
+                return SCHEME_FALSE;
+        } else if (!is_val1_ptr) {
+                res = _eq(value1, value2);
+        } else {
+                Value *val1_ptr = ((Value *)value1);
+                Value *val2_ptr = ((Value *)value2);
+                if (val1_ptr->type != val2_ptr->type) {
+                        return SCHEME_FALSE;
+                }
+                if (val1_ptr->type == VAL_EMPTY_LIST) {
+                        return SCHEME_TRUE;
+                }
+                if (val1_ptr->type == VAL_PAIR) {
+                        // compare pairs
+                } else if (val1_ptr->type == VAL_VECTOR) {
+                        //compare vectors
+                } else if (val1_ptr->type == VAL_STR) {
+                        res = are_str_types_equal(val1_ptr,val2_ptr);
+                } else if (val1_ptr->type == VAL_SYMBOL) {
+                        res = are_str_types_equal(val1_ptr,val2_ptr);
+                } else {
+                        res = _eq(value1,value2);
+                }
+        }
+        return res;
+
+}
+//for checking if str types or symbol types are equal?
+long are_str_types_equal(Value *value1, Value *value2)
+{
+        if (value1->as.str->length != value2->as.str->length ) {
+                return SCHEME_FALSE;
+        }
+        int res = strcmp(value1->as.str->chars, value2->as.str->chars);
+        if (res == 0) {
+                return SCHEME_TRUE;
+        }
+        return SCHEME_FALSE;
+}
 void is_function(long type)
 {
         Value *value_type = (Value*)type;

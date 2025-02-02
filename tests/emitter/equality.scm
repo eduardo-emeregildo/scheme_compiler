@@ -19,6 +19,11 @@
 (define b '())
 (display "should be true")
 (display (eq? a b))
+(define foo 3.5)
+(define bar 3.5)
+(display (eq? foo bar))
+(display "eq? on two lambdas:")
+(display (eq? (lambda (x) (* x x)) (lambda (x) (* x x)))) ; should be f
 (display "implementation specific tests:")
 ;first should be true, the next two should be false since there is no string 
 ;interning currently
@@ -39,3 +44,7 @@
 (define func1 func2)
 (display (eqv? func1 func1))
 (display (func1)); should be 7
+(display "equal? tests:")
+;(display (equal? 'a 'a)) ; should be true
+;(display (equal? "a" "a")) ; true
+;(display (equal? '(1 2 3) '(1 2 3))) ; true
