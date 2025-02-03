@@ -45,6 +45,21 @@
 (display (eqv? func1 func1))
 (display (func1)); should be 7
 (display "equal? tests:")
-;(display (equal? 'a 'a)) ; should be true
-;(display (equal? "a" "a")) ; true
-;(display (equal? '(1 2 3) '(1 2 3))) ; true
+(display (equal? 'a 'a)) ;true
+(display (equal? "a" "a")) ;true
+(display (equal? '() '())) ;true
+(display (equal? '(1 2 3) '(1 2 3))) ;true
+(display (equal? '(1 2) '(1 2 . ()))) ;true
+(display (equal? '(1 2 (1 2 3)) '(1 2 (1 2 3)))) ;true
+(display (equal? '(1 2 3) '(1 2 4))) ;false
+(display (equal? '(1 2 3) '(1 2 . 3))) ;false
+(display (equal? '(1 2 3) '(1 2 (3)))) ;false
+(display (equal? '(1 2 3) '(1 2 3 4))) ;false
+
+(display "testing equal? on vectors:")
+(display (equal? '#(1 2 3) '#(1 2 3))) ;true
+(display (equal? '#() '#())) ;true
+(display (equal? '#(1 (2 3 4) 5) '#(1 (2 3 4) 5))) ;true
+(display (equal? '#(1 2 3) '#(1 2 4))) ;false
+(display (equal? '#(1 2 3) '#(1 2 (3)))) ;false
+(display (equal? '#(1 (2 3 4) 5) '#(1 (2 3 7) 5))) ;false

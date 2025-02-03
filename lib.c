@@ -387,9 +387,9 @@ long _equal(long value1,long value2)
                         return SCHEME_TRUE;
                 }
                 if (val1_ptr->type == VAL_PAIR) {
-                        // compare pairs
+                        res = are_pairs_equal(val1_ptr,val2_ptr);
                 } else if (val1_ptr->type == VAL_VECTOR) {
-                        //compare vectors
+                        res = are_vectors_equal(val1_ptr,val2_ptr);
                 } else if (val1_ptr->type == VAL_STR) {
                         res = are_str_types_equal(val1_ptr,val2_ptr);
                 } else if (val1_ptr->type == VAL_SYMBOL) {
@@ -412,6 +412,36 @@ long are_str_types_equal(Value *value1, Value *value2)
                 return SCHEME_TRUE;
         }
         return SCHEME_FALSE;
+}
+
+long are_pairs_equal(Value *value1, Value *value2)
+{
+        struct Pair *val1_cur_pair = value1->as.pair;
+        struct Pair *val2_cur_pair = value2->as.pair;
+        long res = _equal((long)&val1_cur_pair->car, (long)&val2_cur_pair->car);
+        if(res == SCHEME_FALSE) {
+                return SCHEME_FALSE;
+        }
+        return _equal((long)&val1_cur_pair->cdr, (long)&val2_cur_pair->cdr);
+}
+
+long are_vectors_equal(Value *value1, Value *value2)
+{
+        struct Vector *vector1 = value1->as.vector;
+        struct Vector *vector2 = value2->as.vector;
+        long res = SCHEME_FALSE;
+        if (vector1->size != vector2->size) {
+                return res;
+        } else if (vector1->size == 0) {
+                return SCHEME_TRUE;
+        }
+        for (size_t i = 0; i < vector1->size; i++) {
+                res = _equal((long)&vector1->items[i], (long)&vector2->items[i]);
+                if (res == SCHEME_FALSE) {
+                        break;
+                }
+        }
+        return res;
 }
 void is_function(long type)
 {

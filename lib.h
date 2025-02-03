@@ -35,6 +35,8 @@ long _null(long type);
 long _eq(long value1,long value2);
 long _equal(long value1,long value2);
 long are_str_types_equal(Value *value1, Value *value2);
+long are_pairs_equal(Value *value1, Value *value2);
+long are_vectors_equal(Value *value1, Value *value2);
 Value DISPLAY = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_display,false,1}}};
 Value ADDITION = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_add,true,1}}};
 Value SUBTRACTION = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_sub,true,2}}};
