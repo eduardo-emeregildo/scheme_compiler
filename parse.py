@@ -4,6 +4,9 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
+#use the approach of creating new pairs in _append
+
+#implement append
 #Todo3: implement some more basic functions for dealing with lists/vectors
 # (i.e. append, joining two lists,getting ith value of vector etc.)
 #Todo4: implement closures
@@ -16,6 +19,7 @@ from scheme_builtins import *
 # 2. implement tail call optimization
 # 3. have display print out special characters, i.e. \n,\t etc
 # 4. imports
+# 5. have a "debug" mode where it prints all the symbols,terminals,nonterminals
     
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:

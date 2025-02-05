@@ -32,6 +32,9 @@
 ;(display #t)
 ;(define new_display display)
 ;(new_display 27)
+;(display '(1))
+;(display '( () 1 2))
+;(display '( ()))
 ;(define (yeo x) x)
 
 ;;(define (func op num) (op num 4))

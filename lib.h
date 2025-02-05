@@ -37,6 +37,7 @@ long _equal(long value1,long value2);
 long are_str_types_equal(Value *value1, Value *value2);
 long are_pairs_equal(Value *value1, Value *value2);
 long are_vectors_equal(Value *value1, Value *value2);
+long _append(Value *varargs);
 Value DISPLAY = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_display,false,1}}};
 Value ADDITION = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_add,true,1}}};
 Value SUBTRACTION = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_sub,true,2}}};
@@ -53,4 +54,5 @@ Value NULLQ = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_null,false,1}
 Value EQ = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_eq,false,2}}};
 Value EQV = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_eq,false,2}}};
 Value EQUAL = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_equal,false,2}}};
+Value APPEND = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_append,true,1}}};
 #endif

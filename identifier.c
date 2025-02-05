@@ -378,6 +378,15 @@ void turn_to_val_type(long non_ptr_type,Value *val_obj)
         val_obj->as.tagged_type = non_ptr_type;
 }
 
+bool is_non_ptr_type(Value *val_type)
+{       
+        int type = val_type->type;
+        if (type == VAL_INT || type == VAL_CHAR || type == VAL_BOOLEAN) {
+                return true;
+        }
+        return false;
+}
+
 /*
 performs runtime checks on a param that was used as a function. Checks if param
 is a function, and if the the function is variadic, returns a list of the varargs.

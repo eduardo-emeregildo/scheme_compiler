@@ -42,6 +42,11 @@ void print_list(Value *value_obj)
 {
         struct Pair *lst_cur_pair = value_obj->as.pair;
         printf("(");
+        if (lst_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+                print_value_type(get_car_ptr(lst_cur_pair));
+                printf(")");
+                return;
+        }
         while(lst_cur_pair->cdr.type != VAL_EMPTY_LIST) { 
                 print_value_type(get_car_ptr(lst_cur_pair));
                 if(lst_cur_pair->cdr.type != VAL_PAIR) {
@@ -399,8 +404,104 @@ long _equal(long value1,long value2)
                 }
         }
         return res;
-
 }
+
+/*
+appends each list in varargs. returns the first list followed by elts of the other
+lists. 
+
+✔ If there are no args (i.e. varargs is empty list), return the empty list.
+
+✔ If there is exactly one argument, it is returned.
+
+Otherwise, the resulting list is always newly allocated
+
+In the event that one of the varargs is the empty list, ignore this arg.
+
+In the event that one of the varargs isnt a list, it MUST be the last arg.
+If it isnt last, or if there is more than one vararg that isnt a list, throw error.
+
+*/
+// car.type = VAL_EMPTY_LIST denotes the empty list
+// cdr.type = VAL_EMPTY_LIST indicates the end of a list
+long _append(Value *varargs)
+{
+        if (varargs->type == VAL_EMPTY_LIST) {
+                return (long)varargs;
+        }
+        struct Pair *vararg_cur_pair = varargs->as.pair;
+        //exactly one arg
+        if (vararg_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+                if (is_non_ptr_type(&vararg_cur_pair->car)) {
+                        return vararg_cur_pair->car.as.tagged_type;
+                } else return (long)&vararg_cur_pair->car;
+        }
+        bool is_improper_list = false;
+        // start appending lists
+        // append varargs_cur_pair's car until its cdr is the empty list
+        struct Pair *appended_list = allocate_pair();
+        struct Pair * cur_list = appended_list;
+        while (vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+                if (is_improper_list) {
+                        abort_message(
+                        "in append. Cannot append to an improper list.\n");
+                }
+                else if (vararg_cur_pair->car.type == VAL_PAIR) {
+                        //copy to cur_list
+                        cur_list->car = vararg_cur_pair->car.as.pair->car;
+                        cur_list->cdr = vararg_cur_pair->car.as.pair->cdr;
+                        //go to end of cur_list, to check if its an improper list
+                        while (cur_list->cdr.type == VAL_PAIR) {
+                                cur_list = cur_list->cdr.as.pair;
+                                
+                        }
+                        
+                        //check if cur_list is improper
+                        if (cur_list->cdr.type != VAL_EMPTY_LIST) {
+                                is_improper_list = true;
+                        } else {
+                                // allocate a new pair
+                                cur_list->cdr = *make_value_pair(allocate_pair());
+                        }
+
+                } else {
+                        // when value to append isnt a list, you get an improper list
+                        // if you do (append 1) should return the number 1
+                        //the exactly one arg block handles this
+
+                        // if you do (append '(1 2 3) 4), return '(1 2 3 . 4)
+
+                        //checking if non pair type is last vararg 
+                        
+                        if (vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+                                abort_message("Expected a pair.\n");
+                        }
+                        is_improper_list = true;
+                        cur_list->cdr.type = vararg_cur_pair->car.type;
+                        cur_list->cdr.as.tagged_type = vararg_cur_pair->car.as.tagged_type;
+                        break;
+                }
+
+                //go to next vararg to append
+                vararg_cur_pair = vararg_cur_pair->cdr.as.pair;
+                if (vararg_cur_pair->cdr.type == VAL_EMPTY_LIST) {
+                        // add the car. refactor later
+                        if (is_improper_list) {
+                        abort_message(
+                        "in append. Cannot append to an improper list.\n");
+                        } else if (vararg_cur_pair->car.type == VAL_PAIR) {
+                                cur_list->car = vararg_cur_pair->car.as.pair->car;
+                                cur_list->cdr = vararg_cur_pair->car.as.pair->cdr;
+                        } else {
+                                cur_list->cdr.type = vararg_cur_pair->car.type;
+                                cur_list->cdr.as.tagged_type = vararg_cur_pair->car.as.tagged_type;
+                        }
+                }
+        }
+        //now make the value obj and return:
+        return (long)make_value_pair(appended_list);
+}
+
 //for checking if str types or symbol types are equal?
 long are_str_types_equal(Value *value1, Value *value2)
 {
