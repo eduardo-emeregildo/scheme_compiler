@@ -39,6 +39,8 @@ long are_pairs_equal(Value *value1, Value *value2);
 long are_vectors_equal(Value *value1, Value *value2);
 long _append(Value *varargs);
 bool is_list_improper(struct Pair *list);
+struct Pair *advance_lst_to_end(struct Pair *list);
+void append_to_list(struct Pair *list,struct Pair *varargs);
 Value DISPLAY = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_display,false,1}}};
 Value ADDITION = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_add,true,1}}};
 Value SUBTRACTION = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_sub,true,2}}};

@@ -444,11 +444,7 @@ long _append(Value *varargs)
                 cur_list->car = vararg_cur_pair->car.as.pair->car;
                 cur_list->cdr = vararg_cur_pair->car.as.pair->cdr;
                 is_list_initialized = true;
-                //advance to end of cur_list
-                while (cur_list->cdr.type == VAL_PAIR) {
-                        cur_list = cur_list->cdr.as.pair;
-                }
-                
+                cur_list = advance_lst_to_end(cur_list);
                 //if list is improper, check that current vararg is the last one
                 if (is_list_improper(cur_list)) {        
                         if(vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
@@ -477,40 +473,8 @@ long _append(Value *varargs)
                 } 
                 vararg_cur_pair = vararg_cur_pair->cdr.as.pair;
         }
-
         //now traverse rest of varargs, adding each vararg to the cdr of cur_list.
-        bool end_of_varargs = false;
-        while (!end_of_varargs) {
-                //add to the cdr of the list
-                cur_list->cdr.type = vararg_cur_pair->car.type;
-                cur_list->cdr.as.tagged_type = vararg_cur_pair->car.as.tagged_type;
-
-                if (vararg_cur_pair->car.type == VAL_PAIR) {        
-                        while (cur_list->cdr.type == VAL_PAIR) {
-                        cur_list = cur_list->cdr.as.pair;
-                        }
-                        if (is_list_improper(cur_list)) {        
-                                if(vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
-                                abort_message("in append. Expected a pair.\n");
-                                }
-                        break;
-                        }
-                        //below is non_pair case
-                } else if (vararg_cur_pair->car.type != VAL_EMPTY_LIST) {
-
-                        if(vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
-                                abort_message("in append. Expected a pair.\n");
-                        }
-                        break;
-                }
-                //advance to next, set end_of_args
-                if (vararg_cur_pair->cdr.type != VAL_PAIR) {
-                        end_of_varargs = true;
-                }
-                else {
-                        vararg_cur_pair = vararg_cur_pair->cdr.as.pair;
-                }
-        }
+        append_to_list(cur_list,vararg_cur_pair);
         return (long)make_value_pair(appended_list);
 }
 
@@ -520,6 +484,49 @@ bool is_list_improper(struct Pair *list)
                 return false;
         }
         return true;
+}
+
+//list will be the last pair of the list, i.e. cdr wont be a list
+struct Pair *advance_lst_to_end(struct Pair *list)
+{
+        while (list->cdr.type == VAL_PAIR) {
+                list = list->cdr.as.pair;
+        }
+        return list;
+}
+
+//given a list in first arg and varargs as second arg,append varargs to list
+void append_to_list(struct Pair *list,struct Pair *varargs)
+{
+        bool end_of_varargs = false;
+        while (!end_of_varargs) {
+                //add to the cdr of the list
+                list->cdr.type = varargs->car.type;
+                list->cdr.as.tagged_type = varargs->car.as.tagged_type;
+                if (varargs->car.type == VAL_PAIR) {        
+                        list = advance_lst_to_end(list);
+                        if (is_list_improper(list)) {        
+                                if(varargs->cdr.type != VAL_EMPTY_LIST) {
+                                abort_message("in append. Expected a pair.\n");
+                                }
+                        break;
+                        }
+                        //below is non_pair case
+                } else if (varargs->car.type != VAL_EMPTY_LIST) {
+
+                        if(varargs->cdr.type != VAL_EMPTY_LIST) {
+                                abort_message("in append. Expected a pair.\n");
+                        }
+                        break;
+                }
+                //advance to next, set end_of_args
+                if (varargs->cdr.type != VAL_PAIR) {
+                        end_of_varargs = true;
+                }
+                else {
+                        varargs = varargs->cdr.as.pair;
+                }
+        }
 }
 
 //for checking if str types or symbol types are equal?

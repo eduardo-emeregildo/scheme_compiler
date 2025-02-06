@@ -5,7 +5,6 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-#refactor the monstrosity that is _append
 #Todo3: implement some more basic functions for dealing with lists/vectors
 # (i.e. append, joining two lists,getting ith value of vector etc.)
 #Todo4: implement closures
