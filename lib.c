@@ -410,9 +410,9 @@ long _equal(long value1,long value2)
 appends each list in varargs. returns the first list followed by elts of the other
 lists. 
 
-✔ If there are no args (i.e. varargs is empty list), return the empty list.
+If there are no args (i.e. varargs is empty list), return the empty list.
 
-✔ If there is exactly one argument, it is returned.
+If there is exactly one argument, it is returned.
 
 Otherwise, the resulting list is always newly allocated
 
@@ -420,10 +420,7 @@ In the event that one of the varargs is the empty list, ignore this arg.
 
 In the event that one of the varargs isnt a list, it MUST be the last arg.
 If it isnt last, or if there is more than one vararg that isnt a list, throw error.
-
 */
-// car.type = VAL_EMPTY_LIST denotes the empty list
-// cdr.type = VAL_EMPTY_LIST indicates the end of a list
 long _append(Value *varargs)
 {
         if (varargs->type == VAL_EMPTY_LIST) {
@@ -436,70 +433,93 @@ long _append(Value *varargs)
                         return vararg_cur_pair->car.as.tagged_type;
                 } else return (long)&vararg_cur_pair->car;
         }
-        bool is_improper_list = false;
-        // start appending lists
-        // append varargs_cur_pair's car until its cdr is the empty list
         struct Pair *appended_list = allocate_pair();
-        struct Pair * cur_list = appended_list;
-        while (vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
-                if (is_improper_list) {
-                        abort_message(
-                        "in append. Cannot append to an improper list.\n");
+        struct Pair *cur_list = appended_list;
+        bool is_list_initialized = false;
+        //find and copy first list(ignores empty lists). This will be the base 
+        //list to append to
+        while (!is_list_initialized) {
+                if (vararg_cur_pair->car.type == VAL_PAIR) {
+                //copy, then check if improper
+                cur_list->car = vararg_cur_pair->car.as.pair->car;
+                cur_list->cdr = vararg_cur_pair->car.as.pair->cdr;
+                is_list_initialized = true;
+                //advance to end of cur_list
+                while (cur_list->cdr.type == VAL_PAIR) {
+                        cur_list = cur_list->cdr.as.pair;
                 }
-                else if (vararg_cur_pair->car.type == VAL_PAIR) {
-                        //copy to cur_list
-                        cur_list->car = vararg_cur_pair->car.as.pair->car;
-                        cur_list->cdr = vararg_cur_pair->car.as.pair->cdr;
-                        //go to end of cur_list, to check if its an improper list
+                
+                //if list is improper, check that current vararg is the last one
+                if (is_list_improper(cur_list)) {        
+                        if(vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+                        abort_message("in append. Expected a pair.\n");
+                        }
+                        return (long)make_value_pair(appended_list);
+                }
+
+                } else if (vararg_cur_pair->car.type != VAL_EMPTY_LIST) {
+                        //check if there is another vararg. If so,throw error.
+                        //otherwise return the val type
+                        if(vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+                                abort_message("in append. Expected a pair.\n");
+                        }
+                        if (is_non_ptr_type(&vararg_cur_pair->car)) {
+                                return vararg_cur_pair->car.as.tagged_type;
+                        } else return (long)&vararg_cur_pair->car;
+                }
+        //remember varargs are always set up to be a proper list. so if the
+        //cdr is not a pair, its guaranteed to be an empty list
+                if (vararg_cur_pair->cdr.type != VAL_PAIR) {
+                        if (!is_list_initialized) {
+                        abort_message("Reached the end of vararg without initializing list!\n");
+                        }
+                        return (long)make_value_pair(appended_list);
+                } 
+                vararg_cur_pair = vararg_cur_pair->cdr.as.pair;
+        }
+
+        //now traverse rest of varargs, adding each vararg to the cdr of cur_list.
+        bool end_of_varargs = false;
+        while (!end_of_varargs) {
+                //add to the cdr of the list
+                cur_list->cdr.type = vararg_cur_pair->car.type;
+                cur_list->cdr.as.tagged_type = vararg_cur_pair->car.as.tagged_type;
+
+                if (vararg_cur_pair->car.type == VAL_PAIR) {        
                         while (cur_list->cdr.type == VAL_PAIR) {
-                                cur_list = cur_list->cdr.as.pair;
-                                
+                        cur_list = cur_list->cdr.as.pair;
                         }
-                        
-                        //check if cur_list is improper
-                        if (cur_list->cdr.type != VAL_EMPTY_LIST) {
-                                is_improper_list = true;
-                        } else {
-                                // allocate a new pair
-                                cur_list->cdr = *make_value_pair(allocate_pair());
+                        if (is_list_improper(cur_list)) {        
+                                if(vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+                                abort_message("in append. Expected a pair.\n");
+                                }
+                        break;
                         }
+                        //below is non_pair case
+                } else if (vararg_cur_pair->car.type != VAL_EMPTY_LIST) {
 
-                } else {
-                        // when value to append isnt a list, you get an improper list
-                        // if you do (append 1) should return the number 1
-                        //the exactly one arg block handles this
-
-                        // if you do (append '(1 2 3) 4), return '(1 2 3 . 4)
-
-                        //checking if non pair type is last vararg 
-                        
-                        if (vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
-                                abort_message("Expected a pair.\n");
+                        if(vararg_cur_pair->cdr.type != VAL_EMPTY_LIST) {
+                                abort_message("in append. Expected a pair.\n");
                         }
-                        is_improper_list = true;
-                        cur_list->cdr.type = vararg_cur_pair->car.type;
-                        cur_list->cdr.as.tagged_type = vararg_cur_pair->car.as.tagged_type;
                         break;
                 }
-
-                //go to next vararg to append
-                vararg_cur_pair = vararg_cur_pair->cdr.as.pair;
-                if (vararg_cur_pair->cdr.type == VAL_EMPTY_LIST) {
-                        // add the car. refactor later
-                        if (is_improper_list) {
-                        abort_message(
-                        "in append. Cannot append to an improper list.\n");
-                        } else if (vararg_cur_pair->car.type == VAL_PAIR) {
-                                cur_list->car = vararg_cur_pair->car.as.pair->car;
-                                cur_list->cdr = vararg_cur_pair->car.as.pair->cdr;
-                        } else {
-                                cur_list->cdr.type = vararg_cur_pair->car.type;
-                                cur_list->cdr.as.tagged_type = vararg_cur_pair->car.as.tagged_type;
-                        }
+                //advance to next, set end_of_args
+                if (vararg_cur_pair->cdr.type != VAL_PAIR) {
+                        end_of_varargs = true;
+                }
+                else {
+                        vararg_cur_pair = vararg_cur_pair->cdr.as.pair;
                 }
         }
-        //now make the value obj and return:
         return (long)make_value_pair(appended_list);
+}
+
+bool is_list_improper(struct Pair *list)
+{
+        if (list->cdr.type == VAL_EMPTY_LIST || list->cdr.type == VAL_PAIR) {
+                return false;
+        }
+        return true;
 }
 
 //for checking if str types or symbol types are equal?
