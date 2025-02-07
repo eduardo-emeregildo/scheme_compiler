@@ -478,6 +478,25 @@ long _append(Value *varargs)
         return (long)make_value_pair(appended_list);
 }
 
+Value *_make_vector(long size, long init_value)
+{
+        if (!is_int(size)) {
+                abort_message("in make-vector. size must be an integer.\n");
+        }
+        long untagged_size = untag_int(size);
+        Value *vec = make_tagged_ptr(untagged_size);
+        bool is_init_ptr = is_ptr(init_value);
+        for (int i = 0; i < untagged_size ; i++) {
+                if (!is_init_ptr) {
+                        turn_to_val_type(init_value,&vec[i]);
+                } else {
+                        vec[i].type =((Value *)init_value)->type;
+                        vec[i].as.tagged_type =((Value *)init_value)->as.tagged_type;
+                } 
+        }
+        return make_value_vector(vec,untagged_size);
+}
+
 bool is_list_improper(struct Pair *list)
 {
         if (list->cdr.type == VAL_EMPTY_LIST || list->cdr.type == VAL_PAIR) {

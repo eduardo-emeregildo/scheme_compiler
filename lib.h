@@ -38,6 +38,7 @@ long are_str_types_equal(Value *value1, Value *value2);
 long are_pairs_equal(Value *value1, Value *value2);
 long are_vectors_equal(Value *value1, Value *value2);
 long _append(Value *varargs);
+Value *_make_vector(long size, long init_value);
 bool is_list_improper(struct Pair *list);
 struct Pair *advance_lst_to_end(struct Pair *list);
 void append_to_list(struct Pair *list,struct Pair *varargs);
@@ -58,4 +59,5 @@ Value EQ = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_eq,false,2}}};
 Value EQV = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_eq,false,2}}};
 Value EQUAL = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_equal,false,2}}};
 Value APPEND = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_append,true,1}}};
+Value MAKE_VECTOR = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_make_vector,false,2}}};
 #endif

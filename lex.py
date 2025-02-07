@@ -19,6 +19,7 @@ class Lexer:
             "SET!": ["SETE",TokenType.SETEXCLAM],
             "UNQUOTE-SPLICING" : ["UNQUOTESPL",TokenType.UNQUOTESPLICING],
             "NULL?": ["NULLQ",TokenType.BUILTIN],
+            "MAKE-VECTOR" : ["MAKE_VECTOR",TokenType.BUILTIN],
         }
         self.next_char()
         

@@ -27,10 +27,14 @@
 (display y)
 (define x '(11 12 13))
 (display y) ; both prints should match: '(1 2 3 4 5 6)
-
-
+(display '#())
 ;(display "errors:")
 ;(display (append '() 1 2))
 ;(display (append '(1 2 3 . 4) 5))
 ;(display (append '(1 2 3 4) 5 '(1 2)))
 ;(display (append '(1 2 3 4) '(4 5)' 6 7))
+(display "testing make-vector:")
+(display make-vector)
+(display (make-vector 3 1))
+(display (make-vector 5 '(1 2)))
+(display (make-vector 0 '(1 2)))

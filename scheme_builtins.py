@@ -19,4 +19,5 @@ BUILTINS = {
     "EQV": Function().set("EQ",["value1","value2"],2,False),
     "EQUAL": Function().set("EQUAL",["value1","value2"],2,False),
     "APPEND": Function().set("APPEND",["varargs"],1,True),
+    "MAKE_VECTOR": Function().set("MAKE_VECTOR",["size","init_value"],2,False),
 }
