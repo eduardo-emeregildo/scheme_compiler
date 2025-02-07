@@ -40,6 +40,7 @@ long are_vectors_equal(Value *value1, Value *value2);
 long _append(Value *varargs);
 long _vector_ref(long vector, long position);
 Value *_make_vector(long size, long init_value);
+long _vector_length(long vector);
 bool is_list_improper(struct Pair *list);
 struct Pair *advance_lst_to_end(struct Pair *list);
 void append_to_list(struct Pair *list,struct Pair *varargs);
@@ -62,4 +63,5 @@ Value EQUAL = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_equal,false,2
 Value APPEND = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_append,true,1}}};
 Value MAKE_VECTOR = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_make_vector,false,2}}};
 Value VECTOR_REF = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_vector_ref,false,2}}};
+Value VECTOR_LENGTH = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_vector_length,false,1}}};
 #endif

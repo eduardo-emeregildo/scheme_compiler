@@ -21,6 +21,8 @@ class Lexer:
             "NULL?": ["NULLQ",TokenType.BUILTIN],
             "MAKE-VECTOR" : ["MAKE_VECTOR",TokenType.BUILTIN],
             "VECTOR-REF" : ["VECTOR_REF",TokenType.BUILTIN],
+            "VECTOR-LENGTH" : ["VECTOR_LENGTH",TokenType.BUILTIN],
+            
         }
         self.next_char()
         

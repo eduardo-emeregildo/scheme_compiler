@@ -51,3 +51,9 @@
 ;(display (vector-ref vec 4))
 ;(display (vector-ref 45 0))
 ;(display (vector-ref vec '(1)))
+(display "testing vector-length:")
+(display vector-length)
+(display (vector-length vec))
+;errors
+;(display (vector-length 1))
+;(display (vector-length '(1 2 3)))

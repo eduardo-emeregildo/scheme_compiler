@@ -518,6 +518,16 @@ long _vector_ref(long vector, long position)
         return (long)&vec_items[untagged_position];
 }
 
+long _vector_length(long vector)
+{
+        if (!is_ptr(vector)) {
+                abort_message("in vector-length. Not a vector.\n");
+        } else if (((Value *)vector)->type != VAL_VECTOR) {
+                abort_message("in vector-length. Not a vector.\n");
+        }
+        return make_tagged_int(((Value *)vector)->as.vector->size);
+}
+
 bool is_list_improper(struct Pair *list)
 {
         if (list->cdr.type == VAL_EMPTY_LIST || list->cdr.type == VAL_PAIR) {
