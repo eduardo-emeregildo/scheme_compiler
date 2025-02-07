@@ -4,10 +4,8 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-#vector-length, vector-set!. In racket there are mutable/immutable vecs,
-# but im not gonna do that and make a vector-set that works on all vecs. research
-#this mutable/immutable vector stuff before implementing
-# list?, pair?, vector?
+
+# implement list?, pair?, vector?
 #Todo3: implement some more basic functions for dealing with lists/vectors
 # (i.e. append, joining two lists,getting ith value of vector etc.)
 #Todo4: implement closures

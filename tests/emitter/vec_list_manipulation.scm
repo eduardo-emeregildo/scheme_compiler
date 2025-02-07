@@ -57,3 +57,18 @@
 ;errors
 ;(display (vector-length 1))
 ;(display (vector-length '(1 2 3)))
+(display "testing vect-set!:")
+(display vector-set!)
+(display vec)
+(vector-set! vec 0 #t)
+(display vec)
+(vector-set! vec 0 41)
+(display vec)
+(vector-set! vec 1 '(5 3 1))
+(display vec)
+;errors
+;(vector-set! 1 1 '(1 2 3))
+;(vector-set! '(1 2) 1 '(1 2 3))
+;(vector-set! vec '(1 2) '(1 2 3))
+;(vector-set! vec -1 '(1 2 3))
+;(vector-set! vec 5 '(1 2 3))

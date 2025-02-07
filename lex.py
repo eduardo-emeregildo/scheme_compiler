@@ -22,7 +22,7 @@ class Lexer:
             "MAKE-VECTOR" : ["MAKE_VECTOR",TokenType.BUILTIN],
             "VECTOR-REF" : ["VECTOR_REF",TokenType.BUILTIN],
             "VECTOR-LENGTH" : ["VECTOR_LENGTH",TokenType.BUILTIN],
-            
+            "VECTOR-SET!" : ["VECTOR_SET",TokenType.BUILTIN],
         }
         self.next_char()
         

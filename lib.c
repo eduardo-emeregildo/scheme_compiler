@@ -528,6 +528,29 @@ long _vector_length(long vector)
         return make_tagged_int(((Value *)vector)->as.vector->size);
 }
 
+void _vector_set(long vector,long position, long new_val)
+{
+        if (!is_ptr(vector)) {
+                abort_message("in vector-set!. Expected a vector.\n");
+        } else if (((Value *)vector)->type != VAL_VECTOR) {
+                abort_message("in vector-set!. Expected a vector.\n");
+        } else if (!is_int(position)) {
+                abort_message("in vector-set!. Expected an int for position.\n");
+        }
+        long vec_size = ((Value *)vector)->as.vector->size;
+        long untagged_position = untag_int(position);
+        if (untagged_position < 0 || untagged_position > (vec_size - 1)) {
+                abort_message("in vector-set!. Position out of range.\n");
+        }
+        Value *vec_items = ((Value *)vector)->as.vector->items;
+        if (!is_ptr(new_val)) {
+                turn_to_val_type(new_val,&vec_items[untagged_position]);
+        } else {
+                vec_items[untagged_position].type = ((Value *)new_val)->type;
+                vec_items[untagged_position].as.tagged_type = ((Value *)new_val)->as.tagged_type;
+        }
+}
+
 bool is_list_improper(struct Pair *list)
 {
         if (list->cdr.type == VAL_EMPTY_LIST || list->cdr.type == VAL_PAIR) {

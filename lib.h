@@ -41,6 +41,7 @@ long _append(Value *varargs);
 long _vector_ref(long vector, long position);
 Value *_make_vector(long size, long init_value);
 long _vector_length(long vector);
+void _vector_set(long vector,long position, long new_val);
 bool is_list_improper(struct Pair *list);
 struct Pair *advance_lst_to_end(struct Pair *list);
 void append_to_list(struct Pair *list,struct Pair *varargs);
@@ -64,4 +65,5 @@ Value APPEND = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_append,true,
 Value MAKE_VECTOR = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_make_vector,false,2}}};
 Value VECTOR_REF = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_vector_ref,false,2}}};
 Value VECTOR_LENGTH = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_vector_length,false,1}}};
+Value VECTOR_SET = {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&_vector_set,false,3}}};
 #endif

@@ -22,4 +22,6 @@ BUILTINS = {
     "MAKE_VECTOR": Function().set("MAKE_VECTOR",["size","init_value"],2,False),
     "VECTOR_REF": Function().set("VECTOR_REF",["vector","position"],2,False),
     "VECTOR_LENGTH": Function().set("VECTOR_LENGTH",["vector"],1,False),
+    "VECTOR_SET": Function().set("VECTOR_SET",["vector","position","new_val"],3,False),
+    
 }
