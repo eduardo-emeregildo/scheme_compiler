@@ -20,4 +20,5 @@ BUILTINS = {
     "EQUAL": Function().set("EQUAL",["value1","value2"],2,False),
     "APPEND": Function().set("APPEND",["varargs"],1,True),
     "MAKE_VECTOR": Function().set("MAKE_VECTOR",["size","init_value"],2,False),
+    "VECTOR_REF": Function().set("VECTOR_REF",["vector","position"],2,False),
 }

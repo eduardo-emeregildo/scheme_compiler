@@ -20,6 +20,7 @@ class Lexer:
             "UNQUOTE-SPLICING" : ["UNQUOTESPL",TokenType.UNQUOTESPLICING],
             "NULL?": ["NULLQ",TokenType.BUILTIN],
             "MAKE-VECTOR" : ["MAKE_VECTOR",TokenType.BUILTIN],
+            "VECTOR-REF" : ["VECTOR_REF",TokenType.BUILTIN],
         }
         self.next_char()
         

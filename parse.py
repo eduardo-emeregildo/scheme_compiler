@@ -4,7 +4,7 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-#vector-ref,vector-length, vector-set!. In racket there are mutable/immutable vecs,
+#vector-length, vector-set!. In racket there are mutable/immutable vecs,
 # but im not gonna do that and make a vector-set that works on all vecs. research
 #this mutable/immutable vector stuff before implementing
 # list?, pair?, vector?
