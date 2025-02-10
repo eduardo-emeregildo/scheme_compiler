@@ -550,7 +550,45 @@ void _vector_set(long vector,long position, long new_val)
                 vec_items[untagged_position].as.tagged_type = ((Value *)new_val)->as.tagged_type;
         }
 }
+//implements pair?
+long _pairq(long val)
+{
+        long res = SCHEME_FALSE;
+        if (is_ptr(val) && ((Value *)val)->type == VAL_PAIR) {
+                res = SCHEME_TRUE;
+        }
+        return res;
+}
 
+//implements list?
+long _listq(long val)
+{
+        long res = SCHEME_FALSE;
+        if (is_ptr(val)) {
+                int type = ((Value *)val)->type;
+                if (type == VAL_EMPTY_LIST){
+                        return SCHEME_TRUE;
+                } else if (type != VAL_PAIR) {
+                        return SCHEME_FALSE;
+                }
+                struct Pair *lst = ((Value *)val)->as.pair;
+                lst = advance_lst_to_end(lst);
+                if (lst->cdr.type == VAL_EMPTY_LIST) {
+                        res = SCHEME_TRUE;
+                }
+        }
+        return res;
+}
+
+//implements vector?
+long _vectorq(long val)
+{
+        long res = SCHEME_FALSE;
+        if (is_ptr(val) && ((Value *)val)->type == VAL_VECTOR) {
+                res = SCHEME_TRUE;
+        }
+        return res;
+}
 bool is_list_improper(struct Pair *list)
 {
         if (list->cdr.type == VAL_EMPTY_LIST || list->cdr.type == VAL_PAIR) {

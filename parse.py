@@ -5,9 +5,6 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
-# implement list?, pair?, vector?
-#Todo3: implement some more basic functions for dealing with lists/vectors
-# (i.e. append, joining two lists,getting ith value of vector etc.)
 #Todo4: implement closures
 #Todo5: implement gc
 #Todo6: test compiler with different optimization levels, see which one you can

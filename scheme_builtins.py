@@ -23,5 +23,7 @@ BUILTINS = {
     "VECTOR_REF": Function().set("VECTOR_REF",["vector","position"],2,False),
     "VECTOR_LENGTH": Function().set("VECTOR_LENGTH",["vector"],1,False),
     "VECTOR_SET": Function().set("VECTOR_SET",["vector","position","new_val"],3,False),
-    
+    "PAIRQ": Function().set("PAIRQ",["val"],1,False),
+    "LISTQ": Function().set("LISTQ",["val"],1,False),
+    "VECTORQ": Function().set("VECTORQ",["val"],1,False),
 }

@@ -72,3 +72,22 @@
 ;(vector-set! vec '(1 2) '(1 2 3))
 ;(vector-set! vec -1 '(1 2 3))
 ;(vector-set! vec 5 '(1 2 3))
+
+(display "pair? tests:")
+;(display list?)
+;(display pair?)
+(display (pair? '())) ;f
+(display (pair? 3))
+(display (pair? '(1 2 3)));t
+(display (pair? '(4 5 . #(1 2))));t
+(display "list? tests:")
+(display (list? 3))
+(display (list? '(4 5 . #(1 2))));f
+(display (list? '())) ;t
+(display (list? '(1 2 3)));t
+(display (list? '(4 5 . (6)))) ;t
+(display "vector? tests:")
+(display vector?)
+(display (vector? 2))
+(display (vector? '(2 3 4)))
+(display (vector? '#(2 3 4)))

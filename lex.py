@@ -23,6 +23,10 @@ class Lexer:
             "VECTOR-REF" : ["VECTOR_REF",TokenType.BUILTIN],
             "VECTOR-LENGTH" : ["VECTOR_LENGTH",TokenType.BUILTIN],
             "VECTOR-SET!" : ["VECTOR_SET",TokenType.BUILTIN],
+            "PAIR?" : ["PAIRQ",TokenType.BUILTIN],
+            "LIST?" : ["LISTQ",TokenType.BUILTIN],
+            "VECTOR?" : ["VECTORQ",TokenType.BUILTIN],
+            
         }
         self.next_char()
         
