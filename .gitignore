@@ -4,6 +4,7 @@ out.asm
 out.o
 out
 compiler_notes.txt
+closure_notes.txt
 dynamic_typing_notes.txt
 log.txt
 .vscode

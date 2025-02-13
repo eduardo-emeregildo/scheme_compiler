@@ -9,6 +9,8 @@ from scheme_builtins import *
 #Todo5: implement gc
 #Todo6: test compiler with different optimization levels, see which one you can
 #get away with
+#Todo7: Add some macros for casting to improve readability
+#Todo8: implement list procedure
 
 #Todo's in the future:
 # 1. implement string interning
@@ -187,19 +189,7 @@ class Parser:
             if self.check_token(TokenType.IF):
                 self.next_token()
                 self.if_exp()
-            
-            #this block of code doesnt really do anything, it can just go straight
-            #to procedure call instead of coming here.
-            #calling a builtin function
-            # elif self.check_token(TokenType.BUILTIN):
-            #     print("BUILTIN FUNCTION CALL")
-            #     func_obj = BUILTINS[self.cur_token.text]
-            #     self.next_token()
-            #     if func_obj.is_variadic:
-            #         self.variadic_function_call(func_obj)
-            #     else:
-            #         self.function_call(func_obj)
-            
+    
             elif self.check_token(TokenType.QUOTE):
                 self.next_token()
                 self.quote_exp()

@@ -114,16 +114,6 @@
 ;(test 1 2 3 4 5 6 7 8 9 '(1 2))
 ;(define aaa "hello")
 
-
-;example where closure is needed:
-;(define (func op) (define (local f) (+ f op))(local 3))
-;(display (func 2))
-
-; the above should print 5. The problem is when you search f in symbol table, 
-; the result has the offset with respect to its current environment, 
-; so when a more local function tries to retrieve it, it doesnt know the offset 
-; relative to its function
-
 ;a variation of this
 ;(define (func op) (define (local f) (display op))(local 3))
 ;(func "outer")
