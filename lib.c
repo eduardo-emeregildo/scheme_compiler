@@ -33,6 +33,9 @@ void print_value_type(Value *value_obj)
         case VAL_EMPTY_LIST:
                 printf("()");
                 break;
+        case VAL_CLOSURE:
+                printf("function at: %p",value_obj->as.closure->function->as.function->function_ptr);
+                break;
         default:
                 break;
         }

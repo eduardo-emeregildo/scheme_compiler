@@ -13,12 +13,14 @@ class IdentifierType(Enum):
     VECTOR = 6
     FUNCTION = 7
     SYMBOL = 8
+    CLOSURE = 9 #closures will have a Function obj as Identifier.value
+    
     #signifies the evaluation of an arg. since type is not known the value
     #is just the name of the arg
-    PARAM = 9
+    PARAM = 10
     # if last exp was a function call, the value of identifier will be the name of function
     #(Maybe add this)if function call was from a param, the value is ""
-    FUNCTION_CALL = 10 
+    FUNCTION_CALL = 11
 class Identifier:
     def __init__(self,typeof,value):
         self.typeof = typeof

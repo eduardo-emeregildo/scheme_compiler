@@ -4,7 +4,15 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
+# 1. revise set_ith_value closure case in emitter
+# 2. edit definition_exp so it creates closure objects
+# 3. test that creating functions now works/printing them/ putting them in a vector or list
+#(Basically anything except calling them.)
+# 4. work on function calling now that closure objects are introduced
 
+
+#introduce the closure object and make it so everything works after introducing
+#the objects
 #Todo4: implement closures
 #Todo5: implement gc
 #Todo6: test compiler with different optimization levels, see which one you can

@@ -169,6 +169,14 @@ class Emitter:
                 asm_code.append(f"\tmov rdx, {func_obj.arity}\n\tcall allocate_function")
                 asm_code.append(f"\tmov rdi, rax\n\tcall make_value_function")
                 return '\n'.join(asm_code)
+            case IdentifierType.CLOSURE:
+                #first compile the function, then the closure.
+                self.compile_identifier(ident_obj.value,cur_environment)
+                self.add_extern("allocate_closure")
+                self.add_extern("make_value_closure")
+                asm_code.append("\tmov rdi, rax\n\tcall allocate_closure")
+                asm_code.append("\tmov rdi, rax\n\tcall make_value_closure")
+                return '\n'.join(asm_code)
             case IdentifierType.SYMBOL:
                 self.add_extern("allocate_str")
                 self.add_extern("make_value_symbol")
@@ -240,9 +248,20 @@ class Emitter:
                 asm_code.append(f"\tmov rdi, ..@{func_obj.name}")
                 asm_code.append(f"\tmov rsi, {'1' if func_obj.is_variadic else '0'}")
                 asm_code.append(f"\tmov rdx, {func_obj.arity}\n\tcall allocate_function")
-                asm_code.append("pop rdi")
+                asm_code.append("\tpop rdi")
                 asm_code.append(f"\t mov rsi, rax\n\tmov rdx, {index}")
                 asm_code.append(f"\tcall set_ith_value_function")
+        elif TYPE == IdentifierType.CLOSURE:
+            #first make closure obj. to do this need to make function value type
+            self.add_extern("allocate_closure")
+            self.add_extern("set_ith_value_closure")
+            asm_code.append("\tpush rdi")
+            asm_code.append(self.compile_identifier(ident_obj.value,cur_environment))
+            asm_code.append("\tmov rdi, rax\n\tcall allocate_closure")
+            asm_code.append("\tpop rdi")
+            asm_code.append("\tmov rsi, rax")
+            asm_code.append(f"\tmov rdx, {index}")
+            asm_code.append("\tcall set_ith_value_closure")
                 
         elif TYPE == IdentifierType.SYMBOL:
             self.add_extern("set_ith_value_symbol")

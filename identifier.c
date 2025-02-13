@@ -146,6 +146,7 @@ struct Str *allocate_str(char *str)
         return str_obj;
 }
 
+
 // allocates empty pair
 struct Pair *allocate_pair() 
 {
@@ -177,6 +178,16 @@ struct FuncObj *allocate_function(void *function_addr,bool is_variadic,int arity
         return func;
 }
 
+struct ClosureObj *allocate_closure(Value *function)
+{
+        struct ClosureObj *closure = (struct ClosureObj *)malloc(sizeof(struct ClosureObj));
+        validate_ptr(closure);
+        closure->function = function;
+        closure->upvalues = (struct UpvalueObj *)malloc(sizeof(struct UpvalueObj)*4);
+        validate_ptr(closure->upvalues);
+        closure->num_upvalues = 0;
+        return closure;
+}
 /*
 some helpers to help with creation of vec/lists
 set_ith_value_x setters can be used to set a pair struct's car/cdr, if you
@@ -243,6 +254,12 @@ void set_ith_value_function(Value *val_ptr,struct FuncObj *func_obj,size_t index
         val_ptr[index].type = VAL_FUNCTION;
         val_ptr[index].as.function = func_obj;
 
+}
+
+void set_ith_value_closure(Value *val_ptr,struct ClosureObj *closure,size_t index)
+{
+        val_ptr[index].type = VAL_CLOSURE;
+        val_ptr[index].as.closure = closure;
 }
 
 Value *get_car_ptr(struct Pair *pair_obj)
@@ -338,6 +355,14 @@ Value *make_value_function(struct FuncObj *func_obj)
         ptr_value_function->type = VAL_FUNCTION;
         ptr_value_function->as.function = func_obj;
         return ptr_value_function;
+}
+
+Value *make_value_closure(struct ClosureObj *closure)
+{
+        Value *value_closure = make_tagged_ptr(1);
+        value_closure->type = VAL_CLOSURE;
+        value_closure->as.closure = closure;
+        return value_closure;
 }
 
 //similar to set_value_x, but in this case its not known if the input is a value

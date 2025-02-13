@@ -17,6 +17,7 @@ typedef enum {
         VAL_PAIR,
         VAL_VECTOR,
         VAL_FUNCTION,
+        VAL_CLOSURE,
         VAL_SYMBOL,
         VAL_EMPTY_LIST
 
@@ -31,6 +32,7 @@ typedef struct {
                 struct Pair *pair;
                 struct Vector *vector;
                 struct FuncObj *function;
+                struct ClosureObj *closure;
                 void *empty_list; // will point to NULL
                 long tagged_type; //only exists if a elt in lst is int,char,bool
         } as;
@@ -62,6 +64,16 @@ struct FuncObj {
         int arity;
 };
 
+struct ClosureObj {
+        Value *function;
+        struct UpvalueObj* upvalues;
+        int num_upvalues;
+};
+
+struct UpvalueObj {
+        int offset;
+        long value;
+};
 bool is_int(long item);
 bool is_ptr(long item);
 bool is_bool(long item);
@@ -83,6 +95,7 @@ struct Str *allocate_str(char *str);
 struct Pair *allocate_pair();
 struct Vector *allocate_vector(Value *vec_elts,size_t size);
 struct FuncObj *allocate_function(void *function_addr,bool variadic,int arity);
+struct ClosureObj *allocate_closure(Value *function);
 void set_ith_value_int(Value *val_ptr,long integer,size_t index);
 void set_ith_value_char(Value *val_ptr,char character,size_t index);
 void set_ith_value_bool(Value *val_ptr,bool boolean,size_t index);
@@ -93,6 +106,7 @@ void set_ith_value_pair(Value *val_ptr,struct Pair *pair_obj,size_t index);
 void set_ith_value_vector(Value *val_ptr,struct Vector *vec,size_t index);
 void set_ith_value_function(Value *val_ptr,struct FuncObj *func_obj,size_t index);
 void set_ith_value_empty_list(Value *val_ptr, size_t index);
+void set_ith_value_closure(Value *val_ptr,struct ClosureObj *closure,size_t index);
 void set_ith_value_unknown(Value *val_ptr, long type,size_t index);
 Value *get_car_ptr(struct Pair *pair_obj);
 Value *get_cdr_ptr(struct Pair *pair_obj);
@@ -103,6 +117,7 @@ Value *make_value_pair(struct Pair *pair_obj);
 Value *make_value_list(Value *value_obj_array, size_t len);
 Value *make_value_vector(Value *value_obj_array, size_t len);
 Value *make_value_function(struct FuncObj *func_obj);
+Value *make_value_closure(struct ClosureObj *closure);
 Value *check_param_function_call(long function,long *args,int arg_amount);
 Value *make_arg_list(Value *func_obj,long *args,int arg_amount);
 Value *make_arg_list_min_args(int min_args,long *args,int arg_amount);

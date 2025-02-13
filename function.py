@@ -48,4 +48,4 @@ class Function():
         self.param_list = param_list
         self.arity = arity
         self.is_variadic = is_variadic
-        return self
+        return self        
