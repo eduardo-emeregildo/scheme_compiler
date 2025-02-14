@@ -4,8 +4,7 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-# 4. work on function calling now that closure objects are introduced, check 
-#function calling in let
+# 4. work on function calling in let/general function call/lambda with closures
 
 
 #introduce the closure object and make it so everything works after introducing
@@ -275,6 +274,12 @@ class Parser:
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
                 self.expression()
+                if self.last_exp_res.typeof == IdentifierType.CLOSURE:
+                    print("CLOSURE :DDDDDDDDD")
+                    #load the function value ptr in rax.
+                    is_global = self.cur_environment.is_global()
+                    self.emitter.get_function_from_closure(is_global)
+                    self.evaluate_function(self.last_exp_res.value.value)
                 if self.last_exp_res.typeof == IdentifierType.FUNCTION:
                     func_obj = self.last_exp_res.value
                     if func_obj.is_variadic:
@@ -985,8 +990,10 @@ class Parser:
         parent_env = self.cur_environment.parent
         if parent_env is None:
             self.abort("Cannot get parent of global environment.")
+            
+        function_ident = Identifier(IdentifierType.FUNCTION,function)
         parent_env.add_definition(ident_name,Identifier(
-        IdentifierType.FUNCTION,function))
+        IdentifierType.CLOSURE,function_ident))
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
         self.emitter.emit_function_epilog()

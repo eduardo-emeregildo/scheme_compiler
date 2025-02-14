@@ -118,7 +118,11 @@
 ;But in the example above this one, its not the case for c1,c2,c3
 
 ;testing that closure objects are being made/ are printable
-(define (closure) 1)
+(define (closure) (display "works!"))
 (display closure)
-(define (lamb_closure) (lambda (x) (display x)))
-(display lamb_closure)
+(closure)
+(define (variadic_closure arg1 . rest) (display (car rest)))
+(display variadic_closure)
+(variadic_closure 1 2 3)
+;(define (lamb_closure) (lambda (x) (display x)))
+;(display lamb_closure)

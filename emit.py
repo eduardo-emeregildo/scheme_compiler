@@ -398,6 +398,13 @@ class Emitter:
     #8 bytes of the stack dont belong to it anymore. 
     def undo_save_rax(self,cur_environment):
         cur_environment.depth += 8
+    
+    #given a closure object is in rax, set rax to the function Value ptr        
+    def get_function_from_closure(self,is_global):
+        asm_code = []
+        asm_code.append("\tmov rax, QWORD [rax + 8]")
+        asm_code.append("\tmov rax, QWORD [rax]")
+        self.emit_to_section('\n'.join(asm_code),is_global)
         
     #used to satisfy criteria of macro in place_args. rbx holds arity and 
     # r10 holds min_args
