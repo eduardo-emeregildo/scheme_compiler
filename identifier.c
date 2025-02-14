@@ -413,16 +413,19 @@ bool is_non_ptr_type(Value *val_type)
 }
 
 /*
-performs runtime checks on a param that was used as a function. Checks if param
-is a function, and if the the function is variadic, returns a list of the varargs.
+performs runtime checks on a param that was used as a function. checks if the 
+function is variadic, returns a list of the varargs if so.
 Otherwise returns null ptr indicating that the param is non variadic
+
+since check_if_callable is called before this function, it doesnt have to check
+if object is a function
 */
-Value *check_param_function_call(long function,long *args,int arg_amount)
+Value *check_param_function_call(Value *func_obj,long *args,int arg_amount)
 {
-        Value *func_obj = (Value *)function;
-        if (!is_ptr(function) || (func_obj->type != VAL_FUNCTION)) {
-                abort_message("application not a procedure.");
-        }
+        //Value *func_obj = (Value *)function;
+        // if (!is_ptr(function) || (func_obj->type != VAL_FUNCTION)) {
+        //         abort_message("application not a procedure.");
+        // }
         int function_arity = func_obj->as.function->arity;
         if (func_obj->as.function->is_variadic) {
                 // variadic logic
@@ -443,6 +446,25 @@ Value *check_param_function_call(long function,long *args,int arg_amount)
                 exit(EXIT_FAILURE);
         }
         return NULL;
+}
+
+// checks if type is callable, i.e. a function or a closure. If its a closure,
+//returns the function obj of closure, if its a function obj, returns itself,
+//otherwise throw error
+Value *check_if_callable(long type)
+{
+        if (!is_ptr(type)) {
+                abort_message("application not a procedure.\n");
+        }
+        Value * value_type = (Value *)type;
+        if (value_type->type == VAL_FUNCTION) {
+                return value_type;
+        } else if (value_type->type == VAL_CLOSURE) {
+                return value_type->as.closure->function;
+        } else {
+                abort_message("application not a procedure.\n");
+        }
+
 }
 /*
 makes the pair obj containing the varargs. iterates the args array backwards.

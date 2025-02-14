@@ -4,9 +4,11 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-# 4. work on function calling in let/general function call/lambda with closures
-
-
+#4. work on function calling in let with closures
+    #a) make sure that the closure is being compiled, i.e. emit_identifier_to_section
+    #is passed an Identifier of type closure
+    #b) before emit_function_call_in_rax, call get_function_from_closure 
+      
 #introduce the closure object and make it so everything works after introducing
 #the objects
 #Todo4: implement closures

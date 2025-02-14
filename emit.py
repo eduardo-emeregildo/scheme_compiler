@@ -354,15 +354,25 @@ class Emitter:
         asm_code.append("\tpop rsi")
         return '\n'.join(asm_code)
     
-    #performs runtime checks against a function object by calling check_param_function_call
-    # in the runtime. Checks for arity/variadic in the runtime. 
-    # the varargs will be in rax if variadic func, else NULL will be there
+    #performs runtime checks against a Value object(the one saved by save_rax) 
+    # by first calling check_if_callable, which checks if object is callable 
+    # (i.e. function/closure). it then modifies the saved value obj to guarantee
+    #that theres a function obj there.
+    
+    #Then call check_param_function_call, which checks for arity/variadic in the 
+    # runtime. the varargs will be in rax if variadic func, else NULL will be there
     def emit_function_check(self,cur_environment,param_offset,arg_count):
+        self.add_extern("check_if_callable")
         self.add_extern("check_param_function_call")
         first_arg_offset = cur_environment.depth - 8*arg_count
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
         asm_code = []
+        asm_code.append(f"\tmov rdi, QWORD [rbp{param_offset:+}]")
+        asm_code.append("\tcall check_if_callable")
+        #now set value type saved:
+        asm_code.append(f"\tmov QWORD [rbp{param_offset:+}], rax")
+        #now call check_param_function_call:
         asm_code.append(f"\tmov rdi, QWORD [rbp{param_offset:+}]")
         asm_code.append(f"\tlea rsi, QWORD [rbp{first_arg_offset:+}]")
         #asm_code.append(f"\tlea rax, QWORD [rbp{first_arg_offset:+}]")

@@ -83,6 +83,10 @@
 ;2
 ;which indicates that there is not one reference of count, there are multiple
 
+;an example with closure in let:
+;(define (func x)(let ((a 1)) (+ a x)))
+;(func 3) should print 4, the let is capturing x
+
 ;(define (make_counter)
   ;; bind count and create a new procedure that will (when
   ;; called) increment that binding and return its value
@@ -118,11 +122,20 @@
 ;But in the example above this one, its not the case for c1,c2,c3
 
 ;testing that closure objects are being made/ are printable
-(define (closure) (display "works!"))
-(display closure)
-(closure)
-(define (variadic_closure arg1 . rest) (display (car rest)))
-(display variadic_closure)
-(variadic_closure 1 2 3)
+;(define (closure) (display "works!"))
+;(display closure)
+;(closure)
+;(define (variadic_closure arg1 . rest) (display (car rest)))
+;(display variadic_closure)
+;(variadic_closure 1 2 3)
 ;(define (lamb_closure) (lambda (x) (display x)))
 ;(display lamb_closure)
+
+;testing general function calls
+(define (add_one arg) (display (+ arg 1)))
+(define (sub_one arg) (display (- arg 1)))
+(define (change_by_one bool)(if bool add_one sub_one))
+((change_by_one #t) 3) ; should return 4
+((change_by_one #f) 3) ; should return 2
+(define (func op . args) (op args))
+(display (func car 1 2 3));should return 1

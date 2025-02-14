@@ -3,10 +3,10 @@
 ;(define (monkey a b c d e f g) g)
 
 ;(define (one_arg x y) (define (inner z) 8) (inner 1))
-;(display(one_arg 1 2))
+;(display (one_arg 1 2))
 
 ;(define (outer) (define (middle) (define (inner) 2)(inner)) (inner))
-;(outer)
+;(outer) ;should throw error, inner was defined inside on in outer's scope
 
 ;(define monkey 21)
 ;(define (one_arg x) (define f "hey") func)
@@ -37,14 +37,15 @@
 ;(display '( ()))
 ;(define (yeo x) x)
 
-;;(define (func op num) (op num 4))
+;(define (func op num) (op num))
 ;(func display 3)
 ;(define (func one two) two)
-;(func 1 2)
+;(display (func 1 2))
 ;(define (func one two three four) four)
 ;(display (func 1 2 3 4))
-;(define (func x)  (define (op y) (display x))(op x))
+;(define (func x)  (define (op y) (display y))(op x))
 ;(func 4)
+
 ;(define (yeo one two three four five six seven eight) 
         ;(define x 21)
         ;(display eight))
