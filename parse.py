@@ -4,11 +4,8 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-# 1. revise set_ith_value closure case in emitter
-# 2. edit definition_exp so it creates closure objects
-# 3. test that creating functions now works/printing them/ putting them in a vector or list
-#(Basically anything except calling them.)
-# 4. work on function calling now that closure objects are introduced
+# 4. work on function calling now that closure objects are introduced, check 
+#function calling in let
 
 
 #introduce the closure object and make it so everything works after introducing
@@ -104,6 +101,9 @@ class Parser:
     
     def evaluate_function(self,function_obj):
         self.set_last_exp_res(IdentifierType.FUNCTION,function_obj)
+    
+    def evaluate_closure(self,function_ident_obj: Identifier):
+        self.set_last_exp_res(IdentifierType.CLOSURE,function_ident_obj)
     
     def evaluate_param(self,arg_name):
         self.set_last_exp_res(IdentifierType.PARAM,arg_name)
@@ -488,7 +488,9 @@ class Parser:
         #now switch back to parent environment/ previous function
         self.emitter.set_current_function(previous_function)
         self.cur_environment = parent_env
-        self.evaluate_function(function)
+        #self.evaluate_function(function)
+        function_ident = Identifier(IdentifierType.FUNCTION,function)
+        self.evaluate_closure(function_ident)
         self.emitter.emit_identifier_to_section(self.last_exp_res,self.cur_environment)
         self.match(TokenType.EXPR_END)
         
@@ -881,7 +883,8 @@ class Parser:
             #now switch back to parent environment
             ident_name = function.get_name()
             self.cur_environment = parent_env
-            self.evaluate_function(function)
+            function_ident = Identifier(IdentifierType.FUNCTION,function)
+            self.evaluate_closure(function_ident)
             #lastly, make function object in the runtime
             self.emitter.emit_identifier_to_section(self.last_exp_res,
             self.cur_environment)

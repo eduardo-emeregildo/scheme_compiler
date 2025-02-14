@@ -34,7 +34,7 @@ void print_value_type(Value *value_obj)
                 printf("()");
                 break;
         case VAL_CLOSURE:
-                printf("function at: %p",value_obj->as.closure->function->as.function->function_ptr);
+                printf("(closure)function at: %p",value_obj->as.closure->function->as.function->function_ptr);
                 break;
         default:
                 break;
@@ -238,7 +238,6 @@ long _div(long dividend, Value* varargs) {
 double *check_and_extract_numbers(
 long value1, long value2,char *builtin_name, double untagged_values[2])
 {
-        
         if (is_int(value1)) {
                 untagged_values[0] = untag_int(value1);
         } else if (is_ptr(value1) && ((Value *)value1)->type == VAL_DOUBLE) {

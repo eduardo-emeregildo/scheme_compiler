@@ -171,7 +171,8 @@ class Emitter:
                 return '\n'.join(asm_code)
             case IdentifierType.CLOSURE:
                 #first compile the function, then the closure.
-                self.compile_identifier(ident_obj.value,cur_environment)
+                asm_code = []
+                asm_code.append(self.compile_identifier(ident_obj.value,cur_environment))
                 self.add_extern("allocate_closure")
                 self.add_extern("make_value_closure")
                 asm_code.append("\tmov rdi, rax\n\tcall allocate_closure")
