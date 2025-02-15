@@ -4,13 +4,7 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
-#4. work on function calling in let with closures
-    #a) make sure that the closure is being compiled, i.e. emit_identifier_to_section
-    #is passed an Identifier of type closure
-    #b) before emit_function_call_in_rax, call get_function_from_closure 
-      
-#introduce the closure object and make it so everything works after introducing
-#the objects
+#start implementing adding upvalues/retrieving them
 #Todo4: implement closures
 #Todo5: implement gc
 #Todo6: test compiler with different optimization levels, see which one you can
@@ -620,21 +614,29 @@ class Parser:
             self.binding_spec(function,arg_count,parent_env_depth,parent_env,previous_function)
         self.next_token()
         function_ident_obj = Identifier(IdentifierType.FUNCTION,function)
+        closure_obj = Identifier(IdentifierType.CLOSURE,function_ident_obj)
         self.emitter.emit_to_section(";before body :D", self.cur_environment.is_global())
-        if does_let_have_name:
-            #compile and add itself to its environment so it can reference itself
-            self.emitter.emit_identifier_to_section(function_ident_obj,self.cur_environment)
-            #add definition (uses let_name because this is name we want to look up)
-            self.cur_environment.add_definition(let_name,function_ident_obj)
-            offset = Environment.get_offset(self.cur_environment.symbol_table[let_name])
-            self.emitter.emit_definition(function.name,self.cur_environment.is_global(),offset)
+        
+        #compile and add itself to its environment so it can reference itself
+        #and variables it stored in the closure. In the case where user did not
+        #give the let a name, searching for upvalues is probably going to be done
+        #differently
+        self.emitter.emit_identifier_to_section(closure_obj,self.cur_environment)
+        #add definition (uses let_name because this is name we want to look up)
+        #self.cur_environment.add_definition(let_name,function_ident_obj)
+        self.cur_environment.add_definition(let_name,closure_obj)
+        offset = Environment.get_offset(self.cur_environment.symbol_table[let_name])
+        self.emitter.emit_definition(function.name,self.cur_environment.is_global(),offset)
+        
         #compile body of function
         self.body(function)
         #now switch back to old environment
         self.emitter.set_current_function(previous_function)
         self.cur_environment = parent_env
         is_global = self.cur_environment.is_global()
-        #compile function in parent so function obj is in rax:
+        #compile function in parent so function obj is in rax.
+        #Note: A Closure isnt formed here since in let expressions, the closure 
+        # will live internally.
         self.emitter.emit_to_section(";compiling let function:",is_global)
         self.emitter.emit_identifier_to_section(function_ident_obj,self.cur_environment)
         

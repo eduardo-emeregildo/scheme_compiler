@@ -11,7 +11,7 @@
 ;(display (let infinite ((y 10))  (display y) (infinite 5)))
 
 ;check that default value 10 is overriden by 1
-(define func (let x ((y 10)) (display y)x))
+(define func (let x ((y 10)) (display y) x))
 (func 1)
 
 ;checking that let with name doesnt conflict with other definitions

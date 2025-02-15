@@ -131,6 +131,26 @@
 ;(define (lamb_closure) (lambda (x) (display x)))
 ;(display lamb_closure)
 
+;closure tests with let:
+;ex1:
+;(define (func)
+  ;(define free 5)
+  ;(let named_let ((y 10))
+    ;(define local 5)
+    ;(display (+ local y free))(set! free (+ free 1)) named_let))
+;(define glob (func))
+;(glob 10); should print 20,21 and procedure
+
+
+;ex2
+;(define (func)
+  ;(define free 5)
+  ;(let named_let ((y 10))
+    ;(display free)
+    ;(set! free (+ free 1))
+    ;(if (= y 1) (display "done") (named_let (- y 1)))))
+;(func) ; should print numbers 5-14 followed by done
+
 ;testing general function calls
 (define (add_one arg) (display (+ arg 1)))
 (define (sub_one arg) (display (- arg 1)))
