@@ -151,11 +151,32 @@
     ;(if (= y 1) (display "done") (named_let (- y 1)))))
 ;(func) ; should print numbers 5-14 followed by done
 
-;testing general function calls
-(define (add_one arg) (display (+ arg 1)))
-(define (sub_one arg) (display (- arg 1)))
-(define (change_by_one bool)(if bool add_one sub_one))
-((change_by_one #t) 3) ; should return 4
-((change_by_one #f) 3) ; should return 2
-(define (func op . args) (op args))
-(display (func car 1 2 3));should return 1
+;testing that general function calls work after closure was introduced
+;(define (add_one arg) (display (+ arg 1)))
+;(define (sub_one arg) (display (- arg 1)))
+;(define (change_by_one bool)(if bool add_one sub_one))
+;((change_by_one #t) 3) ; should return 4
+;((change_by_one #f) 3) ; should return 2
+;(define (func op . args) (op args))
+;(display (func car 1 2 3));should return 1
+;nested function:
+;(define (outer) (define (inner) 1) 2)
+
+;upvalues tests:
+;(define (func op) (define (local f) (+ f op))(local 3))
+;(display (func 2))
+;(define (outer) (define local 3) (define (inner) (+ 1 local)) (inner))
+;(display (func))
+
+
+;the function inner cant reference itself, its own closure obj must be passed.
+(define (outer) (define (inner) inner) (display (inner)))
+(outer)
+
+
+;(define (func one two three) one)
+;(func 1 2 3)
+
+;after i fix the above, work on upvalues and making the below, and tests work:
+;(define (outer) (define local 3) (define (inner) (+ 1 local)) (inner))
+;(outer) ; should print out 4

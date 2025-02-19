@@ -271,7 +271,7 @@ class Emitter:
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_symbol")
         elif TYPE == IdentifierType.PARAM:
             self.add_extern("set_ith_value_unknown")
-            definition = cur_environment.find_definition(ident_obj.value)
+            definition = cur_environment.find_definition(ident_obj.value)[0]
             offset = Environment().get_offset(definition)
             asm_code.append(f"\tmov rsi, QWORD [rbp{offset:+}]")
             asm_code.append(f"\tmov rdx, {index}\n\tcall set_ith_value_unknown")
@@ -415,6 +415,29 @@ class Emitter:
         asm_code.append("\tmov rax, QWORD [rax + 8]")
         asm_code.append("\tmov rax, QWORD [rax]")
         self.emit_to_section('\n'.join(asm_code),is_global)
+        
+    #calls add_upvalue. cur_environment is the environemnt in which
+    #needs the upvalue
+    #probably needs to be rewritten
+    def emit_add_upvalue(self,ident_name,cur_environment):
+        self.add_extern("add_upvalue")
+        definition = cur_environment.symbol_table[ident_name]
+        previous_cur_function = self.cur_function
+        #self.set_current_function("outer")
+        self.set_current_function(ident_name)
+        print("PREVIOUS CUR_FUNCTION: ",previous_cur_function)
+        print("CUR_FUNCTION: ",self.cur_function)
+        is_global = cur_environment.is_global()
+        env_depth = abs(cur_environment.depth)
+        self.emit_var_to_local(ident_name,definition)
+        asm_code = []
+        self.subtract_rsp(env_depth,is_global)
+        asm_code.append("\tmov rdi, rax")
+        asm_code.append(f"\tmov rsi, QWORD [rbp{definition[0]}]")
+        asm_code.append(f"\tmov rdx, {definition[0]}\n\tcall add_upvalue")
+        self.emit_to_section('\n'.join(asm_code),is_global)
+        self.add_rsp(env_depth,is_global)
+        self.set_current_function(previous_cur_function)
         
     #used to satisfy criteria of macro in place_args. rbx holds arity and 
     # r10 holds min_args

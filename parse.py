@@ -4,7 +4,14 @@ from emit import *
 from environment import *
 from function import *
 from scheme_builtins import *
+
+#make all user defined functions so that they can reference themselves. I think it
+#has to be implicitly passed. What you are passing is the closure object.
+
 #start implementing adding upvalues/retrieving them
+#first handle normal closures, then handle the anonymous ones (i.e. lambda/let)
+#how will lambdas search for upvalues??? 
+
 #Todo4: implement closures
 #Todo5: implement gc
 #Todo6: test compiler with different optimization levels, see which one you can
@@ -163,10 +170,22 @@ class Parser:
         elif self.check_token(TokenType.IDENTIFIER):
             print("EXPRESSION-VARIABLE")
             is_global = self.cur_environment.is_global()
-            definition = self.cur_environment.find_definition(
+            definition_result = self.cur_environment.find_definition(
             self.cur_token.text)
+            definition = definition_result[0]
+            is_upvalue = definition_result[1]
             def_ident_obj = Environment.get_ident_obj(definition)
+            print("DEFINITION IS: ",definition)
+            print("is_upvalue is: ",is_upvalue)
             self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
+            # if is_upvalue:
+            #     print("in is_upvalue, cur_function is: ",self.emitter.cur_function)
+            #     #search upvalue and put result in rax
+            #     #how can i reference the exact closure obj that was defined in
+            #     #outer? 
+            #     #perhaps its own closure obj should be added as a param
+            #     #this would then be how all functions refer to their own object
+            
             if is_global:
                 self.emitter.emit_var_to_global(self.cur_token.text,definition)
             else:
