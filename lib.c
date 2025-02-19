@@ -34,7 +34,9 @@ void print_value_type(Value *value_obj)
                 printf("()");
                 break;
         case VAL_CLOSURE:
-                printf("(closure)function at: %p",value_obj->as.closure->function->as.function->function_ptr);
+                printf("(closure at %p). function at: %p",
+                value_obj->as.closure,
+                value_obj->as.closure->function->as.function->function_ptr);
                 break;
         default:
                 break;

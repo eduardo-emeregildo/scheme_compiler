@@ -409,11 +409,21 @@ class Emitter:
     def undo_save_rax(self,cur_environment):
         cur_environment.depth += 8
     
-    #given a closure object is in rax, set rax to the function Value ptr        
-    def get_function_from_closure(self,is_global):
+    # #given a closure object is in rax, set rax to the function Value ptr        
+    # def get_function_from_closure(self,is_global):
+    #     asm_code = []
+    #     asm_code.append("\tmov rax, QWORD [rax + 8]")
+    #     asm_code.append("\tmov rax, QWORD [rax]")
+    #     self.emit_to_section('\n'.join(asm_code),is_global)
+    
+    #given a stack offset of where the closure object is stored, edits the stack
+    #location so that the function value ptr takes its place
+    def get_function_from_closure(self,offset,is_global):
         asm_code = []
+        asm_code.append(f"\tmov rax, QWORD [rbp{offset:+}]")
         asm_code.append("\tmov rax, QWORD [rax + 8]")
         asm_code.append("\tmov rax, QWORD [rax]")
+        asm_code.append(f"\tmov QWORD [rbp{offset:+}], rax")
         self.emit_to_section('\n'.join(asm_code),is_global)
         
     #calls add_upvalue. cur_environment is the environemnt in which

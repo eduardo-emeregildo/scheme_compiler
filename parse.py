@@ -5,6 +5,8 @@ from environment import *
 from function import *
 from scheme_builtins import *
 
+#make general_function calls able to reference themselves.
+
 #make all user defined functions so that they can reference themselves. I think it
 #has to be implicitly passed. What you are passing is the closure object.
 
@@ -292,8 +294,11 @@ class Parser:
                 if self.last_exp_res.typeof == IdentifierType.CLOSURE:
                     print("CLOSURE :DDDDDDDDD")
                     #load the function value ptr in rax.
-                    is_global = self.cur_environment.is_global()
-                    self.emitter.get_function_from_closure(is_global)
+                    #is_global = self.cur_environment.is_global()
+                    #self.emitter.get_function_from_closure(is_global)
+                    
+                    #if its not a builtin, first add the closure as the arg,
+                    #then make rax be the function value ptr
                     self.evaluate_function(self.last_exp_res.value.value)
                 if self.last_exp_res.typeof == IdentifierType.FUNCTION:
                     func_obj = self.last_exp_res.value
@@ -401,6 +406,16 @@ class Parser:
         #subtract environment's depth temporarily to compute the args without 
         #overwritting the stack,i.e. the local definitions
         self.cur_environment.depth -= func_obj.arity*8
+        if not is_builtin:
+            arg_count += 1
+            #push the 'self' arg, which is the closure.
+            self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
+            self.emitter.emit_to_section(";^added self arg",is_global)
+            #now edit the saved closure obj (was saved by save_rax) to be the function
+            #value_ptr:
+            self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
+            self.emitter.get_function_from_closure(env_depth,is_global)
+            self.emitter.emit_to_section(";done editing closure obj",is_global)
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
             arg_count += 1
@@ -412,7 +427,7 @@ class Parser:
         self.cur_environment.depth += func_obj.arity*8
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
-                f"{func_obj.name} requires {str(func_obj.arity)} arguments.")
+                f"{func_obj.name} requires {str(func_obj.arity - 1)} arguments.")
         self.place_args_and_call_function(
         env_depth,is_global,arg_count,func_obj,is_builtin)
         if not is_builtin:
@@ -432,6 +447,19 @@ class Parser:
         old_env_depth = self.cur_environment.depth
         min_args = func_obj.arity - 1
         variadic_args = []
+        
+        if not is_builtin:
+            arg_count += 1
+            #push the 'self' arg, which is the closure.
+            self.emitter.push_arg(arg_count,old_env_depth,is_global)
+            self.emitter.emit_to_section(";^added self arg",is_global)
+            #now edit the saved closure obj (was saved by save_rax) to be the function
+            #value_ptr:
+            self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
+            self.emitter.get_function_from_closure(old_env_depth,is_global)
+            self.emitter.emit_to_section(";done editing closure obj",is_global)
+            self.cur_environment.depth -= 8
+            
         #push args to stack to store while each arg gets evaluated
         while not self.check_token(TokenType.EXPR_END):
             arg_count += 1
@@ -440,7 +468,7 @@ class Parser:
             self.cur_environment.depth -= 8
         if arg_count < min_args:
             self.abort(f"Arity mismatch. {func_obj.name} requires at least" + 
-            f" {min_args} arguments")
+            f" {min_args-1} arguments")
         #now make varargs list
         self.emitter.emit_make_arg_list(
         min_args,func_obj.arity,arg_count,old_env_depth,is_global)
@@ -965,6 +993,19 @@ class Parser:
             self.emitter.emit_function_prolog()
             self.next_token()
             arg_count = 0
+            #for the "self" param, so internally the function can reference its closure
+            function.add_param(function.name)
+            arg_count += 1
+            #self.add_param_to_env(arg_count)
+            
+            #instead of calling add_param_to_env, add the self param
+            #as a closure since type is known at compile time. 
+            # This will lead to better performance since runtime doesnt have to 
+            # check types for this param.
+            self.cur_environment.add_definition(function.name,
+            Identifier(IdentifierType.CLOSURE,Identifier(IdentifierType.FUNCTION,function)))
+            self.emitter.emit_register_param(arg_count)
+            self.emitter.emit_function(";line above is 'self' arg")
             while not self.check_token(TokenType.EXPR_END):
                 if self.check_token(TokenType.DOT):
                     print("DOT")

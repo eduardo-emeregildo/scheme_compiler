@@ -170,12 +170,27 @@
 
 
 ;the function inner cant reference itself, its own closure obj must be passed.
-(define (outer) (define (inner) inner) (display (inner)))
-(outer)
+;(define (outer) (define (inner) inner) (display (inner)))
+;(outer)
 
 
-;(define (func one two three) one)
-;(func 1 2 3)
+;normal functions can reference themselves
+(define (func one two three) func)
+(display (func 1 2 3))
+(display func)
+
+
+
+;testing that variadic functions can reference themselves
+(define (variadic_func one two . three) (display variadic_func)(display three))
+(variadic_func 1 2 3 4 5 6)
+(variadic_func 7 8)
+
+;infinite
+;(define (fank arg) (fank arg))
+;(fank 1)
+
+;testing that general function calls can reference themselves
 
 ;after i fix the above, work on upvalues and making the below, and tests work:
 ;(define (outer) (define local 3) (define (inner) (+ 1 local)) (inner))
