@@ -37,8 +37,8 @@ def main():
     emitter.writeFile() # Write the output to file.
     os.system("nasm -f elf64 -g -F dwarf out.asm")
     # final version wont have this
-    os.system("gcc -c identifier.c")
-    os.system("gcc -c lib.c")
-    os.system("gcc out.o identifier.o lib.o -lm -o out -no-pie -z noexecstack")
+    os.system("gcc -Wall -c identifier.c")
+    os.system("gcc -Wall -c lib.c")
+    os.system("gcc -Wall out.o identifier.o lib.o -lm -o out -no-pie -z noexecstack")
     print("Compiling completed.")
 main()

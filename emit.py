@@ -1,5 +1,4 @@
 from environment import *
-from scheme_builtins import *
 from enum import Enum
 import sys
 # Emitter object keeps track of the generated main_code and outputs it.
@@ -384,7 +383,7 @@ class Emitter:
         self.add_rsp(env_depth + 8*arg_count,is_global)
     
     #checks if result of check_param_function_call(which is in rax) is null or not.    
-    def emit_variadic_check(self,is_global):
+    def emit_zero_check(self,is_global):
         self.emit_to_section("\tcmp rax, 0",is_global)
     
     #checks if rax is false the false object (i.e. the value 2)
@@ -402,7 +401,7 @@ class Emitter:
         env_depth = cur_environment.depth
         is_global = cur_environment.is_global()
         self.emit_to_section(
-        f"\tmov QWORD [rbp{env_depth:+}], rax ;save function object to stack",is_global)
+        f"\tmov QWORD [rbp{env_depth:+}], rax ;saved rax to stack",is_global)
 
     # with the depth increased, in the environment's eyes, the last
     #8 bytes of the stack dont belong to it anymore. 
@@ -425,6 +424,15 @@ class Emitter:
         asm_code.append("\tmov rax, QWORD [rax]")
         asm_code.append(f"\tmov QWORD [rbp{offset:+}], rax")
         self.emit_to_section('\n'.join(asm_code),is_global)
+    
+    
+    def emit_is_closure(self,env_depth,callable_obj_depth,is_global):
+        self.add_extern("is_closure")
+        self.subtract_rsp(abs(env_depth),is_global)
+        self.emit_to_section(
+        f"\tmov rdi, QWORD [rbp{callable_obj_depth:+}]\n\tcall is_closure",is_global)
+        self.add_rsp(abs(env_depth),is_global)
+
         
     #calls add_upvalue. cur_environment is the environemnt in which
     #needs the upvalue
@@ -574,18 +582,28 @@ class Emitter:
         f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax",
         is_global)
     
-    #for adjusting rsp after setting up args for a function
+    #for adjusting rsp after setting up args for a function. accounts for stack alignment
     def subtract_rsp(self,amount,is_global):
         if amount == 0:
             print("Subtracting rsp with 0 amount")
             return
-        self.emit_to_section(f"\tsub rsp, {amount}",is_global)
+        #accounting for stack alignment:
+        bytes_misaligned = amount % 16
+        if bytes_misaligned == 0:
+            self.emit_to_section(f"\tsub rsp, {amount}",is_global)
+        else:
+            self.emit_to_section(f"\tsub rsp, {amount + bytes_misaligned}",is_global)
     
     def add_rsp(self,amount,is_global):
         if amount == 0:
             print("Adding rsp with 0 amount")
             return
-        self.emit_to_section(f"\tadd rsp, {amount}",is_global)
+        #accounting for stack alignment:
+        bytes_misaligned = amount % 16
+        if bytes_misaligned == 0:    
+            self.emit_to_section(f"\tadd rsp, {amount}",is_global)
+        else:
+            self.emit_to_section(f"\tadd rsp, {amount + bytes_misaligned}",is_global)
     
     #given arity, subtract rsp so it points to the correct spot:
     def subtract_rsp_given_arity(self,function_arity,env_depth,is_global):
@@ -603,8 +621,8 @@ class Emitter:
         else:
             self.add_rsp(abs(env_depth),is_global)
     
-    #emits asm for evaluating a builtin function(just the name as an exp)
-    def emit_builtin_function(self,builtin_name,is_global):
+    #emits asm for evaluating a builtin closure(just the name as an exp)
+    def emit_builtin_closure(self,builtin_name,is_global):
         self.emit_to_section(f"\tmov rax, {builtin_name}",is_global)
     
     #check if value in rax is a value object of type function

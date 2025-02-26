@@ -1,5 +1,5 @@
 from enum import Enum
-from scheme_builtins import BUILTINS
+from environment import BUILTINS,Identifier,IdentifierType
 import sys
 
 class Lexer:

@@ -448,23 +448,26 @@ Value *check_param_function_call(Value *func_obj,long *args,int arg_amount)
         return NULL;
 }
 
-// checks if type is callable, i.e. a function or a closure. If its a closure,
-//returns the function obj of closure, if its a function obj, returns itself,
-//otherwise throw error
+// checks if type is callable, i.e if its a closure. If its a closure,
+//returns the function obj of closure, otherwise throws an error
 Value *check_if_callable(long type)
 {
         if (!is_ptr(type)) {
                 abort_message("application not a procedure.\n");
         }
-        Value * value_type = (Value *)type;
-        if (value_type->type == VAL_FUNCTION) {
-                return value_type;
-        } else if (value_type->type == VAL_CLOSURE) {
-                return value_type->as.closure->function;
-        } else {
+        Value *value_type = (Value *)type;
+        if (value_type->type != VAL_CLOSURE) {
                 abort_message("application not a procedure.\n");
         }
+        return value_type->as.closure->function;
+}
 
+bool is_closure(long type)
+{
+        if (is_ptr(type) && ((Value *)type)->type == VAL_CLOSURE) {
+                return true;
+        }
+        return false;
 }
 /*
 makes the pair obj containing the varargs. iterates the args array backwards.
@@ -532,27 +535,27 @@ Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
         return vararg_list;
 }
 
-void add_upvalue(Value *closure,long value, int offset)
-{
-        if (closure->type != VAL_CLOSURE) {
-                abort_message("adding upvalue, not a closure.\n");
-        }
-        //check size of upvalues, if multiple of 4, resize
-        int upvalue_count = closure->as.closure->num_upvalues; 
-        if (upvalue_count != 0 && (upvalue_count & 0x3 == 0)) {
-                printf("Resizing:\n");
-                int new_size = sizeof(struct UpvalueObj) * ((upvalue_count) * 2);
-                struct UpvalueObj* new_upvalues = (struct UpvalueObj *)malloc(new_size);
-                memcpy(new_upvalues,closure->as.closure->upvalues,upvalue_count);
-                free(closure->as.closure->upvalues);
-                closure->as.closure->upvalues = new_upvalues;
-        }
-        closure->as.closure->upvalues[upvalue_count].offset = offset;
-        closure->as.closure->upvalues[upvalue_count].value = value;
-        closure->as.closure->num_upvalues++;
-}
+// void add_upvalue(Value *closure,long value, int offset)
+// {
+//         if (closure->type != VAL_CLOSURE) {
+//                 abort_message("adding upvalue, not a closure.\n");
+//         }
+//         //check size of upvalues, if multiple of 4, resize
+//         int upvalue_count = closure->as.closure->num_upvalues; 
+//         if (upvalue_count != 0 && (upvalue_count & 0x3 == 0)) {
+//                 printf("Resizing:\n");
+//                 int new_size = sizeof(struct UpvalueObj) * ((upvalue_count) * 2);
+//                 struct UpvalueObj* new_upvalues = (struct UpvalueObj *)malloc(new_size);
+//                 memcpy(new_upvalues,closure->as.closure->upvalues,upvalue_count);
+//                 free(closure->as.closure->upvalues);
+//                 closure->as.closure->upvalues = new_upvalues;
+//         }
+//         closure->as.closure->upvalues[upvalue_count].offset = offset;
+//         closure->as.closure->upvalues[upvalue_count].value = value;
+//         closure->as.closure->num_upvalues++;
+// }
 
-long get_upvalue()
-{
-        //implement
-}
+// long get_upvalue()
+// {
+//         //implement
+// }

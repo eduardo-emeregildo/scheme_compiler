@@ -10,14 +10,15 @@
 (display (sum 5.0)) ;15.0
 (display (sum 1))
 
-(define (fact n)
-    (if (= n 1)
-    n
-    (* n (fact (- n 1)))))
 
-(display (fact 1))
-(display (fact 2))
-(display (fact 3))
-(display (fact 5))
+;(define (fact n)
+    ;(if (= n 1)
+    ;n
+    ;(* n (fact (- n 1)))))
+
+;(display (fact 1))
+;(display (fact 2))
+;(display (fact 3))
+;(display (fact 5))
 
 

@@ -175,22 +175,63 @@
 
 
 ;normal functions can reference themselves
-(define (func one two three) func)
-(display (func 1 2 3))
-(display func)
+;(define (func one two three) func)
+;(display (func 1 2 3))
+;(display func)
 
 
 
 ;testing that variadic functions can reference themselves
-(define (variadic_func one two . three) (display variadic_func)(display three))
-(variadic_func 1 2 3 4 5 6)
-(variadic_func 7 8)
+;(define (variadic_func one two . three) (display variadic_func)(display three))
+;(variadic_func 1 2 3 4 5 6)
+;(variadic_func 7 8)
 
 ;infinite
 ;(define (fank arg) (fank arg))
 ;(fank 1)
 
 ;testing that general function calls can reference themselves
+;(define (add_one arg) (display (+ arg 1)))
+;(define (sub_one arg) (display (- arg 1)))
+;(define (change_by_one bool) (if bool add_one sub_one))
+;(define (add_or_sub bool) (if bool + -))
+;((change_by_one #t) 3) ; should return 4
+;(display ((add_or_sub #t) 1 2))
+;(display ((add_or_sub #f) 1 2))
+
+;(+ 3 2.5)
+(display 10.37)
+;2.5
+;(display 2.5)
+;(= 2.5 2.5)
+;(display '(1 2 3))
+
+;(define (func one) (display 3.5))
+;(func 1)
+
+;(define (func one two three four five six . seven) seven)
+;(func 1 2 3 4 5 6 7)
+
+;testing that builtins work after changing them to closures
+;non-variadic
+;(display 2)
+;(display (= 3 2))
+;(display (= 3 3))
+;(display (cdr '(1 2 3 4 5)))
+;(display (list? '(1 2)))
+;(display (list? '(1 . 2)))
+;;variadic
+;(display "variadic tests:")
+;(display (+ 1 2 3))
+;(display (- 5 3))
+;(display (append '(1 2) '(3 4)))
+;(display (* 5 4 3 2))
+;
+;(display "general function calling:")
+;(define (func op) (op 1 2))
+;(display (func +))
+;(display (func -))
+;(display (func =))
 
 ;after i fix the above, work on upvalues and making the below, and tests work:
 ;(define (outer) (define local 3) (define (inner) (+ 1 local)) (inner))

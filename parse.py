@@ -3,9 +3,21 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
-from scheme_builtins import *
 
-#make general_function calls able to reference themselves.
+#fix stack alignment problems for variadic/general functions, look at every instance
+#that subtract_rsp is used and see if it should stay or be replaced with with
+#subtract_rsp_absolute
+
+
+
+#this becomes tricky when dealing with functions that have some args on the stack.
+#Take a look at what the code in stack_alignment.c outputs in compiler explorer.
+
+#do some more tests on general_function_call on both builtins and user closures.
+#make sure all test files pass (basic_programs failing)
+
+#after make a commit for changing builtins and continue with upvalue stuff
+
 
 #make all user defined functions so that they can reference themselves. I think it
 #has to be implicitly passed. What you are passing is the closure object.
@@ -202,10 +214,10 @@ class Parser:
         elif self.check_token(TokenType.BUILTIN):
             print("BUILTIN")
             is_global = self.cur_environment.is_global()
-            builtin_function = BUILTINS[self.cur_token.text]
+            builtin_closure = BUILTINS[self.cur_token.text]
             self.emitter.add_extern(self.cur_token.text)
-            self.emitter.emit_builtin_function(self.cur_token.text,is_global)
-            self.set_last_exp_res(IdentifierType.FUNCTION,builtin_function)
+            self.emitter.emit_builtin_closure(self.cur_token.text,is_global)
+            self.last_exp_res = builtin_closure
             self.next_token()
 
         elif self.check_token(TokenType.EXPR_START):
@@ -300,12 +312,12 @@ class Parser:
                     #if its not a builtin, first add the closure as the arg,
                     #then make rax be the function value ptr
                     self.evaluate_function(self.last_exp_res.value.value)
-                if self.last_exp_res.typeof == IdentifierType.FUNCTION:
-                    func_obj = self.last_exp_res.value
-                    if func_obj.is_variadic:
-                        self.variadic_function_call(func_obj)
-                    else:
-                        self.function_call(func_obj)
+                    if self.last_exp_res.typeof == IdentifierType.FUNCTION:
+                        func_obj = self.last_exp_res.value
+                        if func_obj.is_variadic:
+                            self.variadic_function_call(func_obj)
+                        else:
+                            self.function_call(func_obj)
                 else:
                     self.general_function_call()
         else:
@@ -321,7 +333,17 @@ class Parser:
         ";general function call start",self.cur_environment.is_global())
         #save rax temporarily to perform checks on it later
         self.emitter.save_rax(self.cur_environment)
+        
+        #these two are the same value, but the different names are for context
+        callable_obj_depth = self.cur_environment.depth
         env_depth = self.cur_environment.depth
+    
+        arg_count += 1
+        self.emitter.emit_to_section(
+        ";general_function_call,storing self arg on line below:",is_global)
+        self.emitter.push_arg(arg_count,env_depth,is_global)
+        self.cur_environment.depth -= 8
+        
         #evaluates the args
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
@@ -333,8 +355,8 @@ class Parser:
         
         # now perform runtime checks to see if  operator is a function/ 
         # what kind of function
-        self.emitter.emit_function_check(self.cur_environment,env_depth,arg_count)
-        self.emitter.emit_variadic_check(is_global)
+        self.emitter.emit_function_check(self.cur_environment,callable_obj_depth,arg_count)
+        self.emitter.emit_zero_check(is_global)
         variadic_label = self.emitter.emit_conditional_jump("!=",is_global)
         #now put args in the right place for non variadic case
         #-8 is offset of last arg (assuming env depth is 0)
@@ -363,8 +385,7 @@ class Parser:
         
     #places args in correct registers for function call and emits a function call
     #This is a helper for function_call.
-    def place_args_and_call_function(
-        self,env_depth,is_global,arg_count,func_obj,is_builtin):
+    def place_args_and_call_function(self,env_depth,is_global,arg_count,func_obj):
         for cur_arg in range(arg_count):
             if cur_arg < 6:
                 self.emitter.emit_register_arg(
@@ -377,10 +398,7 @@ class Parser:
         # there is stuff to preserve on the stack(AKA if depth != 0)
         if arg_count < 6:
             self.emitter.subtract_rsp(abs(env_depth),is_global)
-        if is_builtin:
-            self.emitter.emit_builtin_call(func_obj.name,is_global)
-        else:
-            self.emitter.emit_function_call(env_depth,is_global)
+        self.emitter.emit_function_call(env_depth,is_global)
         #add back the rsp
         if arg_count > 6:
             self.emitter.add_rsp(seventh_arg_offset,is_global)
@@ -395,27 +413,24 @@ class Parser:
     #the function that was called
     def function_call(self,func_obj):
         print("FUNCTION CALL")
-        is_builtin = False
-        if func_obj.name in BUILTINS:
-            is_builtin = True
-        if not is_builtin:
-            self.emitter.save_rax(self.cur_environment)
+        self.emitter.save_rax(self.cur_environment)
         arg_count = 0
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
         #subtract environment's depth temporarily to compute the args without 
         #overwritting the stack,i.e. the local definitions
         self.cur_environment.depth -= func_obj.arity*8
-        if not is_builtin:
-            arg_count += 1
-            #push the 'self' arg, which is the closure.
-            self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
-            self.emitter.emit_to_section(";^added self arg",is_global)
-            #now edit the saved closure obj (was saved by save_rax) to be the function
-            #value_ptr:
-            self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
-            self.emitter.get_function_from_closure(env_depth,is_global)
-            self.emitter.emit_to_section(";done editing closure obj",is_global)
+        
+        #adding the self arg of the closure:
+        arg_count += 1
+        self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
+        self.emitter.emit_to_section(";^added self arg",is_global)
+        #now edit the saved closure obj (was saved by save_rax) to be the function
+        #value_ptr:
+        self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
+        self.emitter.get_function_from_closure(env_depth,is_global)
+        self.emitter.emit_to_section(";done editing closure obj",is_global)
+        
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
             arg_count += 1
@@ -428,37 +443,28 @@ class Parser:
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
                 f"{func_obj.name} requires {str(func_obj.arity - 1)} arguments.")
-        self.place_args_and_call_function(
-        env_depth,is_global,arg_count,func_obj,is_builtin)
-        if not is_builtin:
-            self.emitter.undo_save_rax(self.cur_environment)
+        self.place_args_and_call_function(env_depth,is_global,arg_count,func_obj)
+        self.emitter.undo_save_rax(self.cur_environment)
         self.evaluate_function_call(func_obj.name)
         self.next_token()
     
     def variadic_function_call(self,func_obj):
         print("VARIADIC FUNCTION CALL")
-        is_builtin = False
-        if func_obj.name in BUILTINS:
-            is_builtin = True
-        if not is_builtin:
-            self.emitter.save_rax(self.cur_environment)
+        self.emitter.save_rax(self.cur_environment)
         arg_count = 0
         is_global = self.cur_environment.is_global()
         old_env_depth = self.cur_environment.depth
         min_args = func_obj.arity - 1
-        variadic_args = []
-        
-        if not is_builtin:
-            arg_count += 1
-            #push the 'self' arg, which is the closure.
-            self.emitter.push_arg(arg_count,old_env_depth,is_global)
-            self.emitter.emit_to_section(";^added self arg",is_global)
-            #now edit the saved closure obj (was saved by save_rax) to be the function
-            #value_ptr:
-            self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
-            self.emitter.get_function_from_closure(old_env_depth,is_global)
-            self.emitter.emit_to_section(";done editing closure obj",is_global)
-            self.cur_environment.depth -= 8
+        #adding self arg of the closure
+        arg_count += 1
+        self.emitter.push_arg(arg_count,old_env_depth,is_global)
+        self.emitter.emit_to_section(";^added self arg",is_global)
+        #now edit the saved closure obj (was saved by save_rax) to be the function
+        #value_ptr:
+        self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
+        self.emitter.get_function_from_closure(old_env_depth,is_global)
+        self.emitter.emit_to_section(";done editing closure obj",is_global)
+        self.cur_environment.depth -= 8
             
         #push args to stack to store while each arg gets evaluated
         while not self.check_token(TokenType.EXPR_END):
@@ -482,13 +488,10 @@ class Parser:
                 cur_arg,old_env_depth,is_global,func_obj.arity)
         self.emitter.subtract_rsp_given_arity(func_obj.arity,old_env_depth,is_global)
         #now call function
-        if is_builtin:
-            self.emitter.emit_builtin_call(func_obj.name,is_global)
-        else:
-            self.emitter.emit_function_call(old_env_depth,is_global)
+        self.emitter.emit_function_call(old_env_depth,is_global)
+        #restore rsp/environment depths after function call:
         self.emitter.add_rsp_given_arity(func_obj.arity,old_env_depth,is_global)
-        if not is_builtin:
-            self.emitter.undo_save_rax(self.cur_environment)
+        self.emitter.undo_save_rax(self.cur_environment)
         self.evaluate_function_call(func_obj.name)
         self.next_token()
         

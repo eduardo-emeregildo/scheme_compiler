@@ -1,8 +1,8 @@
 import sys
 from enum import Enum
 from function import *
-from scheme_builtins import BUILTINS
 LINUX_CALLING_CONVENTION = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
+
 class IdentifierType(Enum):
     CHAR = 0
     STR = 1
@@ -32,6 +32,82 @@ class Identifier:
         
     def is_compound_type(self):
         return self.typeof == IdentifierType.PAIR or self.typeof == IdentifierType.VECTOR
+
+#All the builtins as closures
+BUILTINS = {    
+    "DISPLAY": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("DISPLAY",["self","item"],2,False))),
+    "ADDITION": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("ADDITION",["self","args"],2,True))),
+    "SUBTRACTION": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("SUBTRACTION",["self","minuend","varargs"],3,True))),
+    "MULT": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("MULT",["self","param_list"],2,True))),
+    "DIVISION": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("DIVISION",["self","dividend","varargs"],3,True))),
+    "EQUAL_SIGN": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("EQUAL_SIGN",["self","value1","value2"],3,False))),
+    "GREATER": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("GREATER",["self","value1","value2"],3,False))),
+    "GREATER_EQUAL": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("GREATER_EQUAL",["self","value1","value2"],3,False))),
+    "LESS": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("LESS",["self","value1","value2"],3,False))),
+    "LESS_EQUAL": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("LESS_EQUAL",["self","value1","value2"],3,False))),
+    "CAR": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("CAR",["self","type"],2,False))),
+    "CDR": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("CDR",["self","type"],2,False))),
+    "NULLQ": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("NULLQ",["self","type"],2,False))),
+    "EQ": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("EQ",["self","value1","value2"],3,False))),
+    "EQV": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("EQ",["self","value1","value2"],3,False))),
+    "EQUAL": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("EQUAL",["self","value1","value2"],3,False))),
+    "APPEND": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("APPEND",["self","varargs"],2,True))),
+    "MAKE_VECTOR": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("MAKE_VECTOR",["self","size","init_value"],3,False))),
+    "VECTOR_REF": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("VECTOR_REF",["self","vector","position"],3,False))),
+    "VECTOR_LENGTH": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("VECTOR_LENGTH",["self","vector"],2,False))),
+    "VECTOR_SET": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("VECTOR_SET",["self","vector","position","new_val"],4,False))),
+    "PAIRQ": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("PAIRQ",["self","val"],2,False))),
+    "LISTQ": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("LISTQ",["self","val"],2,False))),
+    "VECTORQ": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("VECTORQ",["self","val"],2,False))),
+}
     
 
 #Below This is how lexical scoping will be handled. symbol_table is a dictionary

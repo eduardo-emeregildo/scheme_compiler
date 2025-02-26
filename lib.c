@@ -14,6 +14,10 @@ void print_value_type(Value *value_obj)
                 break;
         case VAL_DOUBLE:
                 printf("%lf",value_obj->as._double);
+
+                //double ok = value_obj->as._double;
+                
+                //printf("%lf",ok);
                 break;
         case VAL_BOOLEAN:
                 printf("0x%ld",remove_tag(value_obj->as.tagged_type));
@@ -88,12 +92,11 @@ void print_vector(Value *value_obj)
         }
         printf(")");
 }
-void _display(void *type)
+void _display(long self,void *type)
 {
         long long_type = (long)type;
         if (is_ptr(long_type)) {
                 print_value_type((Value *)type);
-
         } else if (is_int(long_type)) {
                 printf("%ld", untag_int(long_type));
         } else if (is_bool(long_type)) {
@@ -107,7 +110,7 @@ void _display(void *type)
         printf("\n");
 }
 
-long _add(Value *param_list)
+long _add(long self,Value *param_list)
 {
         if (param_list->type == VAL_EMPTY_LIST) {
                 return make_tagged_int(0);
@@ -135,7 +138,7 @@ long _add(Value *param_list)
 
 }
 
-long _sub(long minuend,Value *varargs)
+long _sub(long self,long minuend,Value *varargs)
 {       
         bool is_res_double = false;
         double minuend_value;
@@ -149,7 +152,7 @@ long _sub(long minuend,Value *varargs)
                 abort_message("in -. Expected a number.\n");
         }
 
-        long substrahend = _add(varargs);
+        long substrahend = _add(self,varargs);
         if (is_int(substrahend)) {
                 substrahend_value = untag_int(substrahend);
         } else {
@@ -169,7 +172,7 @@ long _sub(long minuend,Value *varargs)
         return make_tagged_int(minuend_value - substrahend_value);
 }
 
-long _mul(Value *param_list)
+long _mul(long self,Value *param_list)
 {
         if (param_list->type == VAL_EMPTY_LIST) {
                 return make_tagged_int(1);
@@ -199,7 +202,8 @@ long _mul(Value *param_list)
         return make_tagged_int(product);
 }
 
-long _div(long dividend, Value* varargs) {
+long _div(long self,long dividend, Value* varargs)
+{
         bool is_res_double = false;
         double dividend_value;
         double divisor_value;
@@ -212,7 +216,7 @@ long _div(long dividend, Value* varargs) {
                 abort_message("in /. Expected a number.\n");
         }
 
-        long divisor = _mul(varargs);
+        long divisor = _mul(self,varargs);
         if (is_int(divisor)) {
                 divisor_value = untag_int(divisor);
         } else {
@@ -260,7 +264,7 @@ long value1, long value2,char *builtin_name, double untagged_values[2])
         return untagged_values;
 }
 
-long _equal_sign(long value1,long value2)
+long _equal_sign(long self,long value1,long value2)
 {
         double untagged_values[2];
         check_and_extract_numbers(value1,value2,"=",untagged_values);
@@ -270,7 +274,7 @@ long _equal_sign(long value1,long value2)
         return SCHEME_FALSE;
 }
 
-long _greater(long value1,long value2)
+long _greater(long self,long value1,long value2)
 {
         double untagged_values[2];
         check_and_extract_numbers(value1,value2,">",untagged_values);
@@ -280,7 +284,7 @@ long _greater(long value1,long value2)
         return SCHEME_FALSE;
 }
 
-long _greater_equal(long value1,long value2)
+long _greater_equal(long self,long value1,long value2)
 {
         double untagged_values[2];
         check_and_extract_numbers(value1,value2,">=",untagged_values);
@@ -290,7 +294,7 @@ long _greater_equal(long value1,long value2)
         return SCHEME_FALSE;
 }
 
-long _less(long value1,long value2)
+long _less(long self,long value1,long value2)
 {
         double untagged_values[2];
         check_and_extract_numbers(value1,value2,"<",untagged_values);
@@ -300,7 +304,7 @@ long _less(long value1,long value2)
         return SCHEME_FALSE;
 }
 
-long _less_equal(long value1,long value2)
+long _less_equal(long self,long value1,long value2)
 {
         double untagged_values[2];
         check_and_extract_numbers(value1,value2,"<=",untagged_values);
@@ -310,7 +314,7 @@ long _less_equal(long value1,long value2)
         return SCHEME_FALSE;
 }
 
-long _car(long type)
+long _car(long self,long type)
 {
         if (!is_ptr(type)) {
                 abort_message("in car. Expected a pair.\n");
@@ -326,7 +330,7 @@ long _car(long type)
         return type_car->as.tagged_type;
 }
 
-long _cdr(long type)
+long _cdr(long self,long type)
 {
         if (!is_ptr(type)) {
                 abort_message("in cdr. Expected a pair.\n");
@@ -342,7 +346,7 @@ long _cdr(long type)
         return type_cdr->as.tagged_type;
 }
 
-long _null(long type)
+long _null(long self,long type)
 {       
         if (!is_ptr(type)) {
                 return SCHEME_FALSE;
@@ -353,7 +357,7 @@ long _null(long type)
         return SCHEME_FALSE;
 }
 
-long _eq(long value1,long value2)
+long _eq(long self,long value1,long value2)
 {
         bool is_val1_ptr = is_ptr(value1);
         bool is_val2_ptr = is_ptr(value2);
@@ -377,7 +381,7 @@ long _eq(long value1,long value2)
 for structural equality. when values are not string,list,vector symbol, 
 does the same thing as eqv?. otherwise check elt by elt the values
 */
-long _equal(long value1,long value2)
+long _equal(long self,long value1,long value2)
 {
         bool is_val1_ptr = is_ptr(value1);
         bool is_val2_ptr = is_ptr(value2);
@@ -385,7 +389,7 @@ long _equal(long value1,long value2)
         if (is_val1_ptr != is_val2_ptr) {
                 return SCHEME_FALSE;
         } else if (!is_val1_ptr) {
-                res = _eq(value1, value2);
+                res = _eq(self,value1, value2);
         } else {
                 Value *val1_ptr = ((Value *)value1);
                 Value *val2_ptr = ((Value *)value2);
@@ -404,7 +408,7 @@ long _equal(long value1,long value2)
                 } else if (val1_ptr->type == VAL_SYMBOL) {
                         res = are_str_types_equal(val1_ptr,val2_ptr);
                 } else {
-                        res = _eq(value1,value2);
+                        res = _eq(self,value1,value2);
                 }
         }
         return res;
@@ -425,7 +429,7 @@ In the event that one of the varargs is the empty list, ignore this arg.
 In the event that one of the varargs isnt a list, it MUST be the last arg.
 If it isnt last, or if there is more than one vararg that isnt a list, throw error.
 */
-long _append(Value *varargs)
+long _append(long self,Value *varargs)
 {
         if (varargs->type == VAL_EMPTY_LIST) {
                 return (long)varargs;
@@ -482,7 +486,7 @@ long _append(Value *varargs)
         return (long)make_value_pair(appended_list);
 }
 
-Value *_make_vector(long size, long init_value)
+Value *_make_vector(long self,long size, long init_value)
 {
         if (!is_int(size)) {
                 abort_message("in make-vector. size must be an integer.\n");
@@ -501,7 +505,7 @@ Value *_make_vector(long size, long init_value)
         return make_value_vector(vec,untagged_size);
 }
 
-long _vector_ref(long vector, long position)
+long _vector_ref(long self,long vector, long position)
 {
         if (!is_ptr(vector)) {
                 abort_message("in vector-ref. Expected a vector.\n");
@@ -522,7 +526,7 @@ long _vector_ref(long vector, long position)
         return (long)&vec_items[untagged_position];
 }
 
-long _vector_length(long vector)
+long _vector_length(long self,long vector)
 {
         if (!is_ptr(vector)) {
                 abort_message("in vector-length. Not a vector.\n");
@@ -532,7 +536,7 @@ long _vector_length(long vector)
         return make_tagged_int(((Value *)vector)->as.vector->size);
 }
 
-void _vector_set(long vector,long position, long new_val)
+void _vector_set(long self, long vector,long position, long new_val)
 {
         if (!is_ptr(vector)) {
                 abort_message("in vector-set!. Expected a vector.\n");
@@ -555,7 +559,7 @@ void _vector_set(long vector,long position, long new_val)
         }
 }
 //implements pair?
-long _pairq(long val)
+long _pairq(long self, long val)
 {
         long res = SCHEME_FALSE;
         if (is_ptr(val) && ((Value *)val)->type == VAL_PAIR) {
@@ -565,7 +569,7 @@ long _pairq(long val)
 }
 
 //implements list?
-long _listq(long val)
+long _listq(long self,long val)
 {
         long res = SCHEME_FALSE;
         if (is_ptr(val)) {
@@ -585,7 +589,7 @@ long _listq(long val)
 }
 
 //implements vector?
-long _vectorq(long val)
+long _vectorq(long self, long val)
 {
         long res = SCHEME_FALSE;
         if (is_ptr(val) && ((Value *)val)->type == VAL_VECTOR) {
@@ -661,11 +665,11 @@ long are_pairs_equal(Value *value1, Value *value2)
 {
         struct Pair *val1_cur_pair = value1->as.pair;
         struct Pair *val2_cur_pair = value2->as.pair;
-        long res = _equal((long)&val1_cur_pair->car, (long)&val2_cur_pair->car);
+        long res = _equal(0,(long)&val1_cur_pair->car, (long)&val2_cur_pair->car);
         if(res == SCHEME_FALSE) {
                 return SCHEME_FALSE;
         }
-        return _equal((long)&val1_cur_pair->cdr, (long)&val2_cur_pair->cdr);
+        return _equal(0,(long)&val1_cur_pair->cdr, (long)&val2_cur_pair->cdr);
 }
 
 long are_vectors_equal(Value *value1, Value *value2)
@@ -679,7 +683,7 @@ long are_vectors_equal(Value *value1, Value *value2)
                 return SCHEME_TRUE;
         }
         for (size_t i = 0; i < vector1->size; i++) {
-                res = _equal((long)&vector1->items[i], (long)&vector2->items[i]);
+                res = _equal(0,(long)&vector1->items[i], (long)&vector2->items[i]);
                 if (res == SCHEME_FALSE) {
                         break;
                 }
