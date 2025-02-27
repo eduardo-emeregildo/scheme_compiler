@@ -4,6 +4,10 @@ from emit import *
 from environment import *
 from function import *
 
+#fix stack alignment problems for general_function_call
+#Then fix stack alignment for lambdas and lets
+#then continue to implement closures. (adding/searching for upvalues) 
+
 #What I have to do is basically to make it so that the seventh arg always has
 #an offset thats a multiple of 16.(i.e. [rbp - x] where x is multiple of 16).
 
@@ -23,11 +27,6 @@ from function import *
 #do some more tests on general_function_call on both builtins and user closures.
 #make sure all test files pass (basic_programs failing)
 
-#after make a commit for changing builtins and continue with upvalue stuff
-
-
-#make all user defined functions so that they can reference themselves. I think it
-#has to be implicitly passed. What you are passing is the closure object.
 
 #start implementing adding upvalues/retrieving them
 #first handle normal closures, then handle the anonymous ones (i.e. lambda/let)
@@ -478,6 +477,8 @@ class Parser:
         arg_count = 0
         is_global = self.cur_environment.is_global()
         old_env_depth = self.cur_environment.depth
+        callable_obj_depth = self.cur_environment.depth
+        is_alignment_needed = False
         min_args = func_obj.arity - 1
         #adding self arg of the closure
         arg_count += 1
@@ -486,7 +487,7 @@ class Parser:
         #now edit the saved closure obj (was saved by save_rax) to be the function
         #value_ptr:
         self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
-        self.emitter.get_function_from_closure(old_env_depth,is_global)
+        self.emitter.get_function_from_closure(callable_obj_depth,is_global)
         self.emitter.emit_to_section(";done editing closure obj",is_global)
         self.cur_environment.depth -= 8
             
@@ -503,18 +504,30 @@ class Parser:
         self.emitter.emit_make_arg_list(
         min_args,func_obj.arity,arg_count,old_env_depth,is_global)
         self.cur_environment.depth = old_env_depth
+        
+        #dealing with stack alignment(stack must be 16 byte aligned at time of call)
+        if func_obj.arity > 6:
+            seventh_arg_offset = old_env_depth - ((func_obj.arity - 6)*8)
+            is_alignment_needed = True if seventh_arg_offset % 16 !=0 else False
+            print("SEVENTH_ARG_OFFSET IS: ", seventh_arg_offset)
+            if is_alignment_needed:
+                print("(VARIADIC FUNCTION)ALIGNMENT NEEDED")
+                
         #place args in the right spot
         for cur_arg in range(func_obj.arity):
             if cur_arg < 6:                
                 self.emitter.emit_register_arg(cur_arg,old_env_depth,is_global)
             else:
                 self.emitter.emit_arg_to_stack(
-                cur_arg,old_env_depth,is_global,func_obj.arity)
-        self.emitter.subtract_rsp_given_arity(func_obj.arity,old_env_depth,is_global)
+                cur_arg,old_env_depth,is_global,func_obj.arity,is_alignment_needed)
+                
+        self.emitter.subtract_rsp_given_arity(
+        func_obj.arity,old_env_depth,is_global,is_alignment_needed)
         #now call function
-        self.emitter.emit_function_call(old_env_depth,is_global)
+        self.emitter.emit_function_call(callable_obj_depth,is_global)
         #restore rsp/environment depths after function call:
-        self.emitter.add_rsp_given_arity(func_obj.arity,old_env_depth,is_global)
+        self.emitter.add_rsp_given_arity(
+        func_obj.arity,old_env_depth,is_global,is_alignment_needed)
         self.emitter.undo_save_rax(self.cur_environment)
         self.evaluate_function_call(func_obj.name)
         self.next_token()

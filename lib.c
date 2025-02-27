@@ -14,10 +14,6 @@ void print_value_type(Value *value_obj)
                 break;
         case VAL_DOUBLE:
                 printf("%lf",value_obj->as._double);
-
-                //double ok = value_obj->as._double;
-                
-                //printf("%lf",ok);
                 break;
         case VAL_BOOLEAN:
                 printf("0x%ld",remove_tag(value_obj->as.tagged_type));

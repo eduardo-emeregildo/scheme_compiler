@@ -11,14 +11,14 @@
 (display (sum 1))
 
 
-;(define (fact n)
-    ;(if (= n 1)
-    ;n
-    ;(* n (fact (- n 1)))))
+(define (fact n)
+    (if (= n 1)
+    n
+    (* n (fact (- n 1)))))
 
-;(display (fact 1))
-;(display (fact 2))
-;(display (fact 3))
-;(display (fact 5))
+(display (fact 1))
+(display (fact 2))
+(display (fact 3))
+(display (fact 5))
 
 

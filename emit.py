@@ -564,10 +564,14 @@ class Emitter:
     
     #for putting args 7 and further to the stack
     #rbx used for temporary storage
-    def emit_arg_to_stack(self,arg_num,env_depth,is_global,arity):
+    def emit_arg_to_stack(self,arg_num,env_depth,is_global,arity,align_needed = False):
+        
         self.emit_to_section(
-        f"\tmov rbx, QWORD [rbp{env_depth - (8*(arg_num + 1)):+}]\n\t" +
-        f"mov QWORD [rbp{env_depth - ((arity - arg_num)*8)}],rbx",is_global)
+        f"\tmov rbx, QWORD [rbp{env_depth - (8*(arg_num + 1)):+}]",is_global)
+        if align_needed:
+            env_depth -= 8
+        self.emit_to_section(
+        f"\tmov QWORD [rbp{env_depth - ((arity - arg_num)*8)}],rbx",is_global)
         
     
     #push the arg to the stack so that its stored while evaluating each arg
@@ -622,17 +626,21 @@ class Emitter:
         self.emit_to_section(f"\tadd rsp, {amount} ;not aligned",is_global)
     
     #given arity, subtract rsp so it points to the correct spot:
-    def subtract_rsp_given_arity(self,function_arity,env_depth,is_global):
+    def subtract_rsp_given_arity(self,function_arity,env_depth,is_global,align_needed = False):
         if function_arity > 6:
-            self.subtract_rsp(
+            if align_needed:
+                env_depth -= 8
+            self.subtract_rsp_absolute(
             abs(env_depth - (function_arity - 6)*8),is_global)
         else:
             self.subtract_rsp(abs(env_depth),is_global)
             
     #adds back to the rsp after a function call. undoes subtract_rsp_given_arity
-    def add_rsp_given_arity(self,function_arity,env_depth,is_global):
+    def add_rsp_given_arity(self,function_arity,env_depth,is_global,align_needed = False):
         if function_arity > 6:
-            self.add_rsp(
+            if align_needed:
+                env_depth -= 8
+            self.add_rsp_absolute(
             abs(env_depth - (function_arity - 6)*8),is_global)
         else:
             self.add_rsp(abs(env_depth),is_global)
