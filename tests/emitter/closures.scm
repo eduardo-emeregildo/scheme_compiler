@@ -200,7 +200,7 @@
 ;(display ((add_or_sub #f) 1 2))
 
 ;(+ 3 2.5)
-(display 10.37)
+;(display 10.37)
 ;2.5
 ;(display 2.5)
 ;(= 2.5 2.5)
@@ -209,8 +209,14 @@
 ;(define (func one) (display 3.5))
 ;(func 1)
 
-;(define (func one two three four five six . seven) seven)
-;(func 1 2 3 4 5 6 7)
+;testing alignment of normal functions
+(define (func one two three four five six seven) 
+    (display func) (display one) (display two) (display three) (display four) 
+    (display five) (display six) (display seven))
+(func 1 2 3 4 5 6 7.4)
+(display '(1 2 3.4 4))
+(define (func2 one two) (display one) (display two))
+(func2 1 2)
 
 ;testing that builtins work after changing them to closures
 ;non-variadic

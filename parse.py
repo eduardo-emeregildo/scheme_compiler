@@ -4,6 +4,13 @@ from emit import *
 from environment import *
 from function import *
 
+#What I have to do is basically to make it so that the seventh arg always has
+#an offset thats a multiple of 16.(i.e. [rbp - x] where x is multiple of 16).
+
+#This is so that when I subtract from rsp when performing the function call,
+#Rsp must point to the seventh arg, therefore the amount I subtract must be a
+#multiple of 16 so stack is aligned.
+
 #fix stack alignment problems for variadic/general functions, look at every instance
 #that subtract_rsp is used and see if it should stay or be replaced with with
 #subtract_rsp_absolute
@@ -385,23 +392,24 @@ class Parser:
         
     #places args in correct registers for function call and emits a function call
     #This is a helper for function_call.
-    def place_args_and_call_function(self,env_depth,is_global,arg_count,func_obj):
+    def place_args_and_call_function(
+        self,env_depth,callable_obj_depth,is_global,arg_count,func_obj):
         for cur_arg in range(arg_count):
             if cur_arg < 6:
                 self.emitter.emit_register_arg(
                 cur_arg,env_depth,is_global,arg_count)
             else:
                 seventh_arg_offset =  abs(env_depth - (arg_count - 6)*8)
-                self.emitter.subtract_rsp(seventh_arg_offset,is_global)
+                self.emitter.subtract_rsp_absolute(seventh_arg_offset,is_global)
                 break
         # for calls where no args are on the stack, subtract ONLY the depth if
         # there is stuff to preserve on the stack(AKA if depth != 0)
         if arg_count < 6:
             self.emitter.subtract_rsp(abs(env_depth),is_global)
-        self.emitter.emit_function_call(env_depth,is_global)
+        self.emitter.emit_function_call(callable_obj_depth,is_global)
         #add back the rsp
         if arg_count > 6:
-            self.emitter.add_rsp(seventh_arg_offset,is_global)
+            self.emitter.add_rsp_absolute(seventh_arg_offset,is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
         #self.emitter.undo_save_rax(self.cur_environment)
@@ -417,6 +425,19 @@ class Parser:
         arg_count = 0
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
+        callable_obj_depth = self.cur_environment.depth
+        is_alignment_needed = False
+        
+        #dealing with alignment for functions with args on stack
+        if func_obj.arity > 6:
+            seventh_arg_offset = env_depth - ((func_obj.arity - 6)*8)
+            print("seventh arg is: ", seventh_arg_offset)
+            is_alignment_needed = True if seventh_arg_offset % 16 !=0 else False
+            if is_alignment_needed:
+                print("ALIGNMENT NEEDED")
+                self.cur_environment.depth -= 8
+                env_depth = self.cur_environment.depth
+            
         #subtract environment's depth temporarily to compute the args without 
         #overwritting the stack,i.e. the local definitions
         self.cur_environment.depth -= func_obj.arity*8
@@ -428,7 +449,7 @@ class Parser:
         #now edit the saved closure obj (was saved by save_rax) to be the function
         #value_ptr:
         self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
-        self.emitter.get_function_from_closure(env_depth,is_global)
+        self.emitter.get_function_from_closure(callable_obj_depth,is_global)
         self.emitter.emit_to_section(";done editing closure obj",is_global)
         
         while not self.check_token(TokenType.EXPR_END):
@@ -443,8 +464,11 @@ class Parser:
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
                 f"{func_obj.name} requires {str(func_obj.arity - 1)} arguments.")
-        self.place_args_and_call_function(env_depth,is_global,arg_count,func_obj)
+        self.place_args_and_call_function(
+        env_depth,callable_obj_depth,is_global,arg_count,func_obj)
         self.emitter.undo_save_rax(self.cur_environment)
+        if is_alignment_needed:
+            self.cur_environment.depth += 8
         self.evaluate_function_call(func_obj.name)
         self.next_token()
     

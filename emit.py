@@ -590,9 +590,11 @@ class Emitter:
         #accounting for stack alignment:
         bytes_misaligned = amount % 16
         if bytes_misaligned == 0:
-            self.emit_to_section(f"\tsub rsp, {amount}",is_global)
+            self.emit_to_section(f"\tsub rsp, {amount} ;aligned",is_global)
         else:
-            self.emit_to_section(f"\tsub rsp, {amount + bytes_misaligned}",is_global)
+            self.emit_to_section(
+            f"\tsub rsp, {amount + bytes_misaligned} ;aligned",is_global)
+        
     
     def add_rsp(self,amount,is_global):
         if amount == 0:
@@ -601,9 +603,23 @@ class Emitter:
         #accounting for stack alignment:
         bytes_misaligned = amount % 16
         if bytes_misaligned == 0:    
-            self.emit_to_section(f"\tadd rsp, {amount}",is_global)
+            self.emit_to_section(f"\tadd rsp, {amount} ;aligned",is_global)
         else:
-            self.emit_to_section(f"\tadd rsp, {amount + bytes_misaligned}",is_global)
+            self.emit_to_section(
+            f"\tadd rsp, {amount + bytes_misaligned} ;aligned",is_global)
+    
+    #these two methods subtract/add rsp without considering stack alignment
+    def subtract_rsp_absolute(self,amount,is_global):
+        if amount == 0:
+            print("Adding rsp with 0 amount")
+            return
+        self.emit_to_section(f"\tsub rsp, {amount} ;not aligned",is_global)
+    
+    def add_rsp_absolute(self,amount,is_global):
+        if amount == 0:
+            print("Adding rsp with 0 amount")
+            return
+        self.emit_to_section(f"\tadd rsp, {amount} ;not aligned",is_global)
     
     #given arity, subtract rsp so it points to the correct spot:
     def subtract_rsp_given_arity(self,function_arity,env_depth,is_global):
