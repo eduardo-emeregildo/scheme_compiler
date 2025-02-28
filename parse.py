@@ -5,6 +5,10 @@ from environment import *
 from function import *
 
 #fix stack alignment problems for general_function_call
+
+#make sure that general_function_call deals with stack alignment for 
+# variadic functions
+
 #Then fix stack alignment for lambdas and lets
 #then continue to implement closures. (adding/searching for upvalues) 
 
@@ -364,6 +368,14 @@ class Parser:
         self.emitter.emit_function_check(self.cur_environment,callable_obj_depth,arg_count)
         self.emitter.emit_zero_check(is_global)
         variadic_label = self.emitter.emit_conditional_jump("!=",is_global)
+        self.emitter.emit_to_section(";aaaaa",is_global)
+        
+        #dealing with stack alignment for non varidic general function calling
+        is_alignment_needed = False
+        if arg_count > 6:
+            seventh_arg_offset = env_depth - ((arg_count - 6) * 8)
+            is_alignment_needed = True if seventh_arg_offset % 16 != 0 else False
+        print("IS_ALIGNMENT_NEEDED IS: ", is_alignment_needed)
         #now put args in the right place for non variadic case
         #-8 is offset of last arg (assuming env depth is 0)
         for cur_arg in range(arg_count):
@@ -371,14 +383,16 @@ class Parser:
                 self.emitter.emit_register_arg(cur_arg,env_depth,is_global)
             else:
                 self.emitter.emit_arg_to_stack(
-                cur_arg,env_depth,is_global,arg_count)
+                cur_arg,env_depth,is_global,arg_count,is_alignment_needed)
         self.emitter.emit_to_section("\t;finished putting args non variadic",is_global)
         #advance rsp to point to 7th arg, if less than 7 args, advance rsp so 
         # local defs arent overwritten
-        self.emitter.subtract_rsp_given_arity(arg_count,env_depth,is_global)
+        self.emitter.subtract_rsp_given_arity(
+        arg_count,env_depth,is_global,is_alignment_needed)
         #now call the function
-        self.emitter.emit_function_call(env_depth,is_global)
-        self.emitter.add_rsp_given_arity(arg_count,env_depth,is_global)
+        self.emitter.emit_function_call(callable_obj_depth,is_global)
+        self.emitter.add_rsp_given_arity(
+        arg_count,env_depth,is_global,is_alignment_needed)
         #this jmp goes to rest of function
         rest_of_function_label = self.emitter.emit_jump(is_global)
         #variadic branch:

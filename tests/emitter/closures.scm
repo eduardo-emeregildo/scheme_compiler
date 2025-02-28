@@ -220,13 +220,24 @@
 ;(func2 1 2)
 
 ;testing alignment of variadic functions:
+
 ;no alignment needed, 7th arg at an offset thats 16 byte aligned
-(define (var_fun one two three four five six . seven) seven)
-(display (var_fun 1 2 3 4 5 6))
+;(define (var_fun one two three four five six . seven) seven)
+;(display (var_fun 1 2 3 4 5 6))
 
 ;alignment needed, 7th arg not at an offset thats 16 byte aligned
-(define (var_fun2 one two three four five six . seven) (display six))
-(var_fun2 1 2 3 4 5 6.1 7)
+;(define (var_fun2 one two three four five six . seven) (display six))
+;(var_fun2 1 2 3 4 5 6.1 7)
+
+;testing alignment for general function calls
+
+;general_function_call with a normal function. working
+(define (st one two three four five six) (display six))
+(define (func op) (define x 3) (op 1 2 3 4 5 6.1))
+(func st)
+
+
+
 
 
 ;testing that builtins work after changing them to closures
