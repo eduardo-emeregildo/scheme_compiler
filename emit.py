@@ -471,14 +471,18 @@ class Emitter:
     #calls macro in place_args.inc to place args.
     
     #The macro requires the following:
-    #the function arity in rbx,min_args in r10,env_depth in r11,
-    #r12 is preserved for counting args, which has to be initialized to 0
-    #and r13 holds the offset of the param
+    #the function arity in rbx,min_args in r10,env_depth in first arg,
+    #r11 is seventh arg offset, r12 is preserved for counting args, 
+    # which has to be initialized to 0
+    #and r13 holds the old value of r15
     def emit_param_variadic_call(self,label,param_offset,env_depth,is_global):
         asm_code = []
         asm_code.append(f"{label}:")
         asm_code.append(self.get_arity_in_runtime(param_offset))
         asm_code.append("\txor r12, r12")
+        #now r11
+        asm_code.append("\tmov r11,rbx\n\tsub r11, 6\n\timul r11, 8")
+        asm_code.append(f"\tadd r11, {abs(env_depth)}\n\tand r11, 0xf")
         env_depth_aligned = abs(env_depth)
         if env_depth_aligned % 16 != 0:
             env_depth_aligned += 8

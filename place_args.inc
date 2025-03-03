@@ -6,6 +6,10 @@
 ;%1 = env_depth (positive)
 ;%2 = function offset (positive)
 ;%3 = env_depth aligned to 16 bytes (positive). If no realignment needed, %1 = %3
+
+;r11 = is_alignment_needed, 1 or 0. used for stack alignment purposes 
+;(if seventh arg is on an rbp offset thats a multiple of 16)
+
 ;r12 = cur_arg (init to 0)
 
 ;r13 will store the old value of r15. After the function call, it will restore r15.
@@ -40,6 +44,10 @@
         imul r15,8
         add r15,%1
         neg r15
+        cmp r11,0
+        jz %%alignment_resolved
+        sub r15, 8
+        %%alignment_resolved:
 %endmacro
 
 %macro compute_seventh_arg_offset 1
@@ -130,6 +138,12 @@
         %%stack_args_function_call:
                 ;stack args case, rsp has to point to 7th arg
                 compute_seventh_arg_offset %1
+
+                cmp r11,0
+                jz %%alignment_resolved1
+                sub r15, 8
+                %%alignment_resolved1:
+
                 lea rsp, QWORD [rsp + r15]
                 mov rax,  QWORD [rbp - %2] ; varargs already placed so rax is free
                 add rax, 8

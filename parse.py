@@ -3,11 +3,6 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
-#fix stack alignment problems for general_function_call
-
-#make sure that general_function_call deals with stack alignment for 
-# variadic functions when there are stack args
-
 #Then fix stack alignment for lambdas and lets
 #then continue to implement closures. (adding/searching for upvalues) 
 
