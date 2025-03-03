@@ -4,7 +4,8 @@
 ;rbx = arity
 ;r10 = min_args
 ;%1 = env_depth (positive)
-;%2 = function offset (positive) 
+;%2 = function offset (positive)
+;%3 = env_depth aligned to 16 bytes (positive). If no realignment needed, %1 = %3
 ;r12 = cur_arg (init to 0)
 
 ;r13 will store the old value of r15. After the function call, it will restore r15.
@@ -68,7 +69,7 @@
 ;%define ith_stackarg_offset (%1 + ((rbx - r12) * 8))
 ;%define seventh_arg_offset (%1 + ((r14 + 1) * 8))
 
-%macro place_args 2
+%macro place_args 3
         mov r13, r15 ; store old r15 and restore after function call
         %%loop:
                 cmp r12,r10
@@ -106,12 +107,23 @@
                 sub r14, 7
                 jge %%stack_args_function_call
                 ; no stack args case
-                sub rsp, %1
+                ;sub rsp, %1
+                %if %1 == %3
+                        sub rsp, %1
+                %else
+                        sub rsp, %3
+                %endif
+
                 mov rax,  QWORD [rbp - %2] ; varargs already placed so rax is free
                 add rax, 8
                 mov rax, QWORD [rax]
                 call QWORD [rax]
-                add rsp, %1
+                ;add rsp, %1
+                %if %1 == %3
+                        add rsp, %1
+                %else
+                        add rsp, %3
+                %endif
                 jmp %%end
 
                 

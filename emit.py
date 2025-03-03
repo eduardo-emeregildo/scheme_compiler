@@ -479,7 +479,11 @@ class Emitter:
         asm_code.append(f"{label}:")
         asm_code.append(self.get_arity_in_runtime(param_offset))
         asm_code.append("\txor r12, r12")
-        asm_code.append(f"\tplace_args {abs(env_depth)}, {abs(param_offset)}")
+        env_depth_aligned = abs(env_depth)
+        if env_depth_aligned % 16 != 0:
+            env_depth_aligned += 8
+        asm_code.append(
+        f"\tplace_args {abs(env_depth)}, {abs(param_offset)}, {env_depth_aligned}")
         self.emit_to_section('\n'.join(asm_code),is_global)
         
     #to be used in variadic_function_call. In this case min_args is known at

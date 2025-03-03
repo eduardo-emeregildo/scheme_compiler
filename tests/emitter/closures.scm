@@ -232,11 +232,19 @@
 ;testing alignment for general function calls
 
 ;general_function_call with a normal function. working
-(define (st one two three four five six) (display six))
-(define (func op) (define x 3) (op 1 2 3 4 5 6.1))
+;(define (st one two three four five six) (display six))
+;(define (func op) (define x 3) (op 1 2 3 4 5 6.1))
+;(func st)
+
+;general_function_call with a variadic function,stackargs. segfaulting
+;(define (st one two three four five . six) (display five))
+;(define (func op) (define x 3) (op 1 2 3 4 5.2 6))
+;(func st)
+
+;general_function_call with a variadic function, no stackarg. working
+(define (st one . two) (display one))
+(define (func op) (op 1.1 2))
 (func st)
-
-
 
 
 

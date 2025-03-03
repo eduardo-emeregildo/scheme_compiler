@@ -3,11 +3,10 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
-
 #fix stack alignment problems for general_function_call
 
 #make sure that general_function_call deals with stack alignment for 
-# variadic functions
+# variadic functions when there are stack args
 
 #Then fix stack alignment for lambdas and lets
 #then continue to implement closures. (adding/searching for upvalues) 
@@ -397,7 +396,7 @@ class Parser:
         rest_of_function_label = self.emitter.emit_jump(is_global)
         #variadic branch:
         self.emitter.emit_param_variadic_call(
-        variadic_label,env_depth,env_depth,is_global)
+        variadic_label,callable_obj_depth,env_depth,is_global)
         self.emitter.emit_ctrl_label(is_global,rest_of_function_label)
         self.emitter.undo_save_rax(self.cur_environment)
         self.evaluate_function_call("")
