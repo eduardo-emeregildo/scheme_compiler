@@ -3,7 +3,8 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
-#Then fix stack alignment for lambdas and lets
+
+#fix stack alignment for lets
 #then continue to implement closures. (adding/searching for upvalues) 
 
 #What I have to do is basically to make it so that the seventh arg always has
@@ -909,21 +910,28 @@ class Parser:
         self.emitter.set_current_function(function.name)
         self.emitter.emit_function_label(function.name)
         self.emitter.emit_function_prolog()
+        #adding self arg, adding to definitions as type CLOSURE instead of PARAM
+        #for performance reasons, self arg is guaranteed to be a closure
+        function.add_param(function.name)
+        self.cur_environment.add_definition(function.name,
+        Identifier(IdentifierType.CLOSURE,Identifier(IdentifierType.FUNCTION,function)))
+        self.emitter.emit_register_param(1)
+            
         if self.check_token(TokenType.IDENTIFIER):
             #lambda form that has a rest argument
             print("VARIABLE")
             function.set_variadic()
             function.add_param(self.cur_token.text)
-            self.add_param_to_env(1)
+            self.add_param_to_env(2)
             self.next_token()
         elif self.check_token(TokenType.EXPR_START):
-            arg_count = 0
+            arg_count = 1
             self.next_token()
             while not self.check_token(TokenType.EXPR_END):
                 if self.check_token(TokenType.DOT):
                     #varargs case
                     print("DOT")
-                    if arg_count < 1:
+                    if arg_count < 2:
                         self.abort(
                         "in lambda. variadic lambda needs at least one required argument ")
                     function.set_variadic()
