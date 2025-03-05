@@ -3,30 +3,7 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
-
-#fix stack alignment for lets
-#then continue to implement closures. (adding/searching for upvalues) 
-
-#What I have to do is basically to make it so that the seventh arg always has
-#an offset thats a multiple of 16.(i.e. [rbp - x] where x is multiple of 16).
-
-#This is so that when I subtract from rsp when performing the function call,
-#Rsp must point to the seventh arg, therefore the amount I subtract must be a
-#multiple of 16 so stack is aligned.
-
-#fix stack alignment problems for variadic/general functions, look at every instance
-#that subtract_rsp is used and see if it should stay or be replaced with with
-#subtract_rsp_absolute
-
-
-
-#this becomes tricky when dealing with functions that have some args on the stack.
-#Take a look at what the code in stack_alignment.c outputs in compiler explorer.
-
-#do some more tests on general_function_call on both builtins and user closures.
-#make sure all test files pass (basic_programs failing)
-
-
+#continue to implement closures. (adding/searching for upvalues) 
 #start implementing adding upvalues/retrieving them
 #first handle normal closures, then handle the anonymous ones (i.e. lambda/let)
 #how will lambdas search for upvalues??? 
@@ -136,6 +113,14 @@ class Parser:
     #to have set in the name instead of evaluate
     def set_vector(self,vector_obj):
         self.set_last_exp_res(IdentifierType.VECTOR,vector_obj)
+    
+    #returns bool indicating if the offset of seventh arg is 16 byte aligned 
+    # depending on number of args and environment depth given.
+    def check_if_alignment_needed(self,env_depth,total_args):
+        if total_args < 7:
+            return False
+        seventh_arg_offset = env_depth - ((total_args - 6) * 8)
+        return True if seventh_arg_offset % 16 != 0 else False
         
     def program(self):
         print("Program")
@@ -366,10 +351,7 @@ class Parser:
         self.emitter.emit_to_section(";aaaaa",is_global)
         
         #dealing with stack alignment for non varidic general function calling
-        is_alignment_needed = False
-        if arg_count > 6:
-            seventh_arg_offset = env_depth - ((arg_count - 6) * 8)
-            is_alignment_needed = True if seventh_arg_offset % 16 != 0 else False
+        is_alignment_needed = self.check_if_alignment_needed(env_depth,arg_count)
         print("IS_ALIGNMENT_NEEDED IS: ", is_alignment_needed)
         #now put args in the right place for non variadic case
         #-8 is offset of last arg (assuming env depth is 0)
@@ -435,18 +417,10 @@ class Parser:
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
         callable_obj_depth = self.cur_environment.depth
-        is_alignment_needed = False
-        
-        #dealing with alignment for functions with args on stack
-        if func_obj.arity > 6:
-            seventh_arg_offset = env_depth - ((func_obj.arity - 6)*8)
-            print("seventh arg is: ", seventh_arg_offset)
-            is_alignment_needed = True if seventh_arg_offset % 16 !=0 else False
-            if is_alignment_needed:
-                print("ALIGNMENT NEEDED")
-                self.cur_environment.depth -= 8
-                env_depth = self.cur_environment.depth
-            
+        is_alignment_needed = self.check_if_alignment_needed(env_depth,func_obj.arity)
+        if is_alignment_needed:
+            self.cur_environment.depth -= 8
+            env_depth = self.cur_environment.depth
         #subtract environment's depth temporarily to compute the args without 
         #overwritting the stack,i.e. the local definitions
         self.cur_environment.depth -= func_obj.arity*8
@@ -488,7 +462,6 @@ class Parser:
         is_global = self.cur_environment.is_global()
         old_env_depth = self.cur_environment.depth
         callable_obj_depth = self.cur_environment.depth
-        is_alignment_needed = False
         min_args = func_obj.arity - 1
         #adding self arg of the closure
         arg_count += 1
@@ -516,13 +489,8 @@ class Parser:
         self.cur_environment.depth = old_env_depth
         
         #dealing with stack alignment(stack must be 16 byte aligned at time of call)
-        if func_obj.arity > 6:
-            seventh_arg_offset = old_env_depth - ((func_obj.arity - 6)*8)
-            is_alignment_needed = True if seventh_arg_offset % 16 !=0 else False
-            print("SEVENTH_ARG_OFFSET IS: ", seventh_arg_offset)
-            if is_alignment_needed:
-                print("(VARIADIC FUNCTION)ALIGNMENT NEEDED")
-                
+        is_alignment_needed = self.check_if_alignment_needed(
+        old_env_depth,func_obj.arity)                
         #place args in the right spot
         for cur_arg in range(func_obj.arity):
             if cur_arg < 6:                
@@ -752,21 +720,25 @@ class Parser:
         
         self.cur_environment.depth = parent_env_depth
         self.emitter.emit_to_section(";starting function call of let",is_global)
+        
+        is_alignment_needed = self.check_if_alignment_needed(
+        parent_env_depth,function.arity)
         #place args
         for cur_arg in range(function.arity):
             if cur_arg < 6:
                 self.emitter.emit_register_arg(cur_arg,parent_env_depth,is_global)
             else:
                 self.emitter.emit_arg_to_stack(
-                cur_arg,parent_env_depth,is_global,function.arity)
-        self.emitter.subtract_rsp_given_arity(function.arity,parent_env_depth,is_global)
+                cur_arg,parent_env_depth,is_global,function.arity,is_alignment_needed)
+        self.emitter.subtract_rsp_given_arity(
+        function.arity,parent_env_depth,is_global,is_alignment_needed)
         #Now set rax to be a function obj and call function
         self.emitter.get_function_from_closure_rax(is_global)
         self.emitter.emit_function_call_in_rax(is_global)
-        self.emitter.add_rsp_given_arity(function.arity,parent_env_depth,is_global)
+        self.emitter.add_rsp_given_arity(
+        function.arity,parent_env_depth,is_global,is_alignment_needed)
         self.match(TokenType.EXPR_END)
         self.evaluate_function_call("")
-        print("LET HAS: ", function.arity, " ARGUMENTS")
     
     #<binding spec> ::= (<variable> <expression>)  
     def binding_spec(
@@ -775,7 +747,6 @@ class Parser:
         if arg_count == 1: #self arg
             print("EQUAL 1")
             function.add_param(let_name)
-            #self.add_param_to_env(arg_count)
             self.cur_environment.add_definition(let_name,
             Identifier(IdentifierType.CLOSURE,Identifier(IdentifierType.FUNCTION,function)))
             self.emitter.emit_register_param(arg_count)
