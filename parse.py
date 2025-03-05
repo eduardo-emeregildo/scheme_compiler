@@ -3,10 +3,13 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
-#continue to implement closures. (adding/searching for upvalues) 
+
+#continue to implement closures. (adding upvalues, this has to be called in 
+# the function that the upvalue is defined in)
+ 
 #start implementing adding upvalues/retrieving them
 #first handle normal closures, then handle the anonymous ones (i.e. lambda/let)
-#how will lambdas search for upvalues??? 
+
 
 #Todo4: implement closures
 #Todo5: implement gc
@@ -179,18 +182,17 @@ class Parser:
             definition = definition_result[0]
             is_upvalue = definition_result[1]
             def_ident_obj = Environment.get_ident_obj(definition)
+            offset = Environment.get_offset(definition)
             print("DEFINITION IS: ",definition)
             print("is_upvalue is: ",is_upvalue)
+            print("OFFSET IS: ", offset)
             self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
-            # if is_upvalue:
-            #     print("in is_upvalue, cur_function is: ",self.emitter.cur_function)
-            #     #search upvalue and put result in rax
-            #     #how can i reference the exact closure obj that was defined in
-            #     #outer? 
-            #     #perhaps its own closure obj should be added as a param
-            #     #this would then be how all functions refer to their own object
-            
-            if is_global:
+            if is_upvalue:
+                print("in is_upvalue, cur_function is: ",self.emitter.cur_function)
+                #search upvalue, put result in rax
+                self.emitter.emit_get_upvalue(
+                self.cur_environment.depth,offset,is_global)
+            elif is_global:
                 self.emitter.emit_var_to_global(self.cur_token.text,definition)
             else:
                 self.emitter.emit_var_to_local(self.cur_token.text,definition)
@@ -686,21 +688,6 @@ class Parser:
         function_ident_obj = Identifier(IdentifierType.FUNCTION,function)
         closure_obj = Identifier(IdentifierType.CLOSURE,function_ident_obj)
         self.emitter.emit_to_section(";before body :D", self.cur_environment.is_global())
-        
-        #compile and add itself to its environment so it can reference itself
-        #and variables it stored in the closure. In the case where user did not
-        #give the let a name, searching for upvalues is probably going to be done
-        #differently
-        
-        #self.emitter.emit_identifier_to_section(closure_obj,self.cur_environment)
-        
-        #add definition (uses let_name because this is name we want to look up)
-        #self.cur_environment.add_definition(let_name,function_ident_obj)
-        
-        
-        #self.cur_environment.add_definition(let_name,closure_obj)
-        #offset = Environment.get_offset(self.cur_environment.symbol_table[let_name])
-        #self.emitter.emit_definition(function.name,self.cur_environment.is_global(),offset)
         
         #compile body of function
         self.body(function)

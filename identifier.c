@@ -555,7 +555,22 @@ Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
 //         closure->as.closure->num_upvalues++;
 // }
 
-// long get_upvalue()
-// {
-//         //implement
-// }
+//given an offset, retrieve the upvalue. If not found, throw error
+long get_upvalue(Value *closure, int offset)
+{
+        struct UpvalueObj *upvalues = closure->as.closure->upvalues;
+        int upvalue_total = closure->as.closure->num_upvalues;
+        bool found = false;
+        long res;
+        for (int i = 0; i < upvalue_total; i++) {
+                if (upvalues[i].offset == offset) {
+                        found = true;
+                        res = upvalues[i].value;
+                        break;
+                }
+        }
+        if (!found) {
+                abort_message("finding upvalue. Offset not found\n");
+        }
+        return res;
+}

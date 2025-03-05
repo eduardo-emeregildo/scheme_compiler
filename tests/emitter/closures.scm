@@ -231,5 +231,5 @@
 ;(display (func =))
 
 ;after i fix the above, work on upvalues and making the below, and tests work:
-;(define (outer) (define local 3) (define (inner) (+ 1 local)) (inner))
-;(outer) ; should print out 4
+(define (outer) (define local 3) (define (inner) (+ 1 local)) (inner))
+(outer) ; should print out 4

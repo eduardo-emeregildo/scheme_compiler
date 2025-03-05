@@ -464,6 +464,16 @@ class Emitter:
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(env_depth,is_global)
         self.set_current_function(previous_cur_function)
+    
+    #calls get_upvalue the closure obj will always be in position rbp - 8.
+    def emit_get_upvalue(self,env_depth,offset,is_global):
+        self.emit_to_section(";upvalue stuff",is_global)
+        self.add_extern("get_upvalue")
+        self.subtract_rsp(abs(env_depth),is_global)
+        self.emit_to_section(
+        f"\tmov rdi, QWORD [rbp - 8]\n\tmov rsi,{offset}\n\tcall get_upvalue",
+        is_global)
+        self.add_rsp(abs(env_depth),is_global)
         
     #used to satisfy criteria of macro in place_args. rbx holds arity and 
     # r10 holds min_args

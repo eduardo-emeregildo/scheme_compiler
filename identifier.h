@@ -126,4 +126,5 @@ void turn_to_val_type(long non_ptr_type,Value *val_obj);
 bool is_non_ptr_type(Value *val_type);
 bool is_closure(long type);
 //void add_upvalue(Value *closure,long value, int offset);
+long get_upvalue(Value *closure, int offset);
 #endif
