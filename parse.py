@@ -429,6 +429,7 @@ class Parser:
     #the function that was called
     def function_call(self,func_obj):
         print("FUNCTION CALL")
+        self.emitter.emit_to_section(";function_call",self.cur_environment.is_global())
         self.emitter.save_rax(self.cur_environment)
         arg_count = 0
         is_global = self.cur_environment.is_global()
@@ -704,10 +705,15 @@ class Parser:
         self.emitter.set_current_function(function.name)
         self.emitter.emit_function_label(function.name)
         self.emitter.emit_function_prolog()
-        arg_count = 0
+        arg_count = 1
+        
+        #add self arg
+        self.binding_spec(
+        function,let_name,arg_count,parent_env_depth,parent_env,previous_function)
         while not self.check_token(TokenType.EXPR_END):
             arg_count += 1
-            self.binding_spec(function,arg_count,parent_env_depth,parent_env,previous_function)
+            self.binding_spec(
+            function,let_name,arg_count,parent_env_depth,parent_env,previous_function)
         self.next_token()
         function_ident_obj = Identifier(IdentifierType.FUNCTION,function)
         closure_obj = Identifier(IdentifierType.CLOSURE,function_ident_obj)
@@ -717,12 +723,16 @@ class Parser:
         #and variables it stored in the closure. In the case where user did not
         #give the let a name, searching for upvalues is probably going to be done
         #differently
-        self.emitter.emit_identifier_to_section(closure_obj,self.cur_environment)
+        
+        #self.emitter.emit_identifier_to_section(closure_obj,self.cur_environment)
+        
         #add definition (uses let_name because this is name we want to look up)
         #self.cur_environment.add_definition(let_name,function_ident_obj)
-        self.cur_environment.add_definition(let_name,closure_obj)
-        offset = Environment.get_offset(self.cur_environment.symbol_table[let_name])
-        self.emitter.emit_definition(function.name,self.cur_environment.is_global(),offset)
+        
+        
+        #self.cur_environment.add_definition(let_name,closure_obj)
+        #offset = Environment.get_offset(self.cur_environment.symbol_table[let_name])
+        #self.emitter.emit_definition(function.name,self.cur_environment.is_global(),offset)
         
         #compile body of function
         self.body(function)
@@ -734,7 +744,11 @@ class Parser:
         #Note: A Closure isnt formed here since in let expressions, the closure 
         # will live internally.
         self.emitter.emit_to_section(";compiling let function:",is_global)
-        self.emitter.emit_identifier_to_section(function_ident_obj,self.cur_environment)
+        self.emitter.emit_identifier_to_section(closure_obj,self.cur_environment)
+        
+        #now edit self arg to be the closure obj:
+        self.emitter.push_arg(1,parent_env_depth,is_global)
+        self.emitter.emit_to_section(";^updated self arg",is_global)
         
         self.cur_environment.depth = parent_env_depth
         self.emitter.emit_to_section(";starting function call of let",is_global)
@@ -746,16 +760,38 @@ class Parser:
                 self.emitter.emit_arg_to_stack(
                 cur_arg,parent_env_depth,is_global,function.arity)
         self.emitter.subtract_rsp_given_arity(function.arity,parent_env_depth,is_global)
-        #Now call function(the function obj is already in rax)
+        #Now set rax to be a function obj and call function
+        self.emitter.get_function_from_closure_rax(is_global)
         self.emitter.emit_function_call_in_rax(is_global)
         self.emitter.add_rsp_given_arity(function.arity,parent_env_depth,is_global)
         self.match(TokenType.EXPR_END)
         self.evaluate_function_call("")
+        print("LET HAS: ", function.arity, " ARGUMENTS")
     
     #<binding spec> ::= (<variable> <expression>)  
     def binding_spec(
-    self,function,arg_count,parent_env_depth,parent_env,previous_function):
+        self,function,let_name,arg_count,parent_env_depth,parent_env,previous_function):
         print("BINDING-SPEC")
+        if arg_count == 1: #self arg
+            print("EQUAL 1")
+            function.add_param(let_name)
+            #self.add_param_to_env(arg_count)
+            self.cur_environment.add_definition(let_name,
+            Identifier(IdentifierType.CLOSURE,Identifier(IdentifierType.FUNCTION,function)))
+            self.emitter.emit_register_param(arg_count)
+            child_env = self.cur_environment
+            child_function = self.emitter.cur_function
+            self.emitter.set_current_function(previous_function)
+            self.cur_environment = parent_env
+            is_global = self.cur_environment.is_global()
+            self.emitter.push_arg(arg_count,parent_env_depth,is_global)
+            self.emitter.emit_to_section(";^self arg",is_global)
+            self.cur_environment.depth -= 8
+            #switch back to child environment
+            self.emitter.set_current_function(child_function)
+            self.cur_environment = child_env
+            return
+        
         self.match(TokenType.EXPR_START)
         if not self.check_token(TokenType.IDENTIFIER):
             self.abort("Incorrect syntax for binding spec. Expected an identifier.")

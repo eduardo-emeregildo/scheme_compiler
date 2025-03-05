@@ -22,3 +22,8 @@
 ;using let inside body of a define
 (define (ffgg) (let local_let((x 10) (y 20)) (+ x y)))
 (display (ffgg))
+
+;complicated let, should print 120
+(display (let fact ((n 5)) (if (= n 1)
+    n
+    (* n (fact (- n 1))))))

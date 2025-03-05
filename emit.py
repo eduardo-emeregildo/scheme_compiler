@@ -425,6 +425,14 @@ class Emitter:
         asm_code.append(f"\tmov QWORD [rbp{offset:+}], rax")
         self.emit_to_section('\n'.join(asm_code),is_global)
     
+    #given that a closure obj is in rax, edits rax to have so that the function obj
+    #is there
+    def get_function_from_closure_rax(self,is_global):
+        asm_code = []
+        asm_code.append("\tmov rax, QWORD [rax + 8]")
+        asm_code.append("\tmov rax, QWORD [rax]")
+        self.emit_to_section('\n'.join(asm_code),is_global)
+    
     
     def emit_is_closure(self,env_depth,callable_obj_depth,is_global):
         self.add_extern("is_closure")

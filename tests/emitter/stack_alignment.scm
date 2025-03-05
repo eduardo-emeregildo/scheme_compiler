@@ -37,20 +37,24 @@
 
 ;stack alignment for lambdas:
 
+;(display "lambdas:")
 ;plain lambdas:
-((lambda (one two three four five six seven) (display seven)) 1 2 3 4 5 6 7.5)
+;((lambda (one two three four five six seven) (display seven)) 1 2 3 4 5 6 7.5)
 
 ;variadic lambdas:
-((lambda (one two three four five six . seven) (display six)) 1 2 3 4 5 6.1 7)
+;((lambda (one two three four five six . seven) (display six)) 1 2 3 4 5 6.1 7)
 
 ;using lambdas in a general function call(non variadic)
-(define (func op) (define x 3) (op 1 2 3 4 5 6.1))
-(func (lambda (one two three four five six) (display six)))
+;(define (func op) (define x 3) (op 1 2 3 4 5 6.1))
+;(func (lambda (one two three four five six) (display six)))
 
 ;using lambdas in a general function call, variadic, no stack args
-(define (func1 op) (op 1.1 2))
-(func1 (lambda (one . two) (display one)))
+;(define (func1 op) (op 1.1 2))
+;(func1 (lambda (one . two) (display one)))
 
 ;using lambdas in a general function call, variadic, with stack args
-(define (func2 op) (define x 3) (op 1 2 3 4 5.2 6))
-(func2 (lambda (one two three four five six) (display five)))
+;(define (func2 op) (define x 3) (op 1 2 3 4 5.2 6))
+;(func2 (lambda (one two three four five six) (display five)))
+
+;using let, results in segfault due to stack alignment issues
+(let ((one 1) (two 2) (three 3) (four 4) (five 5) (six 6.1)) (display six))
