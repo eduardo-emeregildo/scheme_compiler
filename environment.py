@@ -154,7 +154,7 @@ class Environment:
         return self.parent is None
     
     #returns definition of identifier and if definition is an upvalue.
-    def find_definition(self,ident_name,is_upvalue = False):
+    def find_definition(self,ident_name,nest_count = 0,is_upvalue = False):
         #find_definition(self,ident_name):
         # if ident_name in self.symbol_table:
         #     return self.symbol_table[ident_name]
@@ -164,10 +164,10 @@ class Environment:
         if self.is_defined(ident_name):
             if self.is_global(): # if found in global scope, no need for upvalue
                 is_upvalue = False
-            return self.symbol_table[ident_name],is_upvalue
+            return self.symbol_table[ident_name],is_upvalue,nest_count
         if self.is_global():
             sys.exit("Error, " + "Identifier " + ident_name + " not defined.")
-        return self.parent.find_definition(ident_name,True)
+        return self.parent.find_definition(ident_name,nest_count + 1,True)
         
     #caller will be parent env of new env
     def create_local_env(self):

@@ -72,6 +72,7 @@ struct ClosureObj {
 
 struct UpvalueObj {
         int offset;
+        int nesting_count; //this combined with offset used for searching
         long value;
 };
 bool is_int(long item);
@@ -126,5 +127,5 @@ void turn_to_val_type(long non_ptr_type,Value *val_obj);
 bool is_non_ptr_type(Value *val_type);
 bool is_closure(long type);
 //void add_upvalue(Value *closure,long value, int offset);
-long get_upvalue(Value *closure, int offset);
+long get_upvalue(Value *closure, int offset,int nesting_amt);
 #endif

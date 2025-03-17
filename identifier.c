@@ -542,7 +542,7 @@ Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
 //         }
 //         //check size of upvalues, if multiple of 4, resize
 //         int upvalue_count = closure->as.closure->num_upvalues; 
-//         if (upvalue_count != 0 && (upvalue_count & 0x3 == 0)) {
+//         if (upvalue_count != 0 && ((upvalue_count & 0x3) == 0)) {
 //                 printf("Resizing:\n");
 //                 int new_size = sizeof(struct UpvalueObj) * ((upvalue_count) * 2);
 //                 struct UpvalueObj* new_upvalues = (struct UpvalueObj *)malloc(new_size);
@@ -555,22 +555,24 @@ Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
 //         closure->as.closure->num_upvalues++;
 // }
 
-//given an offset, retrieve the upvalue. If not found, throw error
-long get_upvalue(Value *closure, int offset)
+//given an offset and nesting amount, retrieve the upvalue. If not found, throw error
+long get_upvalue(Value *closure, int offset,int nesting_amt)
 {
         struct UpvalueObj *upvalues = closure->as.closure->upvalues;
         int upvalue_total = closure->as.closure->num_upvalues;
         bool found = false;
         long res;
         for (int i = 0; i < upvalue_total; i++) {
-                if (upvalues[i].offset == offset) {
+                if ((upvalues[i].offset == offset) && 
+                (nesting_amt == upvalues[i].nesting_count)) {
                         found = true;
                         res = upvalues[i].value;
                         break;
                 }
         }
         if (!found) {
-                abort_message("finding upvalue. Offset not found\n");
+                abort_message(
+                "finding upvalue. Offset and nesting amount not found.\n");
         }
         return res;
 }

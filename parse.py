@@ -4,6 +4,37 @@ from emit import *
 from environment import *
 from function import *
 
+
+#add is_local to upvalue objects
+
+#What I need is something to track upvalues at compile time.
+
+#what im thinking of doing is for the parser to have a field thats a dictionary,
+#which stores the upvalues it finds. This will get refreshed when outermost
+# (i.e. the one whose parent is None)  definition thats a function finishes 
+# its definition_exp.
+
+#this can be a whole class, i.e. UpvalueTracker
+
+#each function will be a key in this dictionary.  the value will be another dictionary
+#indicating which upvalue is being requested and by which function.
+
+#if no inner function requests a definition from the outer function, then the value
+# will be None
+
+#more specifically, the inner dictionary will be like so:
+#the key will hold the the offset that the upvalue is located.
+# the value will be a list of offsets which the inner function definitions are located.
+#these are the inner functions that are requesting the upvalue.
+
+#but what about nested upvalues?
+#i.e. you have outer, middle and inner function, and you function inner needs an
+#upvalue from outer. Outer cant really perform this, because the inner definition
+#is defined in middle. this problem is talked about in the flattening upvalues section
+#Im going to implement the solution presented in the book. Basically have to add
+# a local field in the UpvalueObj struct first do this
+
+
 #continue to implement closures. (adding upvalues, this has to be called in 
 # the function that the upvalue is defined in)
  
@@ -181,17 +212,20 @@ class Parser:
             self.cur_token.text)
             definition = definition_result[0]
             is_upvalue = definition_result[1]
+            nest_count = definition_result[2]
             def_ident_obj = Environment.get_ident_obj(definition)
             offset = Environment.get_offset(definition)
             print("DEFINITION IS: ",definition)
             print("is_upvalue is: ",is_upvalue)
             print("OFFSET IS: ", offset)
+            print("NEST COUNT IS: ", nest_count)
             self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
             if is_upvalue:
                 print("in is_upvalue, cur_function is: ",self.emitter.cur_function)
+                print("the offset is: ", offset)
                 #search upvalue, put result in rax
                 self.emitter.emit_get_upvalue(
-                self.cur_environment.depth,offset,is_global)
+                self.cur_environment.depth,offset,nest_count,is_global)
             elif is_global:
                 self.emitter.emit_var_to_global(self.cur_token.text,definition)
             else:
