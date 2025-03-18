@@ -124,6 +124,7 @@ BUILTINS = {
 #the global env will always have depth = 0
 class Environment:
     def __init__(self,parent = None):
+        self.name = ""
         self.symbol_table = {}
         self.parent = parent
         self.depth = 0
@@ -153,6 +154,8 @@ class Environment:
     def is_global(self):
         return self.parent is None
     
+    def set_env_name(self,name):
+        self.name = name    
     #returns definition of identifier and if definition is an upvalue.
     def find_definition(self,ident_name,nest_count = 0,is_upvalue = False):
         #find_definition(self,ident_name):
@@ -161,6 +164,7 @@ class Environment:
         # if self.parent is None:
         #     sys.exit("Error, " + "Identifier " + ident_name + " not defined.")
         # return self.parent.find_definition(ident_name)
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" ,self.name)
         if self.is_defined(ident_name):
             if self.is_global(): # if found in global scope, no need for upvalue
                 is_upvalue = False

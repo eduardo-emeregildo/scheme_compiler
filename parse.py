@@ -155,6 +155,13 @@ class Parser:
             return False
         seventh_arg_offset = env_depth - ((total_args - 6) * 8)
         return True if seventh_arg_offset % 16 != 0 else False
+    
+    #to add upvalues
+    # def resolve_upvalues(self,definition_result):
+    #     definition = definition_result[0]
+    #     is_upvalue = definition_result[1]
+    #     nest_count = definition_result[2]
+    #     #or maybe, in definition_exp, when the function is made, then handle upvalues
         
     def program(self):
         print("Program")
@@ -223,6 +230,8 @@ class Parser:
             if is_upvalue:
                 print("in is_upvalue, cur_function is: ",self.emitter.cur_function)
                 print("the offset is: ", offset)
+                #handle adding upvalues, setting up the chain of upvalues if nested:
+                #self.resolve_upvalues(definition_result)
                 #search upvalue, put result in rax
                 self.emitter.emit_get_upvalue(
                 self.cur_environment.depth,offset,nest_count,is_global)
@@ -707,6 +716,7 @@ class Parser:
         #setting up block in asm where the function's code will live
         function.set_name(let_name_internal)
         self.emitter.set_current_function(function.name)
+        self.cur_environment.set_env_name(function.name)
         self.emitter.emit_function_label(function.name)
         self.emitter.emit_function_prolog()
         arg_count = 1
@@ -936,6 +946,7 @@ class Parser:
         lambda_name = self.emitter.create_lambda_name()
         function.set_name(lambda_name)
         self.emitter.set_current_function(function.name)
+        self.cur_environment.set_env_name(function.name)
         self.emitter.emit_function_label(function.name)
         self.emitter.emit_function_prolog()
         #adding self arg, adding to definitions as type CLOSURE instead of PARAM
@@ -1065,6 +1076,7 @@ class Parser:
                 self.abort("Reserved function name.")
             function.set_name(self.cur_token.text)
             self.emitter.set_current_function(function.name)
+            self.cur_environment.set_env_name(function.name)
             if function.name in self.emitter.functions: #for redifining function
                 del self.emitter.functions[function.name]
             #declare space in bss section for function obj if function was made
