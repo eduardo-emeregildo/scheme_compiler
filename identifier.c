@@ -535,25 +535,26 @@ Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
         return vararg_list;
 }
 
-// void add_upvalue(Value *closure,long value, int offset)
-// {
-//         if (closure->type != VAL_CLOSURE) {
-//                 abort_message("adding upvalue, not a closure.\n");
-//         }
-//         //check size of upvalues, if multiple of 4, resize
-//         int upvalue_count = closure->as.closure->num_upvalues; 
-//         if (upvalue_count != 0 && ((upvalue_count & 0x3) == 0)) {
-//                 printf("Resizing:\n");
-//                 int new_size = sizeof(struct UpvalueObj) * ((upvalue_count) * 2);
-//                 struct UpvalueObj* new_upvalues = (struct UpvalueObj *)malloc(new_size);
-//                 memcpy(new_upvalues,closure->as.closure->upvalues,upvalue_count);
-//                 free(closure->as.closure->upvalues);
-//                 closure->as.closure->upvalues = new_upvalues;
-//         }
-//         closure->as.closure->upvalues[upvalue_count].offset = offset;
-//         closure->as.closure->upvalues[upvalue_count].value = value;
-//         closure->as.closure->num_upvalues++;
-// }
+void add_upvalue(Value *closure,long value, int offset, int nesting_count)
+{
+        if (closure->type != VAL_CLOSURE) {
+                abort_message("adding upvalue, not a closure.\n");
+        }
+        //check size of upvalues, if multiple of 4, resize
+        int upvalue_count = closure->as.closure->num_upvalues; 
+        if (upvalue_count != 0 && ((upvalue_count & 0x3) == 0)) {
+                printf("Resizing:\n");
+                int new_size = sizeof(struct UpvalueObj) * ((upvalue_count) * 2);
+                struct UpvalueObj* new_upvalues = (struct UpvalueObj *)malloc(new_size);
+                memcpy(new_upvalues,closure->as.closure->upvalues,upvalue_count);
+                free(closure->as.closure->upvalues);
+                closure->as.closure->upvalues = new_upvalues;
+        }
+        closure->as.closure->upvalues[upvalue_count].offset = offset;
+        closure->as.closure->upvalues[upvalue_count].value = value;
+        closure->as.closure->upvalues[upvalue_count].nesting_count = nesting_count;
+        closure->as.closure->num_upvalues++;
+}
 
 //given an offset and nesting amount, retrieve the upvalue. If not found, throw error
 long get_upvalue(Value *closure, int offset,int nesting_amt)

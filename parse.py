@@ -3,9 +3,22 @@ from lex import *
 from emit import *
 from environment import *
 from function import *
+from upvalue import *
+
+#rn add upvalue is happening before the definition. change it so it happens after 
+#therefore the definition can be referenced. do this using UpvalueTracker.
+
+#must be after definition_exp() finishes, that way everything is defined
+#if i do this, then emit_add_upvalue has to be changed, since in the approach
+#described above cur_environment will the parent, i.e. it will write to its child
 
 
-#add is_local to upvalue objects
+
+#after test if add_upvalue works with the base case, i.e. upvalue is located in
+#immediate enclosing scope
+
+#then work on nesting.
+
 
 #What I need is something to track upvalues at compile time.
 
@@ -67,6 +80,7 @@ class Parser:
         self.peek_token = None
         self.global_environment = Environment()
         self.cur_environment = self.global_environment
+        self.tracker = UpvalueTracker()
         self.next_token()
         self.next_token()
 
@@ -156,13 +170,23 @@ class Parser:
         seventh_arg_offset = env_depth - ((total_args - 6) * 8)
         return True if seventh_arg_offset % 16 != 0 else False
     
-    #to add upvalues
-    # def resolve_upvalues(self,definition_result):
-    #     definition = definition_result[0]
-    #     is_upvalue = definition_result[1]
-    #     nest_count = definition_result[2]
-    #     #or maybe, in definition_exp, when the function is made, then handle upvalues
-        
+    def resolve_upvalues(self,definition_result,ident_name):
+        definition = definition_result[0]
+        is_upvalue = definition_result[1]
+        nest_count = definition_result[2]
+        definition_offset = Environment.get_offset(definition)
+        print("IN RESOLVE_UPVALUES: NEST_COUNT IS: ", nest_count)
+        #base case, nest_count =1, meaning the upvalue is in the immediate enclosing
+        #environment
+        if nest_count == 1:
+            # previous_function = self.emitter.cur_function
+            # self.emitter.set_current_function(self.cur_environment.parent.name)
+            # asm_code = []
+            offset = Environment.get_offset(definition)
+            self.emitter.emit_add_upvalue(
+            self.cur_environment,ident_name,definition_offset,nest_count)
+            
+            
     def program(self):
         print("Program")
         while self.check_token(TokenType.NEWLINE):
@@ -231,7 +255,7 @@ class Parser:
                 print("in is_upvalue, cur_function is: ",self.emitter.cur_function)
                 print("the offset is: ", offset)
                 #handle adding upvalues, setting up the chain of upvalues if nested:
-                #self.resolve_upvalues(definition_result)
+                #self.resolve_upvalues(definition_result,self.cur_token.text)
                 #search upvalue, put result in rax
                 self.emitter.emit_get_upvalue(
                 self.cur_environment.depth,offset,nest_count,is_global)

@@ -164,7 +164,6 @@ class Environment:
         # if self.parent is None:
         #     sys.exit("Error, " + "Identifier " + ident_name + " not defined.")
         # return self.parent.find_definition(ident_name)
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" ,self.name)
         if self.is_defined(ident_name):
             if self.is_global(): # if found in global scope, no need for upvalue
                 is_upvalue = False

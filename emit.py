@@ -442,28 +442,55 @@ class Emitter:
         self.add_rsp(abs(env_depth),is_global)
 
         
-    #calls add_upvalue. cur_environment is the environemnt in which
-    #needs the upvalue
-    #probably needs to be rewritten
-    def emit_add_upvalue(self,ident_name,cur_environment):
+    #calls add_upvalue. cur_environment is the environment which needs the upvalue
+    #the parent will write to it in its own section
+    def emit_add_upvalue(self,cur_environment,ident_name,definition_offset,nest_count):
         self.add_extern("add_upvalue")
-        definition = cur_environment.symbol_table[ident_name]
-        previous_cur_function = self.cur_function
-        #self.set_current_function("outer")
-        self.set_current_function(ident_name)
-        print("PREVIOUS CUR_FUNCTION: ",previous_cur_function)
-        print("CUR_FUNCTION: ",self.cur_function)
-        is_global = cur_environment.is_global()
-        env_depth = abs(cur_environment.depth)
-        self.emit_var_to_local(ident_name,definition)
+        parent_env_depth = abs(cur_environment.parent.depth)
+        is_parent_global = cur_environment.parent.is_global()
+        previous_function = self.cur_function
+        self.set_current_function(cur_environment.parent.name)
         asm_code = []
-        self.subtract_rsp(env_depth,is_global)
-        asm_code.append("\tmov rdi, rax")
-        asm_code.append(f"\tmov rsi, QWORD [rbp{definition[0]}]")
-        asm_code.append(f"\tmov rdx, {definition[0]}\n\tcall add_upvalue")
-        self.emit_to_section('\n'.join(asm_code),is_global)
-        self.add_rsp(env_depth,is_global)
-        self.set_current_function(previous_cur_function)
+        self.emit_function(";adding upvalue")
+        inner_function_offset = None
+        #finding offset inner function from context of parent
+        #have to do this for loop to cover the case of lets.
+        #In cases other than let can just search directly with cur_environment.name
+        parent_symbol_table = cur_environment.parent.symbol_table
+        for symbol in parent_symbol_table:
+            local_definition = parent_symbol_table[symbol]
+            ident_obj = local_definition[1]
+            if ident_obj.typeof == IdentifierType.CLOSURE:
+                if ident_obj.value.value.name == cur_environment.name:
+                    inner_function_offset = local_definition[0]
+                    break
+        asm_code.append(f"\tmov rdi, QWORD [rbp{inner_function_offset:+}]")
+        asm_code.append(f"\tmov rsi, QWORD [rbp{definition_offset:+}]")
+        asm_code.append(f"\tmov rdx, {definition_offset:+}")
+        asm_code.append(f"\tmov rcx, {nest_count}")
+        asm_code.append("\tcall add_upvalue")
+        self.subtract_rsp(parent_env_depth,is_parent_global)
+        self.emit_function('\n'.join(asm_code))
+        self.add_rsp(parent_env_depth,is_parent_global)
+        self.emit_function(";done adding upvalue")
+        self.set_current_function(previous_function)
+        # definition = cur_environment.symbol_table[ident_name]
+        # previous_cur_function = self.cur_function
+        # #self.set_current_function("outer")
+        # self.set_current_function(ident_name)
+        # print("PREVIOUS CUR_FUNCTION: ",previous_cur_function)
+        # print("CUR_FUNCTION: ",self.cur_function)
+        # is_global = cur_environment.is_global()
+        # env_depth = abs(cur_environment.depth)
+        # self.emit_var_to_local(ident_name,definition)
+        # asm_code = []
+        # self.subtract_rsp(env_depth,is_global)
+        # asm_code.append("\tmov rdi, rax")
+        # asm_code.append(f"\tmov rsi, QWORD [rbp{definition[0]}]")
+        # asm_code.append(f"\tmov rdx, {definition[0]}\n\tcall add_upvalue")
+        # self.emit_to_section('\n'.join(asm_code),is_global)
+        # self.add_rsp(env_depth,is_global)
+        # self.set_current_function(previous_cur_function)
     
     #calls get_upvalue the closure obj will always be in position rbp - 8.
     def emit_get_upvalue(self,env_depth,offset,nest_count,is_global):
