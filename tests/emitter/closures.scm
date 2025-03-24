@@ -230,8 +230,16 @@
 ;(display (func -))
 ;(display (func =))
 
-;after i fix the above, work on upvalues and making the below, and tests work:
+(display "tests where upvalue is located in immediately enclosing scope:")
 (define (outer) (define local 3) (define (inner) (+ 1 local)) (inner))
-(outer) ; should print out 4
+(display (outer)) ; should print out 4
 
-;(define (outer) (define (middle) (define (inner) 3) 2) 1)
+;naming bar inner causes problems since it overwrites inner of above definition in
+;asm file. this needs to be fixed
+(define (foo) (define local1 3) (define local2 4) (define (bar) (+ local1 local2)) (bar))
+(display (foo)) ; should print out 7
+
+(define (func op) (define (loc f) (+ f op))(loc 3))
+(display (func 2)) ;should print out 5
+
+;(define (outer) (define local 6) (define (middle) (define (inner) local) 2) 1)

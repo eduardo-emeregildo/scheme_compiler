@@ -5,56 +5,13 @@ from environment import *
 from function import *
 from upvalue import *
 
-#rn add upvalue is happening before the definition. change it so it happens after 
-#therefore the definition can be referenced. do this using UpvalueTracker.
+#1) Work on the case where upvalue is not located in immediately enclosing scope,
+#but somewhere further up. searching/adding upvalues has to be modified. refer to
+#flattening upvalues section in crafting interpreters. nest_count/is_local in 
+#UpvalueTracker will definitely be used.
 
-#must be after definition_exp() finishes, that way everything is defined
-#if i do this, then emit_add_upvalue has to be changed, since in the approach
-#described above cur_environment will the parent, i.e. it will write to its child
-
-
-
-#after test if add_upvalue works with the base case, i.e. upvalue is located in
-#immediate enclosing scope
-
-#then work on nesting.
-
-
-#What I need is something to track upvalues at compile time.
-
-#what im thinking of doing is for the parser to have a field thats a dictionary,
-#which stores the upvalues it finds. This will get refreshed when outermost
-# (i.e. the one whose parent is None)  definition thats a function finishes 
-# its definition_exp.
-
-#this can be a whole class, i.e. UpvalueTracker
-
-#each function will be a key in this dictionary.  the value will be another dictionary
-#indicating which upvalue is being requested and by which function.
-
-#if no inner function requests a definition from the outer function, then the value
-# will be None
-
-#more specifically, the inner dictionary will be like so:
-#the key will hold the the offset that the upvalue is located.
-# the value will be a list of offsets which the inner function definitions are located.
-#these are the inner functions that are requesting the upvalue.
-
-#but what about nested upvalues?
-#i.e. you have outer, middle and inner function, and you function inner needs an
-#upvalue from outer. Outer cant really perform this, because the inner definition
-#is defined in middle. this problem is talked about in the flattening upvalues section
-#Im going to implement the solution presented in the book. Basically have to add
-# a local field in the UpvalueObj struct first do this
-
-
-#continue to implement closures. (adding upvalues, this has to be called in 
-# the function that the upvalue is defined in)
+#2) work on making lambdas/lets work with upvalues
  
-#start implementing adding upvalues/retrieving them
-#first handle normal closures, then handle the anonymous ones (i.e. lambda/let)
-
-
 #Todo4: implement closures
 #Todo5: implement gc
 #Todo6: test compiler with different optimization levels, see which one you can
@@ -169,23 +126,6 @@ class Parser:
             return False
         seventh_arg_offset = env_depth - ((total_args - 6) * 8)
         return True if seventh_arg_offset % 16 != 0 else False
-    
-    def resolve_upvalues(self,definition_result,ident_name):
-        definition = definition_result[0]
-        is_upvalue = definition_result[1]
-        nest_count = definition_result[2]
-        definition_offset = Environment.get_offset(definition)
-        print("IN RESOLVE_UPVALUES: NEST_COUNT IS: ", nest_count)
-        #base case, nest_count =1, meaning the upvalue is in the immediate enclosing
-        #environment
-        if nest_count == 1:
-            # previous_function = self.emitter.cur_function
-            # self.emitter.set_current_function(self.cur_environment.parent.name)
-            # asm_code = []
-            offset = Environment.get_offset(definition)
-            self.emitter.emit_add_upvalue(
-            self.cur_environment,ident_name,definition_offset,nest_count)
-            
             
     def program(self):
         print("Program")
@@ -246,14 +186,19 @@ class Parser:
             nest_count = definition_result[2]
             def_ident_obj = Environment.get_ident_obj(definition)
             offset = Environment.get_offset(definition)
-            print("DEFINITION IS: ",definition)
-            print("is_upvalue is: ",is_upvalue)
-            print("OFFSET IS: ", offset)
-            print("NEST COUNT IS: ", nest_count)
             self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
             if is_upvalue:
-                print("in is_upvalue, cur_function is: ",self.emitter.cur_function)
-                print("the offset is: ", offset)
+                if self.tracker.is_tracker_on():
+                    #add to tracker, or pass tracker to find_definition so it does it
+                    env = self.cur_environment
+                    for i in range(1, nest_count + 1):
+                        inner_function_name = env.name
+                        env = env.parent
+                        #using env.name for for inner, which would fail for 
+                        #lets, have to fix when i get to lets
+                        is_local = True if i == nest_count else False
+                        upvalue_request = [inner_function_name,offset,is_local,i]
+                        self.tracker.add_upvalue_request(env.name,upvalue_request)
                 #handle adding upvalues, setting up the chain of upvalues if nested:
                 #self.resolve_upvalues(definition_result,self.cur_token.text)
                 #search upvalue, put result in rax
@@ -1048,6 +993,8 @@ class Parser:
         elif self.check_token(TokenType.EXPR_START):
             #function case
             function = Function()
+            if self.cur_environment.is_global:
+                self.tracker.turn_tracker_on()
             parent_env = self.cur_environment
             previous_function = self.emitter.cur_function
             self.cur_environment = parent_env.create_local_env()
@@ -1058,6 +1005,12 @@ class Parser:
             #now switch back to parent environment
             ident_name = function.get_name()
             self.cur_environment = parent_env
+            
+            if self.cur_environment.is_global():
+                print("ALL REQUESTS:")
+                print(self.tracker.upvalue_requests)
+                self.tracker.turn_tracker_off()
+                
             function_ident = Identifier(IdentifierType.FUNCTION,function)
             self.evaluate_closure(function_ident)
             #lastly, make function object in the runtime
@@ -1178,6 +1131,20 @@ class Parser:
         function_ident = Identifier(IdentifierType.FUNCTION,function)
         parent_env.add_definition(ident_name,Identifier(
         IdentifierType.CLOSURE,function_ident))
+        
+        cur_function = self.emitter.cur_function
+        #now current function will supply upvalues that inner functions requested,
+        #if no requests, wont do anything
+        if self.tracker.function_has_requests(cur_function):
+            function_requests = self.tracker.get_upvalue_requests(cur_function)
+            #print("FUNCTION REQUESTS ARE: ", function_requests)
+            for request in function_requests:
+                inner_function_def = self.cur_environment.symbol_table[request[0]]
+                inner_function_offset = inner_function_def[0]
+                print("INNER FUNCTION OFFSET IS: ", inner_function_offset)
+                self.emitter.emit_add_upvalue(
+                self.cur_environment,inner_function_offset,request[1],request[3])
+            
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
         self.emitter.emit_function_epilog()

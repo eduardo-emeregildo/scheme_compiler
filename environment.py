@@ -156,7 +156,7 @@ class Environment:
     
     def set_env_name(self,name):
         self.name = name    
-    #returns definition of identifier and if definition is an upvalue.
+    #returns definition of identifier if definition is an upvalue and nest count
     def find_definition(self,ident_name,nest_count = 0,is_upvalue = False):
         #find_definition(self,ident_name):
         # if ident_name in self.symbol_table:

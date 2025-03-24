@@ -8,9 +8,11 @@
 #each elt in the list is:
     #another list containing the details necessary to supply the upvalue
     #those elements being:
-    #1) offset of inner function
-    #2) nest_count
+    #1) name of inner function to write to. this will be used to get the offset later
+    #2) offset of variable
     #3) is_local
+    #4) nest_count
+    
 class UpvalueTracker:
     def __init__(self):
         self.on = False
@@ -37,10 +39,12 @@ class UpvalueTracker:
         else:
             self.upvalue_requests[function_name].append(request_arr)
     
+    def function_has_requests(self,function_name):
+        return function_name in self.upvalue_requests
+    
     #for debugging
     def show_requests(self,function_name):
         requests = self.upvalue_requests[function_name]
         print(f"Requests for function: {function_name}")
         for i,data in enumerate(requests):
-            print(f"Request {i}: ", data)
-        
+            print(f"Request {i}: ", data)        
