@@ -556,6 +556,14 @@ void add_upvalue(Value *closure,long value, int offset, int nesting_count)
         closure->as.closure->num_upvalues++;
 }
 
+//add upvalue from self_closure's upvalues into target closure
+void add_upvalue_nonlocal(
+Value *target_closure, Value *self_closure,int offset, int nesting_count)
+{
+        long upvalue = get_upvalue(self_closure,offset,nesting_count - 1);
+        add_upvalue(target_closure,upvalue,offset,nesting_count);
+}
+
 //given an offset and nesting amount, retrieve the upvalue. If not found, throw error
 long get_upvalue(Value *closure, int offset,int nesting_amt)
 {
@@ -572,6 +580,8 @@ long get_upvalue(Value *closure, int offset,int nesting_amt)
                 }
         }
         if (!found) {
+                printf(
+                "Tried to find upvalue with offset %d, and nesting amount %d.\n",offset,nesting_amt);
                 abort_message(
                 "finding upvalue. Offset and nesting amount not found.\n");
         }

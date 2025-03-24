@@ -460,6 +460,24 @@ class Emitter:
         self.emit_function('\n'.join(asm_code))
         self.add_rsp(env_depth,is_global)
         self.emit_function(";done adding upvalue")
+    
+    def emit_add_upvalue_nonlocal(
+    self,cur_environment,inner_function_offset,nest_count):
+        self.add_extern("add_upvalue_nonlocal")
+        env_depth = abs(cur_environment.depth)
+        is_global = cur_environment.is_global()
+        asm_code = []
+        self.emit_function(";adding upvalue nonlocal")
+        asm_code.append(f"\tmov rdi, QWORD [rbp{inner_function_offset}]")
+        asm_code.append("\tmov rsi, QWORD [rbp-8]")
+        asm_code.append(f"\tmov rdx, {inner_function_offset}")
+        asm_code.append(f"\tmov rcx, {nest_count}")
+        asm_code.append("\tcall add_upvalue_nonlocal")
+        self.subtract_rsp(env_depth,is_global)
+        self.emit_function('\n'.join(asm_code))
+        self.add_rsp(env_depth,is_global)
+        self.emit_function(";done adding upvalue nonlocal")
+        
         
     
     #calls get_upvalue the closure obj will always be in position rbp - 8.

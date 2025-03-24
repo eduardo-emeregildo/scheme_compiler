@@ -5,12 +5,12 @@ from environment import *
 from function import *
 from upvalue import *
 
-#1) Work on the case where upvalue is not located in immediately enclosing scope,
-#but somewhere further up. searching/adding upvalues has to be modified. refer to
-#flattening upvalues section in crafting interpreters. nest_count/is_local in 
-#UpvalueTracker will definitely be used.
+#1) make test in bottom of closures.scm work.
+#2) do more upvalue testing. All tests in closures.scm should pass before moving 
+# to lets/lambdas
+#2) make add_upvalue check if upvalue was already added
 
-#2) work on making lambdas/lets work with upvalues
+#3) work on making lambdas/lets work with upvalues
  
 #Todo4: implement closures
 #Todo5: implement gc
@@ -191,12 +191,13 @@ class Parser:
                 if self.tracker.is_tracker_on():
                     #add to tracker, or pass tracker to find_definition so it does it
                     env = self.cur_environment
-                    for i in range(1, nest_count + 1):
+                    #for i in range(1, nest_count + 1):
+                    for i in range(nest_count,0,-1):
                         inner_function_name = env.name
                         env = env.parent
                         #using env.name for for inner, which would fail for 
                         #lets, have to fix when i get to lets
-                        is_local = True if i == nest_count else False
+                        is_local = True if i == 1 else False
                         upvalue_request = [inner_function_name,offset,is_local,i]
                         self.tracker.add_upvalue_request(env.name,upvalue_request)
                 #handle adding upvalues, setting up the chain of upvalues if nested:
@@ -1137,13 +1138,20 @@ class Parser:
         #if no requests, wont do anything
         if self.tracker.function_has_requests(cur_function):
             function_requests = self.tracker.get_upvalue_requests(cur_function)
-            #print("FUNCTION REQUESTS ARE: ", function_requests)
+            print("FUNCTION REQUESTS FOR ",cur_function ,"ARE: ", function_requests)
             for request in function_requests:
                 inner_function_def = self.cur_environment.symbol_table[request[0]]
                 inner_function_offset = inner_function_def[0]
                 print("INNER FUNCTION OFFSET IS: ", inner_function_offset)
-                self.emitter.emit_add_upvalue(
-                self.cur_environment,inner_function_offset,request[1],request[3])
+                is_local = request[2]
+                if is_local:
+                    self.emitter.emit_add_upvalue(
+                    self.cur_environment,inner_function_offset,request[1],request[3])
+                else:
+                    #search upvalues of current definition instead of locals, add
+                    #to target closure
+                    self.emitter.emit_add_upvalue_nonlocal(
+                    self.cur_environment,inner_function_offset,request[3])
             
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
