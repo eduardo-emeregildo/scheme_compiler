@@ -243,23 +243,22 @@
 ;(display (func 2)) ;should print out 5
 
 (display "tests where upvalue is not in immediately enclosing scope:")
-(define (outer) 
-    (define local 6) 
-    (define (middle) 
-        (define (inner) 
+(define (outer1) 
+    (define local 7) 
+    (define (middle1) 
+        (define (inner1) 
             (+ local 1)) 
-        (inner)) 
-    (middle))
-
-
-(display (outer)) ; should print out 7
+        (inner1)) 
+    (middle1))
+(display (outer1)) ; should print out 8
 
 ;more complicated test, inner gets an upvalue from outer and from middle
-;(define (outer) 
-    ;(define local 6) 
-    ;(define (middle) 
-        ;(define mlocal 7) 
-        ;(define (inner) 
-            ;(+ local mlocal)) 
-        ;(inner)) 
-    ;(middle))
+(define (outer2) 
+    (define local 6) 
+    (define (middle2) 
+        (define mlocal 7) 
+        (define (inner2) 
+            (+ local mlocal)) 
+        (inner2)) 
+    (middle2))
+(display (outer2)) ; should print out 13

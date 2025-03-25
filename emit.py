@@ -445,15 +445,15 @@ class Emitter:
     #calls add_upvalue. cur_environment is the environment that will do the writing
     #to the child
     def emit_add_upvalue(
-    self,cur_environment,inner_function_offset,definition_offset,nest_count):
+    self,cur_environment,inner_function_offset,upvalue_offset,nest_count):
         self.add_extern("add_upvalue")
         env_depth = abs(cur_environment.depth)
         is_global = cur_environment.is_global()
         asm_code = []
         self.emit_function(";adding upvalue")
         asm_code.append(f"\tmov rdi, QWORD [rbp{inner_function_offset:+}]")
-        asm_code.append(f"\tmov rsi, QWORD [rbp{definition_offset:+}]")
-        asm_code.append(f"\tmov rdx, {definition_offset:+}")
+        asm_code.append(f"\tmov rsi, QWORD [rbp{upvalue_offset:+}]")
+        asm_code.append(f"\tmov rdx, {upvalue_offset:+}")
         asm_code.append(f"\tmov rcx, {nest_count}")
         asm_code.append("\tcall add_upvalue")
         self.subtract_rsp(env_depth,is_global)
@@ -462,7 +462,7 @@ class Emitter:
         self.emit_function(";done adding upvalue")
     
     def emit_add_upvalue_nonlocal(
-    self,cur_environment,inner_function_offset,nest_count):
+    self,cur_environment,inner_function_offset,upvalue_offset,nest_count):
         self.add_extern("add_upvalue_nonlocal")
         env_depth = abs(cur_environment.depth)
         is_global = cur_environment.is_global()
@@ -470,7 +470,7 @@ class Emitter:
         self.emit_function(";adding upvalue nonlocal")
         asm_code.append(f"\tmov rdi, QWORD [rbp{inner_function_offset}]")
         asm_code.append("\tmov rsi, QWORD [rbp-8]")
-        asm_code.append(f"\tmov rdx, {inner_function_offset}")
+        asm_code.append(f"\tmov rdx, {upvalue_offset}")
         asm_code.append(f"\tmov rcx, {nest_count}")
         asm_code.append("\tcall add_upvalue_nonlocal")
         self.subtract_rsp(env_depth,is_global)

@@ -4,8 +4,6 @@ from emit import *
 from environment import *
 from function import *
 from upvalue import *
-
-#1) make test in bottom of closures.scm work.
 #2) do more upvalue testing. All tests in closures.scm should pass before moving 
 # to lets/lambdas
 #2) make add_upvalue check if upvalue was already added
@@ -1143,15 +1141,17 @@ class Parser:
                 inner_function_def = self.cur_environment.symbol_table[request[0]]
                 inner_function_offset = inner_function_def[0]
                 print("INNER FUNCTION OFFSET IS: ", inner_function_offset)
+                upvalue_offset = request[1]
                 is_local = request[2]
+                nest_count = request[3]
                 if is_local:
                     self.emitter.emit_add_upvalue(
-                    self.cur_environment,inner_function_offset,request[1],request[3])
+                    self.cur_environment,inner_function_offset,upvalue_offset,nest_count)
                 else:
                     #search upvalues of current definition instead of locals, add
                     #to target closure
                     self.emitter.emit_add_upvalue_nonlocal(
-                    self.cur_environment,inner_function_offset,request[3])
+                    self.cur_environment,inner_function_offset,upvalue_offset,nest_count)
             
         while not self.check_token(TokenType.EXPR_END):
             self.expression()

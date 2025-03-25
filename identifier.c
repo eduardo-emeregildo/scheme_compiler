@@ -581,7 +581,8 @@ long get_upvalue(Value *closure, int offset,int nesting_amt)
         }
         if (!found) {
                 printf(
-                "Tried to find upvalue with offset %d, and nesting amount %d.\n",offset,nesting_amt);
+                "Tried to find upvalue with offset %d, and nesting amount %d.\n",
+                offset,nesting_amt);
                 abort_message(
                 "finding upvalue. Offset and nesting amount not found.\n");
         }
