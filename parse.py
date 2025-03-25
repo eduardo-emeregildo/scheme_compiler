@@ -4,6 +4,7 @@ from emit import *
 from environment import *
 from function import *
 from upvalue import *
+#1) make last test in set.scm pass
 #2) do more upvalue testing. All tests in closures.scm should pass before moving 
 # to lets/lambdas
 #2) make add_upvalue check if upvalue was already added
@@ -124,7 +125,51 @@ class Parser:
             return False
         seventh_arg_offset = env_depth - ((total_args - 6) * 8)
         return True if seventh_arg_offset % 16 != 0 else False
-            
+    
+    #searches for identifier. If identifier is in an enclosing scope, 
+    #sends an upvalue request
+    def resolve_identifier(self):
+        is_global = self.cur_environment.is_global()
+        definition_result = self.cur_environment.find_definition(
+        self.cur_token.text)
+        definition = definition_result[0]
+        is_upvalue = definition_result[1]
+        nest_count = definition_result[2]
+        def_ident_obj = Environment.get_ident_obj(definition)
+        offset = Environment.get_offset(definition)
+        self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
+        if is_upvalue:
+            if self.tracker.is_tracker_on():
+                #add to tracker
+                env = self.cur_environment
+                for i in range(nest_count,0,-1):
+                    inner_function_name = env.name
+                    env = env.parent
+                    #using env.name for for inner, which would fail for 
+                    #lets, have to fix when i get to lets
+                    is_local = True if i == 1 else False
+                    upvalue_request = [inner_function_name,offset,is_local,i]
+                    self.tracker.add_upvalue_request(env.name,upvalue_request)
+        return definition_result
+    
+    
+    #to resolve and evaluate identifier. result will be in rax
+    def resolve_and_eval_identifier(self):
+        is_global = self.cur_environment.is_global()
+        definition_result = self.resolve_identifier()
+        definition = definition_result[0]
+        is_upvalue = definition_result[1]
+        nest_count = definition_result[2]
+        def_ident_obj = Environment.get_ident_obj(definition)
+        offset = Environment.get_offset(definition)
+        if is_upvalue:
+            self.emitter.emit_get_upvalue(
+            self.cur_environment.depth,offset,nest_count,is_global)
+        elif is_global:
+            self.emitter.emit_var_to_global(self.cur_token.text,definition)
+        else:
+            self.emitter.emit_var_to_local(self.cur_token.text,definition)
+
     def program(self):
         print("Program")
         while self.check_token(TokenType.NEWLINE):
@@ -176,37 +221,7 @@ class Parser:
         
         elif self.check_token(TokenType.IDENTIFIER):
             print("EXPRESSION-VARIABLE")
-            is_global = self.cur_environment.is_global()
-            definition_result = self.cur_environment.find_definition(
-            self.cur_token.text)
-            definition = definition_result[0]
-            is_upvalue = definition_result[1]
-            nest_count = definition_result[2]
-            def_ident_obj = Environment.get_ident_obj(definition)
-            offset = Environment.get_offset(definition)
-            self.set_last_exp_res(def_ident_obj.typeof,def_ident_obj.value)
-            if is_upvalue:
-                if self.tracker.is_tracker_on():
-                    #add to tracker, or pass tracker to find_definition so it does it
-                    env = self.cur_environment
-                    #for i in range(1, nest_count + 1):
-                    for i in range(nest_count,0,-1):
-                        inner_function_name = env.name
-                        env = env.parent
-                        #using env.name for for inner, which would fail for 
-                        #lets, have to fix when i get to lets
-                        is_local = True if i == 1 else False
-                        upvalue_request = [inner_function_name,offset,is_local,i]
-                        self.tracker.add_upvalue_request(env.name,upvalue_request)
-                #handle adding upvalues, setting up the chain of upvalues if nested:
-                #self.resolve_upvalues(definition_result,self.cur_token.text)
-                #search upvalue, put result in rax
-                self.emitter.emit_get_upvalue(
-                self.cur_environment.depth,offset,nest_count,is_global)
-            elif is_global:
-                self.emitter.emit_var_to_global(self.cur_token.text,definition)
-            else:
-                self.emitter.emit_var_to_local(self.cur_token.text,definition)
+            self.resolve_and_eval_identifier()
             self.next_token()
                     
         elif self.check_token(TokenType.QUOTE_SYMBOL):
@@ -810,11 +825,26 @@ class Parser:
     # (set! <variable> <expression>)
     def setexclam_exp(self):
         print("EXPRESSION-SET!")
-        self.match(TokenType.IDENTIFIER)
+        if not self.check_token(TokenType.IDENTIFIER):
+            self.abort("in set!. Expected a variable.")
         print("VARIABLE")
+        ident_name = self.cur_token.text
+        definition_result = self.resolve_identifier()
+        is_global = self.cur_environment.is_global()
+        definition = definition_result[0]
+        is_upvalue = definition_result[1]
+        nest_count = definition_result[2]
+        def_ident_obj = Environment.get_ident_obj(definition)
+        offset = Environment.get_offset(definition)
+        self.next_token()
         self.expression()
+        if is_upvalue:
+            env_depth = self.cur_environment.depth
+            self.emitter.emit_setexclam_upvalue(
+            offset,nest_count,env_depth,is_global)
+        else:
+            self.emitter.emit_definition(ident_name,is_global,offset)
         self.match(TokenType.EXPR_END)
-        #self.parens.pop()
         
     #(rec <variable> <expression>)
     def rec_exp(self):

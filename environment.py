@@ -158,12 +158,6 @@ class Environment:
         self.name = name    
     #returns definition of identifier if definition is an upvalue and nest count
     def find_definition(self,ident_name,nest_count = 0,is_upvalue = False):
-        #find_definition(self,ident_name):
-        # if ident_name in self.symbol_table:
-        #     return self.symbol_table[ident_name]
-        # if self.parent is None:
-        #     sys.exit("Error, " + "Identifier " + ident_name + " not defined.")
-        # return self.parent.find_definition(ident_name)
         if self.is_defined(ident_name):
             if self.is_global(): # if found in global scope, no need for upvalue
                 is_upvalue = False

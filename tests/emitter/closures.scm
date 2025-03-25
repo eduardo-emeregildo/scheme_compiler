@@ -7,29 +7,30 @@
 ; so when a more local function tries to retrieve it, it doesnt know the offset 
 ; relative to its function
 
-;example 2: should print 3.
+
+;(display "example 2, should print 3:")
 ;(define (make_closure) (define local 3)(define (closure) (display local)) closure)
 ;(define closure (make_closure))
 ;(closure)
 
-;example 3: same nested function closes over different values
-;(define (make_closure val) (define (closure) (display val)) closure)
-;(define doughnut (make_closure "doughnut"))
-;(define bagel (make_closure "bagel"))
-;(doughnut) ; should print doughnut
-;(bagel) ; should print bagel
+(display "example 3, same nested function closes over different values")
+(define (make_closure val) (define (closure) (display val)) closure)
+(define doughnut (make_closure "doughnut"))
+(define bagel (make_closure "bagel"))
+(doughnut) ; should print doughnut
+(bagel) ; should print bagel
 
-;example 4:
-;(define (outer) 
-    ;(define a 1) 
-    ;(define b 2) 
-    ;(define (middle) 
-        ;(define c 3) 
-        ;(define d 4) 
-        ;(define (inner) (+ a b c d)) 
-        ;(inner)) 
-    ;(middle))
-;(outer) ; should print out 10
+(display "example 4, should print 10")
+(define (outer) 
+    (define a 1) 
+    (define b 2) 
+    (define (middle) 
+        (define c 3) 
+        (define d 4) 
+        (define (inner) (+ a b c d)) 
+        (inner)) 
+    (middle))
+(display (outer)) ; should print out 10
 
 ;example 5 would creating a lambda within a let. The variables that let declares
 ;should be usable in the lambda
@@ -39,21 +40,22 @@
 
 ;it seems like Scheme closes over values, not variables. I.e. there is not "one"
 ;upvalue, there are copies of it.
-;(define (make_adder x) (define (inner y) (+ x y)) inner) ;same as lambda below
+(display "testing that compiler closes over values, not variables:")
+(define (make_adder x) (define (inner3 y) (+ x y)) inner3) ;same as lambda below
 
 ;(define make_adder
   ;(lambda (x)
     ;(lambda (y)
       ;(+ x y))))
 
-;(define add_5 (make_adder 5))
+(define add_5 (make_adder 5))
 
-;(display (add_5 10)) ; Outputs 15
+(display (add_5 10)) ; Outputs 15
 
-;(define new_x 20)
-;(define add_20 (make_adder new_x))
+(define new_x 20)
+(define add_20 (make_adder new_x))
 
-;(display (add_20 10)) ; Outputs 30
+(display (add_20 10)) ; Outputs 30
 
 ;(set! new_x 50)
 ;(display (add_20 10)) ; prints 30, meaning add_20 captured new_x and set! did not

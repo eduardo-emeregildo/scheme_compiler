@@ -491,7 +491,19 @@ class Emitter:
         asm_code.append(f"\tmov rdx, {nest_count}\n\tcall get_upvalue")
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(abs(env_depth),is_global)
-        
+    
+    def emit_setexclam_upvalue(self,offset,nest_count,env_depth,is_global):
+        self.add_extern("setexclam_upvalue")
+        asm_code = []
+        asm_code.append("\tmov rdi, QWORD [rbp-8]")
+        asm_code.append("\tmov rsi, rax")
+        asm_code.append(f"\tmov rdx, {offset}")
+        asm_code.append(f"\tmov rcx, {nest_count}")
+        asm_code.append("\tcall setexclam_upvalue")
+        self.subtract_rsp(abs(env_depth),is_global)
+        self.emit_to_section('\n'.join(asm_code),is_global)
+        self.add_rsp(abs(env_depth),is_global)
+
     #used to satisfy criteria of macro in place_args. rbx holds arity and 
     # r10 holds min_args
     def get_arity_in_runtime(self,param_offset):
@@ -586,7 +598,6 @@ class Emitter:
         else:
             self.emit_function(f"\tmov rax, QWORD [rbp{offset:+}]")
         
-            
     #for creating function definition
     def emit_register_param(self,arg_num):
         self.emit_function(

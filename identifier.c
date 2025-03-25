@@ -588,3 +588,18 @@ long get_upvalue(Value *closure, int offset,int nesting_amt)
         }
         return res;
 }
+
+// set! but definition being set is an upvalue
+void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt)
+{
+        struct UpvalueObj *upvalues = closure->as.closure->upvalues;
+        int upvalue_total = closure->as.closure->num_upvalues;
+        for (int i = 0; i < upvalue_total; i++) {
+                if ((upvalues[i].offset == offset) && 
+                (nesting_amt == upvalues[i].nesting_count)) {
+                        upvalues[i].value = new_val;
+                        return;
+                }
+        }
+        abort_message("in set!. Offset and nesting amount not found.\n");
+}
