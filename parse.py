@@ -4,7 +4,8 @@ from emit import *
 from environment import *
 from function import *
 from upvalue import *
-#1) make last test in set.scm pass
+
+#1) make last test in set.scm pass, getter and setter not referring to same a
 #2) do more upvalue testing. All tests in closures.scm should pass before moving 
 # to lets/lambdas
 #2) make add_upvalue check if upvalue was already added
@@ -843,7 +844,7 @@ class Parser:
             self.emitter.emit_setexclam_upvalue(
             offset,nest_count,env_depth,is_global)
         else:
-            self.emitter.emit_definition(ident_name,is_global,offset)
+            self.emitter.set_definition(offset,ident_name,is_global)
         self.match(TokenType.EXPR_END)
         
     #(rec <variable> <expression>)
@@ -853,7 +854,6 @@ class Parser:
         print("VARIABLE")
         self.expression()
         self.match(TokenType.EXPR_END)
-        #self.parens.pop()
         
     # (do (<iteration spec>*) (<end test> <sequence>+) <expression>*)
     def do_exp(self):

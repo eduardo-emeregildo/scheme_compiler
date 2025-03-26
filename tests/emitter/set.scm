@@ -17,7 +17,8 @@
 (yeo)
 (yeo)
 
-;failing
+
+;here both setter and getter refer to the same a, this is why its failing
 (display "example from crafting interpreters, should print updated:")
 (define globalSet 0)
 (define globalGet 1)
