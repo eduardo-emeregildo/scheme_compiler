@@ -603,3 +603,27 @@ void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt)
         }
         abort_message("in set!. Offset and nesting amount not found.\n");
 }
+
+//modifies local definition if its a ptr, returns new_val
+long setexclam_local(long definition,long new_val)
+{
+        if (!is_ptr(definition)) {
+                return new_val;
+        }
+        Value *definition_obj = (Value *)definition;
+        if (!is_ptr(new_val)) {
+                if (is_int(new_val)) {
+                        definition_obj->type = VAL_INT;
+                } else if (is_bool(new_val)){
+                        definition_obj->type = VAL_BOOLEAN;
+                } else {
+                        definition_obj->type = VAL_CHAR;
+                }
+
+        } else {
+                Value *new_val_obj = (Value *)new_val;
+                definition_obj->type = new_val_obj->type;
+                definition_obj->as.tagged_type = new_val_obj->as.tagged_type;
+        }
+        return definition;
+}

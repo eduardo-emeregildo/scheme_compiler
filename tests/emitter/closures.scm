@@ -38,7 +38,7 @@
 ;example 6: showing whether closures close over variables and not values
 ;think I need to implement set! to be able to test this...
 
-;it seems like Scheme closes over values, not variables. I.e. there is not "one"
+;in this case, Scheme closes over values, not variables. I.e. there is not "one"
 ;upvalue, there are copies of it.
 (display "testing that compiler closes over values, not variables:")
 (define (make_adder x) (define (inner3 y) (+ x y)) inner3) ;same as lambda below
@@ -49,16 +49,12 @@
       ;(+ x y))))
 
 (define add_5 (make_adder 5))
-
 (display (add_5 10)) ; Outputs 15
-
 (define new_x 20)
 (define add_20 (make_adder new_x))
-
 (display (add_20 10)) ; Outputs 30
-
-;(set! new_x 50)
-;(display (add_20 10)) ; prints 30, meaning add_20 captured new_x and set! did not
+(set! new_x 50)
+(display (add_20 10)) ; prints 30, meaning add_20 captured new_x and set! did not
 ;overwrite it, so it captured it by value
 
 

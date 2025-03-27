@@ -1,24 +1,55 @@
-(display "using set! on globals, should print 5,4:")
-(define x 5)
-(display x)
-(set! x 4)
-(display x)
+; (display "using set! on globals, should print 5,4:")
+; (define x 5)
+; (display x)
+; (set! x 4)
+; (display x)
 
 
-(display "using set! on a captured variable,should print 3,4,4,4:")
-(define (outer)
-  (define loc 3)
-  (define (inner)
-    (display loc)
-    (set! loc 4)
-    (display loc))
-  inner)
-(define yeo (outer))
-(yeo)
-(yeo)
+; (display "using set! on a captured variable,should print 3,4,4,4:")
+; (define (outer)
+;   (define loc 3)
+;   (define (inner)
+;     (display loc)
+;     (set! loc 4)
+;     (display loc))
+;   inner)
+; (define yeo (outer))
+; (yeo)
+; (yeo)
 
 
-;here both setter and getter refer to the same a, this is why its failing
+;same as example below, but with lambdas/lets
+; (define (make_counter)
+;   ; bind count and create a new procedure that will (when
+;   ; called) increment that binding and return its value
+;   (let ((count 0))
+;     (lambda ()
+;       (set! count (+ count 1))
+;       count)))
+
+;here c1,c2,c3 are 3 independent counters, meaning they each captured their own count
+; (display "testing encapsulation, should print 1\n2\n1\n2\n1\n2:")
+; (define (make_counter)
+;     (define count 0)
+;     (define (add1) (set! count (+ count 1)) count)
+;     add1)
+; (define c1 (make_counter))
+; (define c2 (make_counter))
+; (define c3 (make_counter))
+; (display (c1))
+; (display (c1))
+; (display (c2))
+; (display (c2))
+; (display (c3))
+; (display (c3))
+
+
+;here both setter and getter should refer to the same a, this is why its failing
+;setter and getter have their own a.
+
+;what I realized is that during the execution of main_func, the variable a is captured,
+;i.e. there is only one a. Even if say main_func sets a to something else, calling setter
+; should reflect this change.
 (display "example from crafting interpreters, should print updated:")
 (define globalSet 0)
 (define globalGet 1)
@@ -28,5 +59,19 @@
   (define (getter) (display a))
   (set! globalSet setter) (set! globalGet getter))
 (main_func)
-(globalSet)
-(globalGet)
+;(globalSet)
+;(globalGet)
+
+; (define (outer) 
+; (define x "outside")
+; (define (inner) (display x))
+; (inner))
+; (outer)
+
+;example in 25.4:
+; (define (outer) 
+; (define x "outside")
+; (define (inner) (display x))
+; inner)
+; (define close (outer))
+; (close)

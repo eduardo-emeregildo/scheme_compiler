@@ -5,7 +5,43 @@ from environment import *
 from function import *
 from upvalue import *
 
+# what I realized is that during the execution of the outer function, the local
+# variable and the inner functions that use that local variable refer to the same
+# variable. i.e. if the outer function sets its local variable to something else,
+#all inner functions that use this variable will see this change.
+
+#this means that the local var in outer function has to be a pointer and this
+#pointer is whats passed to the inner functions so that they both refer to the
+#same place.
+
+#for ptr types (list,vector,etc.) this is natural as these types live on the heap.
+
+#What about non ptr types??? (i.e. ints,chars,bools)? They will have to change
+#to box types if inner functions use them so they'll be pointers. This has the
+#possibility of introducing bugs because so far I've always assumed that 
+# ints,chars, and bools on their own (i.e. not inside a list or vector) are never
+#pointers
+
+#Stuff to do:
+
+#first, make set! modify the existing pointer, rather than setting definition to
+# a new pointer
+
+# make it so that non_ptr types that are used as upvalues become pointer types,
+#that way outer function and inner function refer to the same variable.
+
+#be sure that the whole compiler accounts for this change, since I've always 
+# assumed that ints,chars, and bools on their own 
+# (i.e. not inside a list or vector) are never pointers
+
+#revisit add_upvalue and get_upvalue now that these changes are in place, as they
+#might need to be modified
+
+#-------------------------------------------------------------------------------
+
 #1) make last test in set.scm pass, getter and setter not referring to same a
+#section 25.4 in crafting interpreters talk about this
+
 #2) do more upvalue testing. All tests in closures.scm should pass before moving 
 # to lets/lambdas
 #2) make add_upvalue check if upvalue was already added
