@@ -32,6 +32,13 @@ class Identifier:
         
     def is_compound_type(self):
         return self.typeof == IdentifierType.PAIR or self.typeof == IdentifierType.VECTOR
+    
+    #checks if ident is known at compile time. PARAM and FUNCTION_CALL cannot 
+    # be known at compile time, so for these runtime checks need to be made
+    def is_type_known(self,ident):
+        if ident.typeof == IdentifierType.PARAM or self.ident == IdentifierType.FUNCTION_CALL:
+            return False
+        return True
 
 #All the builtins as closures
 BUILTINS = {    

@@ -50,15 +50,15 @@
 ;what I realized is that during the execution of main_func, the variable a is captured,
 ;i.e. there is only one a. Even if say main_func sets a to something else, calling setter
 ; should reflect this change.
-(display "example from crafting interpreters, should print updated:")
-(define globalSet 0)
-(define globalGet 1)
-(define (main_func)
-  (define a "initial")
-  (define (setter) (set! a "updated"))
-  (define (getter) (display a))
-  (set! globalSet setter) (set! globalGet getter))
-(main_func)
+; (display "example from crafting interpreters, should print updated:")
+; (define globalSet 0)
+; (define globalGet 1)
+; (define (main_func)
+;   (define a "initial")
+;   (define (setter) (set! a "updated"))
+;   (define (getter) (display a))
+;   (set! globalSet setter) (set! globalGet getter))
+; (main_func)
 ;(globalSet)
 ;(globalGet)
 
@@ -75,3 +75,32 @@
 ; inner)
 ; (define close (outer))
 ; (close)
+
+;some more interesting stuff:
+;this still prints out initial, because in inner, its referencing its arg.
+;this means that in this case, must pass a copy. this can be solved by making args
+;pass by value in all cases.
+
+; (define globalSet 0)
+; (define globalGet 1)
+; (define (main_func a)
+;   ;(define a "initial")
+;   (define (setter) (set! a "updated"))
+;   (define (getter) (display a))
+;   (define (inner op) (set! op "inner!!"))
+;   (set! globalSet setter) (set! globalGet getter) (inner a) (display a))
+; (main_func "initial")
+
+; pass by value test, addresses should be different
+(define (x) (+ 1 2))
+(define (func op) (display op))
+(display x)
+(func x)
+;(func 1)
+
+;should print out initial, rn its working, but for the wrong reasons. Since set!
+;creates a new obj and returns it, it works. Once I change set!, test this again
+; (define outer "initial")
+; (define (func op) (set! op 3))
+; (func outer)
+; (display outer)

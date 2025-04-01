@@ -123,6 +123,7 @@ Value *check_param_function_call(Value *func_obj,long *args,int arg_amount);
 Value *check_if_callable(long type);
 Value *make_arg_list(Value *func_obj,long *args,int arg_amount);
 Value *make_arg_list_min_args(int min_args,long *args,int arg_amount);
+long pass_by_value(long arg);
 void turn_to_val_type(long non_ptr_type,Value *val_obj);
 bool is_non_ptr_type(Value *val_type);
 bool is_closure(long type);

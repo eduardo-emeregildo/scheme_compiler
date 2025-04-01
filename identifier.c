@@ -535,6 +535,18 @@ Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
         return vararg_list;
 }
 
+//if arg is a value type, creates a copy to pass by value.
+long pass_by_value(long arg)
+{
+        if (!is_ptr(arg)) {
+                return arg;
+        }
+        Value* arg_copy = make_tagged_ptr(1);
+        arg_copy->type = ((Value *)arg)->type;
+        arg_copy->as.tagged_type = ((Value *)arg)->as.tagged_type;
+        return (long)arg_copy;
+}
+
 void add_upvalue(Value *closure,long value, int offset, int nesting_count)
 {
         if (closure->type != VAL_CLOSURE) {

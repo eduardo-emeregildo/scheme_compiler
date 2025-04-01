@@ -505,7 +505,7 @@ class Emitter:
         self.add_rsp(abs(env_depth),is_global)
     
     #used in set! where definition being isnt an upvalue, i.e. its local or global
-    def set_definition(self,offset,ident_name,is_global,env_depth):
+    def set_definition(self,offset,ident_name,is_global):
         if offset is None:
                 self.emit_to_section(
                 f"\tmov QWORD [{ident_name}], rax ;set! global",is_global)
@@ -573,6 +573,7 @@ class Emitter:
         asm_code.append(f"\tmov QWORD [rbp{old_env_depth - (8 * arity):+}],rax")
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(cur_env_depth,is_global)
+    
         
     #given ident_obj and the current environment, emit in the corresponding place
     def emit_identifier_to_section(self,ident_obj,cur_environment):
@@ -660,6 +661,14 @@ class Emitter:
         self.emit_to_section(
         f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax",
         is_global)
+    
+    def emit_pass_by_value(self,env_depth,is_global):
+        self.add_extern("pass_by_value")
+        asm_code = []
+        asm_code.append("\tmov rdi, rax\n\tcall pass_by_value")
+        self.subtract_rsp(abs(env_depth),is_global)
+        self.emit_to_section('\n'.join(asm_code),is_global)
+        self.add_rsp(abs(env_depth),is_global)
     
     #for adjusting rsp after setting up args for a function. accounts for stack alignment
     def subtract_rsp(self,amount,is_global):

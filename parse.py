@@ -23,16 +23,30 @@ from upvalue import *
 #pointers
 
 #Stuff to do:
-
-#first, make set! modify the existing pointer, rather than setting definition to
-# a new pointer
-
-# make it so that non_ptr types that are used as upvalues become pointer types,
+#first, make it so that non_ptr types that are used as upvalues become pointer types,
 #that way outer function and inner function refer to the same variable.
 
 #be sure that the whole compiler accounts for this change, since I've always 
 # assumed that ints,chars, and bools on their own 
 # (i.e. not inside a list or vector) are never pointers
+#^this is too tedious. Better would be to track which locals that were non ptr types
+#were changed ptr types, and turn them back into non_ptr types whereever necessary
+#(i.e. function calls, etc.)
+
+#for adding upvalue:
+#in body(), turn locals that are nonptrs to val type and then add. 
+# If adding upvalue thats not local, just pass it as it is as it will correctly be ptr type.
+#if same local is being used as an upvalue more than once, remember that it needs
+#to be done only once. Also add local to captured_defs
+
+#for getting upvalue:
+#in get_upvalue, if upvalue is int,bool,char, return just the tagged type.
+#if the local gets used, have to turn it back to a non ptr type. This will happen
+# in EXPRESSION-VARIABLE, Of course have to check captured_defs to see which variables
+#need to be turned back to non ptr types
+
+#then, make set! modify the existing pointer, rather than setting definition to
+# a new pointer
 
 #revisit add_upvalue and get_upvalue now that these changes are in place, as they
 #might need to be modified
@@ -404,6 +418,7 @@ class Parser:
             print("OPERAND")
             arg_count += 1
             self.expression()
+            self.emitter.emit_pass_by_value(env_depth,is_global)
             self.emitter.push_arg(arg_count,env_depth,is_global)
             self.cur_environment.depth -= 8
         self.cur_environment.depth += 8*arg_count
@@ -506,6 +521,8 @@ class Parser:
             if arg_count > func_obj.arity:
                 break
             self.expression()
+            #pass by value
+            self.emitter.emit_pass_by_value(env_depth,is_global)
             #push each arg to the stack so that they're stored while evaluating each arg
             self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
         self.cur_environment.depth += func_obj.arity*8
@@ -543,6 +560,7 @@ class Parser:
         while not self.check_token(TokenType.EXPR_END):
             arg_count += 1
             self.expression()
+            self.emitter.emit_pass_by_value(old_env_depth,is_global)
             self.emitter.push_arg(arg_count,old_env_depth,is_global)
             self.cur_environment.depth -= 8
         if arg_count < min_args:
@@ -1211,6 +1229,7 @@ class Parser:
                 is_local = request[2]
                 nest_count = request[3]
                 if is_local:
+                    #first turn non ptr types to ptr types, then do emit_add_upvalue
                     self.emitter.emit_add_upvalue(
                     self.cur_environment,inner_function_offset,upvalue_offset,nest_count)
                 else:
