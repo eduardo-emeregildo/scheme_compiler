@@ -418,7 +418,7 @@ class Parser:
             print("OPERAND")
             arg_count += 1
             self.expression()
-            self.emitter.emit_pass_by_value(env_depth,is_global)
+            self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
             self.emitter.push_arg(arg_count,env_depth,is_global)
             self.cur_environment.depth -= 8
         self.cur_environment.depth += 8*arg_count
@@ -522,7 +522,7 @@ class Parser:
                 break
             self.expression()
             #pass by value
-            self.emitter.emit_pass_by_value(env_depth,is_global)
+            self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
             #push each arg to the stack so that they're stored while evaluating each arg
             self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
         self.cur_environment.depth += func_obj.arity*8
@@ -560,7 +560,7 @@ class Parser:
         while not self.check_token(TokenType.EXPR_END):
             arg_count += 1
             self.expression()
-            self.emitter.emit_pass_by_value(old_env_depth,is_global)
+            self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
             self.emitter.push_arg(arg_count,old_env_depth,is_global)
             self.cur_environment.depth -= 8
         if arg_count < min_args:

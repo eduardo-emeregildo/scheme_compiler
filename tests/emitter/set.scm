@@ -81,22 +81,22 @@
 ;this means that in this case, must pass a copy. this can be solved by making args
 ;pass by value in all cases.
 
-; (define globalSet 0)
-; (define globalGet 1)
-; (define (main_func a)
-;   ;(define a "initial")
-;   (define (setter) (set! a "updated"))
-;   (define (getter) (display a))
-;   (define (inner op) (set! op "inner!!"))
-;   (set! globalSet setter) (set! globalGet getter) (inner a) (display a))
-; (main_func "initial")
+(define globalSet 0)
+(define globalGet 1)
+(define (main_func a)
+  ;(define a "initial")
+  (define (setter) (set! a "updated"))
+  (define (getter) (display a))
+  (define (inner op) (set! op "inner!!"))
+  (set! globalSet setter) (set! globalGet getter) (inner a) (display a))
+(main_func "initial")
 
-; pass by value test, addresses should be different
-(define (x) (+ 1 2))
-(define (func op) (display op))
-(display x)
-(func x)
-;(func 1)
+; pass by value tests, addresses should be different
+; (define (x) (+ 1 2))
+; (define (func op) (display op))
+; (display x)
+; (func x)
+
 
 ;should print out initial, rn its working, but for the wrong reasons. Since set!
 ;creates a new obj and returns it, it works. Once I change set!, test this again

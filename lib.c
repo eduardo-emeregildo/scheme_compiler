@@ -2,7 +2,7 @@
 //prints a value type
 void print_value_type(Value *value_obj) 
 {
-        printf("value location: %p",value_obj);
+        printf("value location: %p. ",value_obj);
         switch(value_obj->type) {
         case VAL_CHAR:
                 printf("%c",(int)remove_tag(value_obj->as.tagged_type));
