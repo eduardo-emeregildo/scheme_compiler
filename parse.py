@@ -35,8 +35,8 @@ from upvalue import *
 #that way outer function and inner function refer to the same variable.
 
 #for adding upvalue::::::::::::::
-#in body(), turn locals that are nonptrs to val type and then add. Also change the
-#is_captured flag to true
+#in body(), turn locals that are nonptrs to val type and then add. (DONE)
+# Also change the is_captured flag to true (DO THIS NEXT).
 
 # If adding upvalue thats not local, just pass it as it is as it will correctly be ptr type.
 #if same local is being used as an upvalue more than once, remember that it needs
@@ -1240,7 +1240,9 @@ class Parser:
                 is_local = request[2]
                 nest_count = request[3]
                 if is_local:
-                    #first turn non ptr types to ptr types, then do emit_add_upvalue
+                    #first turn non ptr types to ptr types, then do emit_add_upvalue.
+                    #have to set is_captured also
+                    self.emitter.emit_move_local_to_heap(upvalue_offset,self.cur_environment)
                     self.emitter.emit_add_upvalue(
                     self.cur_environment,inner_function_offset,upvalue_offset,nest_count)
                 else:

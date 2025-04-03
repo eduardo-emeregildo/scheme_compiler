@@ -478,8 +478,16 @@ class Emitter:
         self.add_rsp(env_depth,is_global)
         self.emit_function(";done adding upvalue nonlocal")
         
-        
-    
+    def emit_move_local_to_heap(self,upvalue_offset,cur_environment):
+        self.add_extern("move_local_to_heap")
+        env_depth = abs(cur_environment.depth)
+        is_global = cur_environment.is_global()
+        self.subtract_rsp(env_depth,is_global)
+        self.emit_function(f"\tmov rdi, QWORD [rbp{upvalue_offset:+}]")
+        self.emit_function("\tcall move_local_to_heap")
+        self.add_rsp(env_depth,is_global)
+        self.emit_function(f"\tmov QWORD [rbp{upvalue_offset:+}], rax")
+
     #calls get_upvalue the closure obj will always be in position rbp - 8.
     def emit_get_upvalue(self,env_depth,offset,nest_count,is_global):
         asm_code = []

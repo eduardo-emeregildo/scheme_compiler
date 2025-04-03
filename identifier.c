@@ -389,7 +389,7 @@ void set_ith_value_unknown(Value *val_ptr, long type,size_t index)
 
 }
 //turns into an int,bool or char and sets this to the Value obj given.
-void turn_to_val_type(long non_ptr_type,Value *val_obj)
+void turn_to_val_type(long non_ptr_type, Value *val_obj)
 {       
         if (is_int(non_ptr_type)) {
                 val_obj->type = VAL_INT;
@@ -401,6 +401,19 @@ void turn_to_val_type(long non_ptr_type,Value *val_obj)
                 abort_message("not a non pointer type.\n");
         }
         val_obj->as.tagged_type = non_ptr_type;
+}
+
+//if local is a non_ptr, moves it to the heap by making it a value type.
+//if its already a value type, return the type
+long move_local_to_heap(long local)
+{
+        //if already on the heap
+        if (is_ptr(local)) {
+                return local;
+        }
+        Value* local_heap = make_tagged_ptr(1);
+        turn_to_val_type(local,local_heap);
+        return (long)local_heap;
 }
 
 bool is_non_ptr_type(Value *val_type)
