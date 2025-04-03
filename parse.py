@@ -34,21 +34,22 @@ from upvalue import *
 #first, make it so that non_ptr types that are used as upvalues become pointer types,
 #that way outer function and inner function refer to the same variable.
 
-#for adding upvalue:
-#in body(), turn locals that are nonptrs to val type and then add. 
+#for adding upvalue::::::::::::::
+#in body(), turn locals that are nonptrs to val type and then add. Also change the
+#is_captured flag to true
+
 # If adding upvalue thats not local, just pass it as it is as it will correctly be ptr type.
 #if same local is being used as an upvalue more than once, remember that it needs
 #to be done only once. Also add local to captured_defs
 
-#for getting upvalue:
+#for getting upvalue::::::::::::::
 #in get_upvalue, if upvalue is int,bool,char, return just the tagged type. (DONE)
 
 # in set! though, you dont do this. You pass the ptr type no matter what in set! 
 # when you're setting an upvalue
 
 #if the local gets used, have to turn it back to a non ptr type. This will happen
-# in EXPRESSION-VARIABLE, Of course have to check captured_defs to see which variables
-#need to be turned back to non ptr types
+# in EXPRESSION-VARIABLE (DONE)
 
 #then, make set! modify the existing pointer, rather than setting definition to
 # a new pointer
@@ -219,15 +220,17 @@ class Parser:
         nest_count = definition_result[2]
         def_ident_obj = Environment.get_ident_obj(definition)
         offset = Environment.get_offset(definition)
+        is_captured = Environment.get_is_captured_flag(definition)
+        env_depth = self.cur_environment.depth
         if is_upvalue:
             #assumes that upvalue is always a ptr type. For ints,bools,and chars
             #returns just the tagged type
-            self.emitter.emit_get_upvalue(
-            self.cur_environment.depth,offset,nest_count,is_global)
+            self.emitter.emit_get_upvalue(env_depth,offset,nest_count,is_global)
         elif is_global:
             self.emitter.emit_var_to_global(self.cur_token.text,definition)
         else:
-            self.emitter.emit_var_to_local(self.cur_token.text,definition)
+            self.emitter.emit_var_to_local(
+            self.cur_token.text,offset,def_ident_obj,is_captured,env_depth,is_global)
 
     def program(self):
         print("Program")

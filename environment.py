@@ -39,6 +39,13 @@ class Identifier:
         if self.typeof == IdentifierType.PARAM or self.typeof == IdentifierType.FUNCTION_CALL:
             return False
         return True
+    
+    def is_non_ptr_type(self):
+        if (self.typeof == IdentifierType.INT or 
+            self.typeof == IdentifierType.CHAR or 
+            self.typeof == IdentifierType.BOOLEAN):
+            return True
+        return False
 
 #All the builtins as closures
 BUILTINS = {    

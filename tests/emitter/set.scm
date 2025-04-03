@@ -57,7 +57,7 @@
   (define a "initial")
   (define (setter) (set! a "updated"))
   (define (getter) (display a))
-  (set! globalSet setter) (set! globalGet getter))
+  (set! globalSet setter) (set! globalGet getter) (display a))
 (main_func)
 (globalSet)
 (globalGet)

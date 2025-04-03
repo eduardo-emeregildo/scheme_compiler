@@ -413,6 +413,21 @@ bool is_non_ptr_type(Value *val_type)
 }
 
 /*
+value type is int,char,bool, turns it back into a non_ptr_type and returns.
+otherwise returns the value_type.
+this is used when turning a captured local thats a int,char,bool back into non_ptr
+type
+*/ 
+long turn_to_non_ptr_type(Value *ptr_type)
+{
+        int type = ptr_type->type;
+        if (type == VAL_INT || type == VAL_CHAR || type == VAL_BOOLEAN) {
+                return ptr_type->as.tagged_type;
+        }
+        return (long)ptr_type;
+}
+
+/*
 performs runtime checks on a param that was used as a function. checks if the 
 function is variadic, returns a list of the varargs if so.
 Otherwise returns null ptr indicating that the param is non variadic

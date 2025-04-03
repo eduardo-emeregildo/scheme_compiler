@@ -613,13 +613,26 @@ class Emitter:
         self.emit_main_section(f"\tmov rax, QWORD [{ident_name}]")
     
     #emits identifier exp to function section
-    def emit_var_to_local(self,ident_name,symbol_table_arr):
-        offset = Environment.get_offset(symbol_table_arr)
+    def emit_var_to_local(self,ident_name,offset,ident_obj,is_captured,env_depth,is_global):
         if offset is None: #var to emit is global
             self.emit_function(f"\tmov rax, QWORD [{ident_name}]")
-        else:
-            self.emit_function(f"\tmov rax, QWORD [rbp{offset:+}]")
+            return
         
+        self.emit_function(f"\tmov rax, QWORD [rbp{offset:+}]")
+        if is_captured:
+            if ident_obj.is_type_known():
+                if ident_obj.is_non_ptr_type():
+                    #emit asm to turn to non ptr type
+                    self.emit_function(
+                    "\tmov rax,QWORD [rax + 8] ;turn back to val type")
+            else:
+                #have to do runtime check since its param or function call.
+                #leave result in rax
+                self.add_extern("turn_to_non_ptr_type")
+                self.subtract_rsp(abs(env_depth),is_global)
+                self.emit_function("\tmov rdi, rax\n\tcall turn_to_non_ptr_type")
+                self.add_rsp(abs(env_depth),is_global)
+                
     #for creating function definition
     def emit_register_param(self,arg_num):
         self.emit_function(
