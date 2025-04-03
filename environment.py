@@ -35,8 +35,8 @@ class Identifier:
     
     #checks if ident is known at compile time. PARAM and FUNCTION_CALL cannot 
     # be known at compile time, so for these runtime checks need to be made
-    def is_type_known(self,ident):
-        if ident.typeof == IdentifierType.PARAM or self.ident == IdentifierType.FUNCTION_CALL:
+    def is_type_known(self):
+        if self.typeof == IdentifierType.PARAM or self.typeof == IdentifierType.FUNCTION_CALL:
             return False
         return True
 
@@ -119,8 +119,11 @@ BUILTINS = {
 
 #Below This is how lexical scoping will be handled. symbol_table is a dictionary
 #which has the identifier name as the key,
-#each key will store a 2 elt aray, first elt is the offset, second elt is the
+#each key will store a 3 elt aray, first elt is the offset, second elt is the
 #Identifier object, detailing what type it is ands its value.
+
+#Third is is_captured flag. This is used for checking if the definition was captured
+#by an inner function
 
 #global vars will have an offset of None, since they will be retrieved 
 #differently (from the bss section)
@@ -139,15 +142,20 @@ class Environment:
     def add_definition(self,ident_name,identifier_obj):
         if self.parent is None:
             #global var
-            self.symbol_table[ident_name] = [None,identifier_obj]
+            self.symbol_table[ident_name] = [None,identifier_obj,False]
             return                
         self.depth -= 8
-        self.symbol_table[ident_name] = [self.depth,identifier_obj]
+        self.symbol_table[ident_name] = [self.depth,identifier_obj,False]
     
     #for adding arguments 7 and on. They'll already be on the stack
     def add_stack_definition(self,ident_name,offset):
         self.symbol_table[ident_name] = [offset,
-        Identifier(IdentifierType.PARAM,ident_name)]
+        Identifier(IdentifierType.PARAM,ident_name),False]
+    
+    def set_def_as_captured(self,ident_name):
+        if ident_name not in self.symbol_table:
+            sys.exit("Def not found in symbol table, cant set as captued.")
+        self.symbol_table[ident_name][2] = True
     
     def is_defined(self,ident_name):
         return ident_name in self.symbol_table
@@ -184,6 +192,10 @@ class Environment:
     @staticmethod
     def get_ident_obj(definition_arr):
         return definition_arr[1]
+
+    @staticmethod
+    def get_is_captured_flag(definition_arr):
+        return definition_arr[2]
 
     #check if definition_arr represents an argument
     @staticmethod

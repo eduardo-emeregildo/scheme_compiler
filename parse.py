@@ -23,15 +23,16 @@ from upvalue import *
 #pointers
 
 #Stuff to do:
+# Just added the Identifier.typeof in upvalue request. How about for locals?
+# Need some way to say that this local has changed to a ptr type.
+
+#the solution can be to add is_captured bool in symbol table, so symbol_table value
+# would now be a three elt array. Just added this.
+
+#If i dont need to use the Identifier.typeof that I added in upvalue request, remove it
+
 #first, make it so that non_ptr types that are used as upvalues become pointer types,
 #that way outer function and inner function refer to the same variable.
-
-#be sure that the whole compiler accounts for this change, since I've always 
-# assumed that ints,chars, and bools on their own 
-# (i.e. not inside a list or vector) are never pointers
-#^this is too tedious. Better would be to track which locals that were non ptr types
-#were changed ptr types, and turn them back into non_ptr types whereever necessary
-#(i.e. function calls, etc.)
 
 #for adding upvalue:
 #in body(), turn locals that are nonptrs to val type and then add. 
@@ -40,7 +41,11 @@ from upvalue import *
 #to be done only once. Also add local to captured_defs
 
 #for getting upvalue:
-#in get_upvalue, if upvalue is int,bool,char, return just the tagged type.
+#in get_upvalue, if upvalue is int,bool,char, return just the tagged type. (DONE)
+
+# in set! though, you dont do this. You pass the ptr type no matter what in set! 
+# when you're setting an upvalue
+
 #if the local gets used, have to turn it back to a non ptr type. This will happen
 # in EXPRESSION-VARIABLE, Of course have to check captured_defs to see which variables
 #need to be turned back to non ptr types
@@ -199,7 +204,8 @@ class Parser:
                     #using env.name for for inner, which would fail for 
                     #lets, have to fix when i get to lets
                     is_local = True if i == 1 else False
-                    upvalue_request = [inner_function_name,offset,is_local,i]
+                    upvalue_request = [
+                    inner_function_name,offset,is_local,i,def_ident_obj.typeof]
                     self.tracker.add_upvalue_request(env.name,upvalue_request)
         return definition_result
     
@@ -214,6 +220,8 @@ class Parser:
         def_ident_obj = Environment.get_ident_obj(definition)
         offset = Environment.get_offset(definition)
         if is_upvalue:
+            #assumes that upvalue is always a ptr type. For ints,bools,and chars
+            #returns just the tagged type
             self.emitter.emit_get_upvalue(
             self.cur_environment.depth,offset,nest_count,is_global)
         elif is_global:

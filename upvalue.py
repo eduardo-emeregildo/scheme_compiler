@@ -12,19 +12,13 @@
     #2) offset of variable
     #3) is_local
     #4) nest_count
-
-# captured_defs are for tracking which defs already captured, which is useful
-#because the locals that were captured which were non ptr types had to be changed
-#to ptr types.
-
-#the key is the name of the definition
-# the val is a set containing the offsets of all captured vars
+    #5) the type Identifier.typeof. This will be used to track non ptr types
+    #that had to get changed to ptr types
     
 class UpvalueTracker:
     def __init__(self):
         self.on = False
         self.upvalue_requests = {}
-        #self.captured_defs = {}
     
     def turn_tracker_off(self):
         self.on = False

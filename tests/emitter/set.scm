@@ -50,17 +50,17 @@
 ;what I realized is that during the execution of main_func, the variable a is captured,
 ;i.e. there is only one a. Even if say main_func sets a to something else, calling setter
 ; should reflect this change.
-; (display "example from crafting interpreters, should print updated:")
-; (define globalSet 0)
-; (define globalGet 1)
-; (define (main_func)
-;   (define a "initial")
-;   (define (setter) (set! a "updated"))
-;   (define (getter) (display a))
-;   (set! globalSet setter) (set! globalGet getter))
-; (main_func)
-;(globalSet)
-;(globalGet)
+(display "example from crafting interpreters, should print updated:")
+(define globalSet 0)
+(define globalGet 1)
+(define (main_func)
+  (define a "initial")
+  (define (setter) (set! a "updated"))
+  (define (getter) (display a))
+  (set! globalSet setter) (set! globalGet getter))
+(main_func)
+(globalSet)
+(globalGet)
 
 ; (define (outer) 
 ; (define x "outside")
@@ -81,15 +81,15 @@
 ;this means that in this case, must pass a copy. this can be solved by making args
 ;pass by value in all cases.
 
-(define globalSet 0)
-(define globalGet 1)
-(define (main_func a)
-  ;(define a "initial")
-  (define (setter) (set! a "updated"))
-  (define (getter) (display a))
-  (define (inner op) (set! op "inner!!"))
-  (set! globalSet setter) (set! globalGet getter) (inner a) (display a))
-(main_func "initial")
+; (define globalSet 0)
+; (define globalGet 1)
+; (define (main_func a)
+;   ;(define a "initial")
+;   (define (setter) (set! a "updated"))
+;   (define (getter) (display a))
+;   (define (inner op) (set! op "inner!!"))
+;   (set! globalSet setter) (set! globalGet getter) (inner a) (display a))
+; (main_func "initial")
 
 ; pass by value tests, addresses should be different
 ; (define (x) (+ 1 2))

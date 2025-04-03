@@ -422,10 +422,6 @@ if object is a function
 */
 Value *check_param_function_call(Value *func_obj,long *args,int arg_amount)
 {
-        //Value *func_obj = (Value *)function;
-        // if (!is_ptr(function) || (func_obj->type != VAL_FUNCTION)) {
-        //         abort_message("application not a procedure.");
-        // }
         int function_arity = func_obj->as.function->arity;
         if (func_obj->as.function->is_variadic) {
                 // variadic logic
@@ -588,6 +584,9 @@ long get_upvalue(Value *closure, int offset,int nesting_amt)
                 (nesting_amt == upvalues[i].nesting_count)) {
                         found = true;
                         res = upvalues[i].value;
+                        if (is_non_ptr_type((Value *)res)) {
+                                res = ((Value *)res)->as.tagged_type;
+                        }
                         break;
                 }
         }
