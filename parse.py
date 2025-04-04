@@ -23,20 +23,15 @@ from upvalue import *
 #pointers
 
 #Stuff to do:
-# Just added the Identifier.typeof in upvalue request. How about for locals?
-# Need some way to say that this local has changed to a ptr type.
-
 #the solution can be to add is_captured bool in symbol table, so symbol_table value
 # would now be a three elt array. Just added this.
-
-#If i dont need to use the Identifier.typeof that I added in upvalue request, remove it
 
 #first, make it so that non_ptr types that are used as upvalues become pointer types,
 #that way outer function and inner function refer to the same variable.
 
 #for adding upvalue::::::::::::::
 #in body(), turn locals that are nonptrs to val type and then add. (DONE)
-# Also change the is_captured flag to true (DO THIS NEXT).
+# Also change the is_captured flag to true (DONE).
 
 # If adding upvalue thats not local, just pass it as it is as it will correctly be ptr type.
 #if same local is being used as an upvalue more than once, remember that it needs
@@ -206,7 +201,7 @@ class Parser:
                     #lets, have to fix when i get to lets
                     is_local = True if i == 1 else False
                     upvalue_request = [
-                    inner_function_name,offset,is_local,i,def_ident_obj.typeof]
+                    inner_function_name,offset,is_local,i]
                     self.tracker.add_upvalue_request(env.name,upvalue_request)
         return definition_result
     
@@ -1233,8 +1228,9 @@ class Parser:
             function_requests = self.tracker.get_upvalue_requests(cur_function)
             print("FUNCTION REQUESTS FOR ",cur_function ,"ARE: ", function_requests)
             for request in function_requests:
-                inner_function_def = self.cur_environment.symbol_table[request[0]]
+                inner_function_def = self.cur_environment.symbol_table[request[0]] 
                 inner_function_offset = inner_function_def[0]
+                is_captured = inner_function_def[2]
                 print("INNER FUNCTION OFFSET IS: ", inner_function_offset)
                 upvalue_offset = request[1]
                 is_local = request[2]
@@ -1242,7 +1238,10 @@ class Parser:
                 if is_local:
                     #first turn non ptr types to ptr types, then do emit_add_upvalue.
                     #have to set is_captured also
-                    self.emitter.emit_move_local_to_heap(upvalue_offset,self.cur_environment)
+                    if not is_captured:
+                        self.emitter.emit_move_local_to_heap(
+                        upvalue_offset,self.cur_environment)
+                        self.cur_environment.set_def_as_captured(request[0])
                     self.emitter.emit_add_upvalue(
                     self.cur_environment,inner_function_offset,upvalue_offset,nest_count)
                 else:

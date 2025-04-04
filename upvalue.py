@@ -12,8 +12,6 @@
     #2) offset of variable
     #3) is_local
     #4) nest_count
-    #5) the type Identifier.typeof. This will be used to track non ptr types
-    #that had to get changed to ptr types
     
 class UpvalueTracker:
     def __init__(self):
