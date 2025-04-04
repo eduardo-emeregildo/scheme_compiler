@@ -628,7 +628,7 @@ long get_upvalue(Value *closure, int offset,int nesting_amt)
         return res;
 }
 
-// set! but definition being set is an upvalue
+// set! but definition being set is an upvalue. upvalue is set 
 void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt)
 {
         struct UpvalueObj *upvalues = closure->as.closure->upvalues;
@@ -636,15 +636,24 @@ void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt)
         for (int i = 0; i < upvalue_total; i++) {
                 if ((upvalues[i].offset == offset) && 
                 (nesting_amt == upvalues[i].nesting_count)) {
-                        upvalues[i].value = new_val;
+                        //upvalues[i].value = new_val;
+                        if (!is_ptr(new_val)) {
+                                turn_to_val_type(new_val,(Value *)upvalues[i].value);
+                        } else {
+                                Value *cur_upvalue = (Value *)upvalues[i].value;
+                                cur_upvalue->type = ((Value *)new_val)->type;
+                                cur_upvalue->as.tagged_type = ((Value *)new_val)->as.tagged_type;
+                                free((Value *)new_val);
+                        }
+
                         return;
                 }
         }
         abort_message("in set!. Offset and nesting amount not found.\n");
 }
 
-//modifies local definition if its a ptr, returns new_val
-long setexclam_local(long definition,long new_val)
+//modifies local/gloabl definition if its a ptr, otherwise returns newval
+long setexclam(long definition,long new_val)
 {
         if (!is_ptr(definition)) {
                 return new_val;
@@ -658,11 +667,13 @@ long setexclam_local(long definition,long new_val)
                 } else {
                         definition_obj->type = VAL_CHAR;
                 }
+                definition_obj->as.tagged_type = new_val;
 
         } else {
                 Value *new_val_obj = (Value *)new_val;
                 definition_obj->type = new_val_obj->type;
                 definition_obj->as.tagged_type = new_val_obj->as.tagged_type;
+                free((Value *)new_val);
         }
         return definition;
 }

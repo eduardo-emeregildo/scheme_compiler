@@ -134,5 +134,5 @@ void add_upvalue_nonlocal(
 Value *target_closure, Value *self_closure,int offset, int nesting_count);
 long get_upvalue(Value *closure, int offset,int nesting_amt);
 void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt);
-long setexclam_local(long definition,long new_val);
+long setexclam(long definition,long new_val);
 #endif

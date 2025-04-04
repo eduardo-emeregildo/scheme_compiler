@@ -23,6 +23,7 @@ from upvalue import *
 #pointers
 
 #Stuff to do:
+#test closures and upvalues more in depth
 #the solution can be to add is_captured bool in symbol table, so symbol_table value
 # would now be a three elt array. Just added this.
 
@@ -41,13 +42,13 @@ from upvalue import *
 #in get_upvalue, if upvalue is int,bool,char, return just the tagged type. (DONE)
 
 # in set! though, you dont do this. You pass the ptr type no matter what in set! 
-# when you're setting an upvalue
+# when you're setting an upvalue  (DONE)
 
 #if the local gets used, have to turn it back to a non ptr type. This will happen
 # in EXPRESSION-VARIABLE (DONE)
 
 #then, make set! modify the existing pointer, rather than setting definition to
-# a new pointer
+# a new pointer (DONE)
 
 #revisit add_upvalue and get_upvalue now that these changes are in place, as they
 #might need to be modified
@@ -899,12 +900,12 @@ class Parser:
         offset = Environment.get_offset(definition)
         self.next_token()
         self.expression()
+        env_depth = self.cur_environment.depth
         if is_upvalue:
-            env_depth = self.cur_environment.depth
             self.emitter.emit_setexclam_upvalue(
             offset,nest_count,env_depth,is_global)
         else:
-            self.emitter.set_definition(offset,ident_name,is_global)
+            self.emitter.set_definition(offset,ident_name,env_depth,is_global)
         self.match(TokenType.EXPR_END)
         
     #(rec <variable> <expression>)

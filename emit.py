@@ -513,24 +513,33 @@ class Emitter:
         self.add_rsp(abs(env_depth),is_global)
     
     #used in set! where definition being isnt an upvalue, i.e. its local or global
-    def set_definition(self,offset,ident_name,is_global):
+    def set_definition(self,offset,ident_name,env_depth,is_global):
+        self.add_extern("setexclam")
         if offset is None:
-                self.emit_to_section(
-                f"\tmov QWORD [{ident_name}], rax ;set! global",is_global)
-        else:
+            # self.emit_to_section(
+            # f"\tmov QWORD [{ident_name}], rax ;set! global",is_global)
+            #global case
+            asm_code = []
+            asm_code.append(f"\tmov rdi, QWORD [{ident_name}]")
+            asm_code.append("\tmov rsi, rax")
+            asm_code.append("\tcall setexclam")
+            self.subtract_rsp(abs(env_depth),is_global)
+            self.emit_to_section("\n".join(asm_code),is_global)
+            self.add_rsp(abs(env_depth),is_global)
             self.emit_to_section(
-            f"\tmov QWORD [rbp{offset:+}], rax ;set! local",is_global)
-            
-            # self.add_extern("setexclam_local")
-            # asm_code = []
-            # asm_code.append(f"\tmov rdi, QWORD [rbp{offset:+}]")
-            # asm_code.append("\tmov rsi, rax")
-            # asm_code.append("\tcall setexclam_local")
-            # self.subtract_rsp(abs(env_depth),is_global)
-            # self.emit_to_section("\n".join(asm_code),is_global)
-            # self.add_rsp(abs(env_depth),is_global)
+            f"\tmov QWORD [{ident_name}], rax ;set! global",is_global)
+        else:
             # self.emit_to_section(
             # f"\tmov QWORD [rbp{offset:+}], rax ;set! local",is_global)
+            asm_code = []
+            asm_code.append(f"\tmov rdi, QWORD [rbp{offset:+}]")
+            asm_code.append("\tmov rsi, rax")
+            asm_code.append("\tcall setexclam")
+            self.subtract_rsp(abs(env_depth),is_global)
+            self.emit_to_section("\n".join(asm_code),is_global)
+            self.add_rsp(abs(env_depth),is_global)
+            self.emit_to_section(
+            f"\tmov QWORD [rbp{offset:+}], rax ;set! local",is_global)
             
 
     #used to satisfy criteria of macro in place_args. rbx holds arity and 
