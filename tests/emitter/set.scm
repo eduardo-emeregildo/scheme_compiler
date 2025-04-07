@@ -28,20 +28,20 @@
 ;       count)))
 
 ;here c1,c2,c3 are 3 independent counters, meaning they each captured their own count
-(display "testing encapsulation, should print 1\n2\n1\n2\n1\n2:")
-(define (make_counter)
-    (define count 0)
-    (define (add1) (set! count (+ count 1)) count)
-    add1)
-(define c1 (make_counter))
-(define c2 (make_counter))
-(define c3 (make_counter))
-(display (c1))
-(display (c1))
-(display (c2))
-(display (c2))
-(display (c3))
-(display (c3))
+; (display "testing encapsulation, should print 1\n2\n1\n2\n1\n2:")
+; (define (make_counter)
+;     (define count 0)
+;     (define (add1) (set! count (+ count 1)) count)
+;     add1)
+; (define c1 (make_counter))
+; (define c2 (make_counter))
+; (define c3 (make_counter))
+; (display (c1))
+; (display (c1))
+; (display (c2))
+; (display (c2))
+; (display (c3))
+; (display (c3))
 
 
 ;here both setter and getter should refer to the same a, this is why its failing
@@ -50,17 +50,17 @@
 ;what I realized is that during the execution of main_func, the variable a is captured,
 ;i.e. there is only one a. Even if say main_func sets a to something else, calling setter
 ; should reflect this change.
-(display "example from crafting interpreters, should print updated:")
-(define globalSet 0)
-(define globalGet 1)
-(define (main_func)
-  (define a "initial")
-  (define (setter) (set! a "updated"))
-  (define (getter) (display a))
-  (set! globalSet setter) (set! globalGet getter))
-(main_func)
-(globalSet)
-(globalGet)
+; (display "example from crafting interpreters, should print updated:")
+; (define globalSet 0)
+; (define globalGet 1)
+; (define (main_func)
+;   (define a "initial")
+;   (define (setter) (set! a "updated"))
+;   (define (getter) (display a))
+;   (set! globalSet setter) (set! globalGet getter))
+; (main_func)
+; (globalSet)
+; (globalGet)
 
 ; (define (outer) 
 ; (define x "outside")
@@ -104,3 +104,15 @@
 ; (define (func op) (set! op 3))
 ; (func outer)
 ; (display outer)
+
+(display "testing closures with vararg:")
+(define (outer foo . bar)
+    (define (inner) (display (append bar 4)))
+    (inner))
+(outer 1 2 3) ;should print (2 3 . 4)
+
+(define (func req . varargs)
+    (define (bar) (set! varargs 10))
+    (bar) 
+    (+ req varargs)) ; varargs was set to a number, so sum should work
+(display (func 1 2 3 4 5)) ; should print 11

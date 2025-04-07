@@ -23,7 +23,8 @@ from upvalue import *
 #pointers
 
 #Stuff to do:
-#test closures and upvalues more in depth
+#test the resizing of upvalues, make sure that add_upvalue checks if upvalue has 
+#already been added
 #the solution can be to add is_captured bool in symbol table, so symbol_table value
 # would now be a three elt array. Just added this.
 
@@ -201,8 +202,7 @@ class Parser:
                     #using env.name for for inner, which would fail for 
                     #lets, have to fix when i get to lets
                     is_local = True if i == 1 else False
-                    upvalue_request = [
-                    inner_function_name,offset,is_local,i]
+                    upvalue_request = [inner_function_name,offset,is_local,i]
                     self.tracker.add_upvalue_request(env.name,upvalue_request)
         return definition_result
     
