@@ -37,6 +37,10 @@ class UpvalueTracker:
             self.upvalue_requests[function_name] = []
             self.upvalue_requests[function_name].append(request_arr)
         else:
+            #check if request was already made
+            for requests in self.upvalue_requests[function_name]:
+                if requests == request_arr:
+                    return
             self.upvalue_requests[function_name].append(request_arr)
     
     def function_has_requests(self,function_name):

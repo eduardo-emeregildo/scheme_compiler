@@ -23,8 +23,19 @@ from upvalue import *
 #pointers
 
 #Stuff to do:
+
+#fix inner functions that use the same upvalue multiple times. should only move
+#local to heap once, rn not doing that. This is because upvalue_requests not dealing with
+#duplicate requests.
+
+#fix inner functions with multiple upvalues (different upvalues).
+
 #test the resizing of upvalues, make sure that add_upvalue checks if upvalue has 
-#already been added
+#already been added.
+
+#Test deeply upvalues that have to be retrieved from  outside the enclosing scope
+
+
 #the solution can be to add is_captured bool in symbol table, so symbol_table value
 # would now be a three elt array. Just added this.
 
@@ -1242,7 +1253,7 @@ class Parser:
                     if not is_captured:
                         self.emitter.emit_move_local_to_heap(
                         upvalue_offset,self.cur_environment)
-                        self.cur_environment.set_def_as_captured(request[0])
+                        self.cur_environment.set_def_as_captured(request[1])
                     self.emitter.emit_add_upvalue(
                     self.cur_environment,inner_function_offset,upvalue_offset,nest_count)
                 else:

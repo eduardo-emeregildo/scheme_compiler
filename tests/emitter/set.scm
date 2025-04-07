@@ -105,14 +105,40 @@
 ; (func outer)
 ; (display outer)
 
-(display "testing closures with vararg:")
-(define (outer foo . bar)
-    (define (inner) (display (append bar 4)))
-    (inner))
-(outer 1 2 3) ;should print (2 3 . 4)
+; (display "testing closures with vararg:")
+; (define (outer foo . bar)
+;     (define (inner) (display (append bar 4)))
+;     (inner))
+; (outer 1 2 3) ;should print (2 3 . 4)
 
-(define (func req . varargs)
-    (define (bar) (set! varargs 10))
-    (bar) 
-    (+ req varargs)) ; varargs was set to a number, so sum should work
-(display (func 1 2 3 4 5)) ; should print 11
+; (define (func req . varargs)
+;     (define (bar) (set! varargs 10))
+;     (bar) 
+;     (+ req varargs)) ; varargs was set to a number, so sum should work
+; (display (func 1 2 3 4 5)) ; should print 11
+
+; ;(display "testing capturing multiple vals,resizing of upvalues/adding an upvalue once")
+; (define (outer) 
+;     (define a 1)
+;     (define b 2)
+;     (define (inner) (+ a b))
+;     (inner))
+; (display (outer))
+
+
+(define (outer) 
+    (define a 1)
+    (define (inner) (display (+ a 1)) (display (+ a 2)))
+    (inner))
+(outer)
+
+
+;(display "testing upvalues that are beyond the immediately enclosing scope:")
+; (define (outer) 
+;     (define a 41)
+;     (define (middle) 
+;         (define (inner) 
+;             (display (+ a 1))) 
+;         inner)
+;     ((middle)))
+; (outer)

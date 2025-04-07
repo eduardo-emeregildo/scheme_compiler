@@ -159,10 +159,17 @@ class Environment:
         self.symbol_table[ident_name] = [offset,
         Identifier(IdentifierType.PARAM,ident_name),False]
     
-    def set_def_as_captured(self,ident_name):
-        if ident_name not in self.symbol_table:
-            sys.exit("Def not found in symbol table, cant set as captued.")
-        self.symbol_table[ident_name][2] = True
+    def set_def_as_captured(self,variable_offset):
+        # if ident_name not in self.symbol_table:
+        #     sys.exit("Def not found in symbol table, cant set as captued.")
+        # self.symbol_table[ident_name][2] = True
+        for ident_name in self.symbol_table:
+            if self.symbol_table[ident_name][0] == variable_offset:
+                self.symbol_table[ident_name][2] = True
+                return
+        sys_.exit(f"Definition with offset {variable_offset} not found.")
+                
+                
     
     def is_defined(self,ident_name):
         return ident_name in self.symbol_table
