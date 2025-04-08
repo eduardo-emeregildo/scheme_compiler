@@ -117,20 +117,27 @@
 ;     (+ req varargs)) ; varargs was set to a number, so sum should work
 ; (display (func 1 2 3 4 5)) ; should print 11
 
-; ;(display "testing capturing multiple vals,resizing of upvalues/adding an upvalue once")
-; (define (outer) 
-;     (define a 1)
-;     (define b 2)
-;     (define (inner) (+ a b))
-;     (inner))
-; (display (outer))
-
-
+(display "testing resizing of upvalues:")
 (define (outer) 
     (define a 1)
-    (define (inner) (display (+ a 1)) (display (+ a 2)))
+    (define b 2)
+    (define c 3)
+    (define d 4)
+    (define e 5)
+    (define f 6)
+    (define g 7)
+    (define h 8)
+    (define i 9)
+    (define (inner) (+ a b c d e f g h i))
     (inner))
-(outer)
+(display (outer)) ; should resize twice
+
+(display "testing using the same upvalue more than once:")
+(define (foo) 
+    (define a 1)
+    (define (bar) (display (+ a 1)) (display (+ a 2)))
+    (bar))
+(foo) ;should print 2,3
 
 
 ;(display "testing upvalues that are beyond the immediately enclosing scope:")

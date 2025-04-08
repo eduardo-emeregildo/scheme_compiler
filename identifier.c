@@ -582,7 +582,8 @@ void add_upvalue(Value *closure,long value, int offset, int nesting_count)
                 printf("Resizing:\n");
                 int new_size = sizeof(struct UpvalueObj) * ((upvalue_count) * 2);
                 struct UpvalueObj* new_upvalues = (struct UpvalueObj *)malloc(new_size);
-                memcpy(new_upvalues,closure->as.closure->upvalues,upvalue_count);
+                int num_bytes = upvalue_count * sizeof(struct UpvalueObj);
+                memcpy(new_upvalues,closure->as.closure->upvalues,num_bytes);
                 free(closure->as.closure->upvalues);
                 closure->as.closure->upvalues = new_upvalues;
         }

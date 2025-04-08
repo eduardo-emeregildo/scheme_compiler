@@ -24,16 +24,7 @@ from upvalue import *
 
 #Stuff to do:
 
-#fix inner functions that use the same upvalue multiple times. should only move
-#local to heap once, rn not doing that. This is because upvalue_requests not dealing with
-#duplicate requests.
-
-#fix inner functions with multiple upvalues (different upvalues).
-
-#test the resizing of upvalues, make sure that add_upvalue checks if upvalue has 
-#already been added.
-
-#Test deeply upvalues that have to be retrieved from  outside the enclosing scope
+#Test deeply nested upvalues that have to be retrieved from  outside the enclosing scope
 
 
 #the solution can be to add is_captured bool in symbol table, so symbol_table value
