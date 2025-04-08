@@ -23,9 +23,7 @@ from upvalue import *
 #pointers
 
 #Stuff to do:
-
-#Test deeply nested upvalues that have to be retrieved from  outside the enclosing scope
-
+#more upvalue testing
 
 #the solution can be to add is_captured bool in symbol table, so symbol_table value
 # would now be a three elt array. Just added this.
@@ -1234,7 +1232,6 @@ class Parser:
                 inner_function_def = self.cur_environment.symbol_table[request[0]] 
                 inner_function_offset = inner_function_def[0]
                 is_captured = inner_function_def[2]
-                print("INNER FUNCTION OFFSET IS: ", inner_function_offset)
                 upvalue_offset = request[1]
                 is_local = request[2]
                 nest_count = request[3]

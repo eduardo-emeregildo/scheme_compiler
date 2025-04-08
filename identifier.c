@@ -597,11 +597,12 @@ void add_upvalue(Value *closure,long value, int offset, int nesting_count)
 void add_upvalue_nonlocal(
 Value *target_closure, Value *self_closure,int offset, int nesting_count)
 {
-        long upvalue = get_upvalue(self_closure,offset,nesting_count - 1);
+        long upvalue = get_upvalue_ptr(self_closure,offset,nesting_count - 1);
         add_upvalue(target_closure,upvalue,offset,nesting_count);
 }
 
-//given an offset and nesting amount, retrieve the upvalue. If not found, throw error
+//given an offset and nesting amount, retrieve the upvalue. If not found, throw error.
+// if upvalue is int,char,bool return as a non ptr type
 long get_upvalue(Value *closure, int offset,int nesting_amt)
 {
         struct UpvalueObj *upvalues = closure->as.closure->upvalues;
@@ -616,6 +617,32 @@ long get_upvalue(Value *closure, int offset,int nesting_amt)
                         if (is_non_ptr_type((Value *)res)) {
                                 res = ((Value *)res)->as.tagged_type;
                         }
+                        break;
+                }
+        }
+        if (!found) {
+                printf(
+                "Tried to find upvalue with offset %d, and nesting amount %d.\n",
+                offset,nesting_amt);
+                abort_message(
+                "finding upvalue. Offset and nesting amount not found.\n");
+        }
+        return res;
+}
+
+//same as get_upvalue except it always returns the value pointer. 
+//used in add_upvalue_nonlocal
+long get_upvalue_ptr(Value *closure, int offset,int nesting_amt)
+{
+        struct UpvalueObj *upvalues = closure->as.closure->upvalues;
+        int upvalue_total = closure->as.closure->num_upvalues;
+        bool found = false;
+        long res;
+        for (int i = 0; i < upvalue_total; i++) {
+                if ((upvalues[i].offset == offset) && 
+                (nesting_amt == upvalues[i].nesting_count)) {
+                        found = true;
+                        res = upvalues[i].value;
                         break;
                 }
         }
