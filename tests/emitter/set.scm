@@ -133,11 +133,11 @@
 ; (display (outer)) ; should resize twice
 
 ; (display "testing using the same upvalue more than once:")
-(define (foo) 
-    (define a 1)
-    (define (bar) (display (+ a 1)) (display (+ a 2)))
-    (bar))
-(foo) ;should print 2,3
+; (define (foo) 
+;     (define a 1)
+;     (define (bar) (display (+ a 1)) (display (+ a 2)))
+;     (bar))
+; (foo) ;should print 2,3
 
 
 ;(display "testing upvalues that are beyond the immediately enclosing scope:")

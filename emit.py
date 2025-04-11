@@ -59,16 +59,6 @@ class Emitter:
         self.lambda_label_count += 1
         return f"LA{self.lambda_label_count}"
     
-    #checks that definition name doesnt have a name that would conflict with
-    # lambdas and lets (i.e. LA1,LA2 etc.)
-    def is_definition_name_okay(self,name):
-        if len(name) < 3:
-            return True
-        elif name[0] == "L" and name[1] == "A":
-            return not name[2:].isnumeric()
-        else:
-            return True
-    
     #emits a jump instruction depending on the condition
     def emit_conditional_jump(self,condition,is_global,label = None):
         if label is None:
@@ -461,6 +451,25 @@ class Emitter:
         self.add_rsp(env_depth,is_global)
         self.emit_function(";done adding upvalue")
     
+    #calls add_upvalue to add an upvalue to a lambda/let. Since these arent
+    #definitions rdi is not retrieved from the stack like in emit_add_upvalue
+    def emit_add_upvalue_anonymous(
+    self,cur_environment,upvalue_offset,nest_count):
+        self.add_extern("add_upvalue")
+        env_depth = abs(cur_environment.depth)
+        is_global = cur_environment.is_global()
+        asm_code = []
+        self.emit_function(";adding upvalue anonymous")
+        asm_code.append(f"\tmov rdi, rax")
+        asm_code.append(f"\tmov rsi, QWORD [rbp{upvalue_offset:+}]")
+        asm_code.append(f"\tmov rdx, {upvalue_offset:+}")
+        asm_code.append(f"\tmov rcx, {nest_count}")
+        asm_code.append("\tcall add_upvalue")
+        self.subtract_rsp(env_depth,is_global)
+        self.emit_function('\n'.join(asm_code))
+        self.add_rsp(env_depth,is_global)
+        self.emit_function(";done adding upvalue anonymous")
+    
     def emit_add_upvalue_nonlocal(
     self,cur_environment,inner_function_offset,upvalue_offset,nest_count):
         self.add_extern("add_upvalue_nonlocal")
@@ -477,6 +486,23 @@ class Emitter:
         self.emit_function('\n'.join(asm_code))
         self.add_rsp(env_depth,is_global)
         self.emit_function(";done adding upvalue nonlocal")
+    
+    def emit_add_upvalue_nonlocal_anonymous(
+    self,cur_environment,upvalue_offset,nest_count):
+        self.add_extern("add_upvalue_nonlocal")
+        env_depth = abs(cur_environment.depth)
+        is_global = cur_environment.is_global()
+        asm_code = []
+        self.emit_function(";adding upvalue nonlocal anonymous")
+        asm_code.append(f"\tmov rdi, rax")
+        asm_code.append("\tmov rsi, QWORD [rbp-8]")
+        asm_code.append(f"\tmov rdx, {upvalue_offset}")
+        asm_code.append(f"\tmov rcx, {nest_count}")
+        asm_code.append("\tcall add_upvalue_nonlocal")
+        self.subtract_rsp(env_depth,is_global)
+        self.emit_function('\n'.join(asm_code))
+        self.add_rsp(env_depth,is_global)
+        self.emit_function(";done adding upvalue nonlocal anonymous")
         
     def emit_move_local_to_heap(self,upvalue_offset,cur_environment):
         self.add_extern("move_local_to_heap")

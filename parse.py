@@ -6,6 +6,9 @@ from function import *
 from upvalue import *
 
 #Stuff to do:
+#test lambdas after including the add_upvalue stuff in lambda_exp
+
+
 #make closures/upvalues work for lambdas and lets, the problematic thing is the
 #fact that lambdas and lets are anonymous, and to implement closures i've given
 #the environments names, where they're used in resolve_identifier
@@ -156,6 +159,17 @@ class Parser:
         seventh_arg_offset = env_depth - ((total_args - 6) * 8)
         return True if seventh_arg_offset % 16 != 0 else False
     
+    
+    #checks that definition name doesnt have a name that would conflict with
+    # lambdas and lets (i.e. LA1,LA2 etc.)
+    def is_definition_name_okay(self,name):
+        if len(name) < 3:
+            return True
+        elif name[0] == "L" and name[1] == "A":
+            return not name[2:].isnumeric()
+        else:
+            return True
+    
     #searches for identifier. If identifier is in an enclosing scope, 
     #sends an upvalue request
     def resolve_identifier(self):
@@ -179,7 +193,10 @@ class Parser:
                     #lets, have to fix when i get to lets
                     is_local = True if i == 1 else False
                     upvalue_request = [inner_function_name,offset,is_local,i]
-                    self.tracker.add_upvalue_request(env.name,upvalue_request)
+                    if self.is_definition_name_okay(inner_function_name):
+                        self.tracker.add_upvalue_request(env.name,upvalue_request)
+                    else:
+                        self.tracker.add_anonymous_request(env.name,upvalue_request)
         return definition_result
     
     
@@ -628,6 +645,38 @@ class Parser:
         function_ident = Identifier(IdentifierType.FUNCTION,function)
         self.evaluate_closure(function_ident)
         self.emitter.emit_identifier_to_section(self.last_exp_res,self.cur_environment)
+        print("LAMBDA REQUESTS:")
+        print(self.tracker.anonymous_requests)
+        #add upvalues that lambda needs:
+        cur_function = self.emitter.cur_function
+        #now current function will supply upvalues that inner functions requested,
+        #if no requests, wont do anything
+        if self.tracker.function_has_anon_requests(cur_function):
+            function_requests = self.tracker.get_anonymous_requests(cur_function)
+            print("FUNCTION REQUESTS FOR ",cur_function ,"ARE: ", function_requests)
+            for request in function_requests:
+                inner_function_def = self.cur_environment.symbol_table[request[0]] 
+                inner_function_offset = inner_function_def[0]
+                is_captured = inner_function_def[2]
+                upvalue_offset = request[1]
+                is_local = request[2]
+                nest_count = request[3]
+                if is_local:
+                    #first turn non ptr types to ptr types, then do emit_add_upvalue.
+                    #have to set is_captured also
+                    if not is_captured:
+                        self.emitter.emit_to_section(";^saved rax!!!",self.cur_envrionment.is_global())
+                        self.emitter.emit_move_local_to_heap(
+                        upvalue_offset,self.cur_environment)
+                        self.cur_environment.set_def_as_captured(request[1])
+                    self.emitter.emit_add_upvalue_anonymous(
+                    self.cur_environment,upvalue_offset,nest_count)
+                else:
+                    #search upvalues of current definition instead of locals, add
+                    #to target closure
+                    self.emitter.emit_add_upvalue_nonlocal_anonymous(
+                    self.cur_environment,upvalue_offset,nest_count)
+            del self.tracker.anonymous_requests[cur_function]
         self.match(TokenType.EXPR_END)
         
     # (and <expression>*)
@@ -1119,7 +1168,7 @@ class Parser:
         self.match(TokenType.EXPR_START)
         if self.check_token(TokenType.IDENTIFIER):
             print("PATTERN")
-            if not self.emitter.is_definition_name_okay(self.cur_token.text):
+            if not self.is_definition_name_okay(self.cur_token.text):
                 self.abort("Reserved function name.")
             function.set_name(self.cur_token.text)
             self.emitter.set_current_function(function.name)

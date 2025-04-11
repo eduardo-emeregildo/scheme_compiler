@@ -38,7 +38,7 @@ class UpvalueTracker:
     def get_upvalue_requests(self,function_name):
         return self.upvalue_requests[function_name]
     
-    def get_anonmymous_requests(self, function_name):
+    def get_anonymous_requests(self, function_name):
         return self.anonymous_requests[function_name]
     
     def add_upvalue_request(self,function_name,request_arr):
