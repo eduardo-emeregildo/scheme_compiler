@@ -133,11 +133,11 @@
 ; (display (outer)) ; should resize twice
 
 ; (display "testing using the same upvalue more than once:")
-; (define (foo) 
-;     (define a 1)
-;     (define (bar) (display (+ a 1)) (display (+ a 2)))
-;     (bar))
-; (foo) ;should print 2,3
+(define (foo) 
+    (define a 1)
+    (define (bar) (display (+ a 1)) (display (+ a 2)))
+    (bar))
+(foo) ;should print 2,3
 
 
 ;(display "testing upvalues that are beyond the immediately enclosing scope:")
@@ -150,13 +150,36 @@
 ;     ((middle)))
 ; (outer)
 
-(define (outer) 
-    (define a 41)
-    (define (middle)
-        (define b 59) 
-        (define (inner)
-            (define c 10)
-            (display (+ a b c))) 
-        inner)
-    ((middle)))
-(outer) ; should print out 110
+
+; (define (outer) 
+;     (define a 41)
+;     (define (middle)
+;         (define b 59) 
+;         (define (inner)
+;             (define c 10)
+;             (display (+ a b c))) 
+;         inner)
+;     ((middle)))
+; (outer) ; should print out 110
+
+; (display "using closures to imitate classes:")
+; (define (make_balance)
+;   (define value 0)
+;   (define (bal method)
+;     (define (add_method x)
+;       (set! value (+ value x)))
+;     (define (get_method) (display value))
+;     (if (equal? method "add")
+;         add_method
+;         get_method))
+;   bal)
+
+; (define a (make_balance))
+; ((a "get"))
+; ((a "add") 3)
+; ((a "get"))
+
+; (define b (make_balance))
+; ((b "add") -1)
+; ((b "get"))
+; ((a "get"))

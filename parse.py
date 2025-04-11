@@ -5,31 +5,10 @@ from environment import *
 from function import *
 from upvalue import *
 
-# what I realized is that during the execution of the outer function, the local
-# variable and the inner functions that use that local variable refer to the same
-# variable. i.e. if the outer function sets its local variable to something else,
-#all inner functions that use this variable will see this change.
-
-#this means that the local var in outer function has to be a pointer and this
-#pointer is whats passed to the inner functions so that they both refer to the
-#same place.
-
-#for ptr types (list,vector,etc.) this is natural as these types live on the heap.
-
-#What about non ptr types??? (i.e. ints,chars,bools)? They will have to change
-#to box types if inner functions use them so they'll be pointers. This has the
-#possibility of introducing bugs because so far I've always assumed that 
-# ints,chars, and bools on their own (i.e. not inside a list or vector) are never
-#pointers
-
 #Stuff to do:
-#more upvalue testing
-
-#the solution can be to add is_captured bool in symbol table, so symbol_table value
-# would now be a three elt array. Just added this.
-
-#first, make it so that non_ptr types that are used as upvalues become pointer types,
-#that way outer function and inner function refer to the same variable.
+#make closures/upvalues work for lambdas and lets, the problematic thing is the
+#fact that lambdas and lets are anonymous, and to implement closures i've given
+#the environments names, where they're used in resolve_identifier
 
 #for adding upvalue::::::::::::::
 #in body(), turn locals that are nonptrs to val type and then add. (DONE)
@@ -50,9 +29,6 @@ from upvalue import *
 
 #then, make set! modify the existing pointer, rather than setting definition to
 # a new pointer (DONE)
-
-#revisit add_upvalue and get_upvalue now that these changes are in place, as they
-#might need to be modified
 
 #-------------------------------------------------------------------------------
 
@@ -636,6 +612,9 @@ class Parser:
     def lambda_exp(self):
         print("EXPRESSION-LAMBDA")
         function = Function()
+        if self.cur_environment.is_global():
+            self.tracker.turn_tracker_on()
+        print("IN LAMBDA: ", self.cur_environment.is_global())
         parent_env = self.cur_environment
         previous_function = self.emitter.cur_function
         self.cur_environment = parent_env.create_local_env()
@@ -644,7 +623,8 @@ class Parser:
         #now switch back to parent environment/ previous function
         self.emitter.set_current_function(previous_function)
         self.cur_environment = parent_env
-        #self.evaluate_function(function)
+        if self.cur_environment.is_global():
+            self.tracker.turn_tracker_off()
         function_ident = Identifier(IdentifierType.FUNCTION,function)
         self.evaluate_closure(function_ident)
         self.emitter.emit_identifier_to_section(self.last_exp_res,self.cur_environment)
@@ -1083,7 +1063,7 @@ class Parser:
         elif self.check_token(TokenType.EXPR_START):
             #function case
             function = Function()
-            if self.cur_environment.is_global:
+            if self.cur_environment.is_global():
                 self.tracker.turn_tracker_on()
             parent_env = self.cur_environment
             previous_function = self.emitter.cur_function

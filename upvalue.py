@@ -13,14 +13,20 @@
     #3) is_local
     #4) nest_count
     
+#anonymous requests are for storing requests that come from lambdas/lets. i.e.
+#the inner function you are writing to is an anonymous function.
+#works the same as upvalue_requests
+    
 class UpvalueTracker:
     def __init__(self):
         self.on = False
         self.upvalue_requests = {}
+        self.anonymous_requests = {}
     
     def turn_tracker_off(self):
         self.on = False
         self.upvalue_requests = {}
+        self._anonymous_requests = {}
     
     def turn_tracker_on(self):
         self.on = True
@@ -31,6 +37,9 @@ class UpvalueTracker:
     #returns upvalue requests for function_name
     def get_upvalue_requests(self,function_name):
         return self.upvalue_requests[function_name]
+    
+    def get_anonmymous_requests(self, function_name):
+        return self.anonymous_requests[function_name]
     
     def add_upvalue_request(self,function_name,request_arr):
         if function_name not in self.upvalue_requests:
@@ -43,8 +52,22 @@ class UpvalueTracker:
                     return
             self.upvalue_requests[function_name].append(request_arr)
     
+    def add_anonymous_request(self,function_name,request_arr):
+        if function_name not in self.anonymous_requests:
+            self.anonymous_requests[function_name] = []
+            self.anonymous_requests[function_name].append(request_arr)
+        else:
+            #check if request was already made
+            for requests in self.anonymous_requests[function_name]:
+                if requests == request_arr:
+                    return
+            self.anonymous_requests[function_name].append(request_arr)
+    
     def function_has_requests(self,function_name):
         return function_name in self.upvalue_requests
+    
+    def function_has_anon_requests(self,function_name):
+        return function_name in self.anonymous_requests
     
     #for debugging
     def show_requests(self,function_name):
