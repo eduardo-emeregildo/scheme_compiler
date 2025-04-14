@@ -6,9 +6,22 @@
 
 ; ((lambda (x) 
 ;     (define local 7)
-;     (define (inner) (+ local x))
-;     (display (inner))) 1)
+;     (define (bar) (+ local x))
+;     (display (bar))) 1)
 
+(display "example with counters but with only lambdas:")
+(define (make_counter)
+    ((lambda (count) (lambda () (set! count (+ count 1)) count)) 0))
+
+(define c1 (make_counter))
+(define c2 (make_counter))
+(define c3 (make_counter))
+(display (c1))
+(display (c1))
+(display (c2))
+(display (c2))
+(display (c3))
+(display (c3))
 
 
 
@@ -24,11 +37,11 @@
 ;This is so that in lambda expression when searching for requests,
 ;you dont have to iterate every single request, just the anonymous ones.
 ;this means that when adding a request, must be added to the correct dictionary
-(define (outer)
-    (define local 7)
-    (define (inner) ((lambda (x) (display (+ x local))) 1))
-    (inner))
-(outer)
+; (define (outer)
+;     (define local 7)
+;     (define (inner) ((lambda (x) (display (+ x local))) 1))
+;     (inner))
+; (outer)
 
 
 ; (define (make_counter)

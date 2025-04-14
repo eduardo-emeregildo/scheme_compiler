@@ -629,9 +629,10 @@ class Parser:
     def lambda_exp(self):
         print("EXPRESSION-LAMBDA")
         function = Function()
-        if self.cur_environment.is_global():
+        is_global = self.cur_environment.is_global()
+        if is_global:
             self.tracker.turn_tracker_on()
-        print("IN LAMBDA: ", self.cur_environment.is_global())
+        print("IN LAMBDA: ", is_global)
         parent_env = self.cur_environment
         previous_function = self.emitter.cur_function
         self.cur_environment = parent_env.create_local_env()
@@ -640,7 +641,7 @@ class Parser:
         #now switch back to parent environment/ previous function
         self.emitter.set_current_function(previous_function)
         self.cur_environment = parent_env
-        if self.cur_environment.is_global():
+        if is_global:
             self.tracker.turn_tracker_off()
         function_ident = Identifier(IdentifierType.FUNCTION,function)
         self.evaluate_closure(function_ident)
@@ -665,10 +666,15 @@ class Parser:
                     #first turn non ptr types to ptr types, then do emit_add_upvalue.
                     #have to set is_captured also
                     if not is_captured:
-                        self.emitter.emit_to_section(";^saved rax!!!",self.cur_envrionment.is_global())
+                        #save rax to restore after move_local_to_heap
+                        self.emitter.save_rax(self.cur_environment)
                         self.emitter.emit_move_local_to_heap(
                         upvalue_offset,self.cur_environment)
                         self.cur_environment.set_def_as_captured(request[1])
+                        env_depth = self.cur_environment.depth
+                        #restore rax
+                        self.emitter.move_stack_def_to_rax(env_depth,is_global)
+                        self.emitter.undo_save_rax(self.cur_environment)
                     self.emitter.emit_add_upvalue_anonymous(
                     self.cur_environment,upvalue_offset,nest_count)
                 else:

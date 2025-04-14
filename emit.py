@@ -47,7 +47,11 @@ class Emitter:
     
     def emit_function_label(self,label):
         self.emit_function(f"..@{label}:")
-    
+
+    def move_stack_def_to_rax(self,offset,is_global):
+        self.emit_to_section(
+        f"\tmov rax, QWORD [rbp{offset:+}]",is_global)
+        
     def emit_function_prolog(self):
         self.emit_function(f"\tpush rbp\n\tmov rbp, rsp")
     
@@ -397,13 +401,6 @@ class Emitter:
     #8 bytes of the stack dont belong to it anymore. 
     def undo_save_rax(self,cur_environment):
         cur_environment.depth += 8
-    
-    # #given a closure object is in rax, set rax to the function Value ptr        
-    # def get_function_from_closure(self,is_global):
-    #     asm_code = []
-    #     asm_code.append("\tmov rax, QWORD [rax + 8]")
-    #     asm_code.append("\tmov rax, QWORD [rax]")
-    #     self.emit_to_section('\n'.join(asm_code),is_global)
     
     #given a stack offset of where the closure object is stored, edits the stack
     #location so that the function value ptr takes its place
