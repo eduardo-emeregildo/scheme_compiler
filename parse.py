@@ -6,7 +6,7 @@ from function import *
 from upvalue import *
 
 #Stuff to do:
-#test lambdas after including the add_upvalue stuff in lambda_exp
+#work on making closures/upvalues work for lets
 
 
 #make closures/upvalues work for lambdas and lets, the problematic thing is the

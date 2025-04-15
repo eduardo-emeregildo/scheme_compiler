@@ -9,34 +9,56 @@
 ;     (define (bar) (+ local x))
 ;     (display (bar))) 1)
 
-(display "example with counters but with only lambdas:")
-(define (make_counter)
-    ((lambda (count) (lambda () (set! count (+ count 1)) count)) 0))
+; (display "example with counters but with only lambdas:")
+; (define (make_counter)
+;     ((lambda (count) (lambda () (set! count (+ count 1)) count)) 0))
 
-(define c1 (make_counter))
-(define c2 (make_counter))
-(define c3 (make_counter))
-(display (c1))
-(display (c1))
-(display (c2))
-(display (c2))
-(display (c3))
-(display (c3))
+; (define c1 (make_counter))
+; (define c2 (make_counter))
+; (define c3 (make_counter))
+; (display (c1))
+; (display (c1))
+; (display (c2))
+; (display (c2))
+; (display (c3))
+; (display (c3))
+
+
+(define (func arg)
+  ((lambda (x y) (+ x y arg)) 1 2))
+
+(display (func 3)) ; should print 6
+
+
+; examples found in: https://piembsystech.com
+(display "example 1:")
+(define (make_adder x)
+  (lambda (y)
+    (+ x y)))
+
+(define add5 (make_adder 5)) ; Creates a closure where x = 5
+(display (add5 3)) ; Outputs 8 because it adds 5 (from closure) to 3
+
+(display "example 2:")
+(define x 10) ; Global environment
+
+(define (outer_function a)
+  (define b (+ a x)) ; Local environment of outer-function
+  (lambda (c)
+    (+ b c))) ; Local environment of the lambda (closure)
+
+(define inner_function (outer_function 20)) ; b = 30
+(display (inner_function 5)) ; Outputs 35 (b + c = 30 + 5)
+
+
+(display "lambdas with outer,middle,inner functions:")
+((lambda ()
+  (define a 41)
+  ((lambda ()
+    ((lambda () (display (+ a 1))))))))
 
 
 
-;fix this. problem is inner isnt adding upvalue to lambda function
-;this is because inner's body has a lambda and its not correctly handling this case
-;what i can maybe do is while the lambda object is being made, add the upvalue there,
-;because its the parent whose making the lambda
-
-;thinking of adding a anonymous_requests dictionary for upvalue tracker, which 
-; functions the same as upvalue_requests except its for anonymous functions i.e.
-;lambdas and lets. 
-
-;This is so that in lambda expression when searching for requests,
-;you dont have to iterate every single request, just the anonymous ones.
-;this means that when adding a request, must be added to the correct dictionary
 ; (define (outer)
 ;     (define local 7)
 ;     (define (inner) ((lambda (x) (display (+ x local))) 1))
