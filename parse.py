@@ -6,6 +6,7 @@ from function import *
 from upvalue import *
 
 #Stuff to do:
+#make cons builtin, then test memoization example
 #test that upvalues with lets work, and mix of lambda and let
 
 
