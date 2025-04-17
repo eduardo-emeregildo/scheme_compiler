@@ -26,7 +26,7 @@ class UpvalueTracker:
     def turn_tracker_off(self):
         self.on = False
         self.upvalue_requests = {}
-        self._anonymous_requests = {}
+        self.anonymous_requests = {}
     
     def turn_tracker_on(self):
         self.on = True

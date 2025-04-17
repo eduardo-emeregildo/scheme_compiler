@@ -6,7 +6,8 @@ from function import *
 from upvalue import *
 
 #Stuff to do:
-#work on making closures/upvalues work for lets
+#test that upvalues with lets work, and mix of lambda and let
+
 
 
 #make closures/upvalues work for lambdas and lets, the problematic thing is the
@@ -199,7 +200,6 @@ class Parser:
                         self.tracker.add_anonymous_request(env.name,upvalue_request)
         return definition_result
     
-    
     #to resolve and evaluate identifier. result will be in rax
     def resolve_and_eval_identifier(self):
         is_global = self.cur_environment.is_global()
@@ -220,6 +220,42 @@ class Parser:
         else:
             self.emitter.emit_var_to_local(
             self.cur_token.text,offset,def_ident_obj,is_captured,env_depth,is_global)
+    
+    def add_upvals_to_anon_functions(self,is_global):
+        cur_function = self.emitter.cur_function
+        #now current function will supply upvalues that inner functions requested,
+        #if no requests, wont do anything
+        if self.tracker.function_has_anon_requests(cur_function):
+            function_requests = self.tracker.get_anonymous_requests(cur_function)
+            print("FUNCTION REQUESTS FOR ",cur_function ,"ARE: ", function_requests)
+            for request in function_requests:
+                inner_function_def = self.cur_environment.symbol_table[request[0]] 
+                inner_function_offset = inner_function_def[0]
+                is_captured = inner_function_def[2]
+                upvalue_offset = request[1]
+                is_local = request[2]
+                nest_count = request[3]
+                if is_local:
+                    #first turn non ptr types to ptr types, then do emit_add_upvalue.
+                    #have to set is_captured also
+                    if not is_captured:
+                        #save rax to restore after move_local_to_heap
+                        self.emitter.save_rax(self.cur_environment)
+                        self.emitter.emit_move_local_to_heap(
+                        upvalue_offset,self.cur_environment)
+                        self.cur_environment.set_def_as_captured(request[1])
+                        env_depth = self.cur_environment.depth
+                        #restore rax
+                        self.emitter.move_stack_def_to_rax(env_depth,is_global)
+                        self.emitter.undo_save_rax(self.cur_environment)
+                    self.emitter.emit_add_upvalue_anonymous(
+                    self.cur_environment,upvalue_offset,nest_count)
+                else:
+                    #search upvalues of current definition instead of locals, add
+                    #to target closure
+                    self.emitter.emit_add_upvalue_nonlocal_anonymous(
+                    self.cur_environment,upvalue_offset,nest_count)
+            del self.tracker.anonymous_requests[cur_function]
 
     def program(self):
         print("Program")
@@ -648,41 +684,7 @@ class Parser:
         self.emitter.emit_identifier_to_section(self.last_exp_res,self.cur_environment)
         print("LAMBDA REQUESTS:")
         print(self.tracker.anonymous_requests)
-        #add upvalues that lambda needs:
-        cur_function = self.emitter.cur_function
-        #now current function will supply upvalues that inner functions requested,
-        #if no requests, wont do anything
-        if self.tracker.function_has_anon_requests(cur_function):
-            function_requests = self.tracker.get_anonymous_requests(cur_function)
-            print("FUNCTION REQUESTS FOR ",cur_function ,"ARE: ", function_requests)
-            for request in function_requests:
-                inner_function_def = self.cur_environment.symbol_table[request[0]] 
-                inner_function_offset = inner_function_def[0]
-                is_captured = inner_function_def[2]
-                upvalue_offset = request[1]
-                is_local = request[2]
-                nest_count = request[3]
-                if is_local:
-                    #first turn non ptr types to ptr types, then do emit_add_upvalue.
-                    #have to set is_captured also
-                    if not is_captured:
-                        #save rax to restore after move_local_to_heap
-                        self.emitter.save_rax(self.cur_environment)
-                        self.emitter.emit_move_local_to_heap(
-                        upvalue_offset,self.cur_environment)
-                        self.cur_environment.set_def_as_captured(request[1])
-                        env_depth = self.cur_environment.depth
-                        #restore rax
-                        self.emitter.move_stack_def_to_rax(env_depth,is_global)
-                        self.emitter.undo_save_rax(self.cur_environment)
-                    self.emitter.emit_add_upvalue_anonymous(
-                    self.cur_environment,upvalue_offset,nest_count)
-                else:
-                    #search upvalues of current definition instead of locals, add
-                    #to target closure
-                    self.emitter.emit_add_upvalue_nonlocal_anonymous(
-                    self.cur_environment,upvalue_offset,nest_count)
-            del self.tracker.anonymous_requests[cur_function]
+        self.add_upvals_to_anon_functions(is_global)
         self.match(TokenType.EXPR_END)
         
     # (and <expression>*)
@@ -777,7 +779,10 @@ class Parser:
         function = Function()
         does_let_have_name = False
         let_name = None
-        let_name_internal = self.emitter.create_lambda_name() 
+        let_name_internal = self.emitter.create_lambda_name()
+        is_global = self.cur_environment.is_global()
+        if is_global:
+            self.tracker.turn_tracker_on()
         #setting up new environment for let
         parent_env = self.cur_environment
         parent_env_depth = self.cur_environment.depth
@@ -818,13 +823,16 @@ class Parser:
         #now switch back to old environment
         self.emitter.set_current_function(previous_function)
         self.cur_environment = parent_env
-        is_global = self.cur_environment.is_global()
+        if is_global:
+            self.tracker.turn_tracker_off()
+        print("ANONYMOUS REQUESTS:")
+        print(self.tracker.anonymous_requests)
         #compile function in parent so function obj is in rax.
         #Note: A Closure isnt formed here since in let expressions, the closure 
         # will live internally.
         self.emitter.emit_to_section(";compiling let function:",is_global)
         self.emitter.emit_identifier_to_section(closure_obj,self.cur_environment)
-        
+        self.add_upvals_to_anon_functions(is_global)
         #now edit self arg to be the closure obj:
         self.emitter.push_arg(1,parent_env_depth,is_global)
         self.emitter.emit_to_section(";^updated self arg",is_global)

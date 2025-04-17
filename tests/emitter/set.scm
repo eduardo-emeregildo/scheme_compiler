@@ -140,7 +140,7 @@
 ; (foo) ;should print 2,3
 
 
-;(display "testing upvalues that are beyond the immediately enclosing scope:")
+; (display "testing upvalues that are beyond the immediately enclosing scope:")
 ; (define (outer) 
 ;     (define a 41)
 ;     (define (middle) 
