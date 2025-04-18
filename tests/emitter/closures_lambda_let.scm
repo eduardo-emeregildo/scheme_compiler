@@ -122,20 +122,20 @@
 ; (func) ; should print numbers 5-14 followed by done
 
 ;ex3, another example with counters
-(define (make_counter initial)
-  (let ((count initial))
-    (lambda ()
-      (let ((v count))
-        (set! count (+ count 1))
-        v))))
+; (define (make_counter initial)
+;   (let ((count initial))
+;     (lambda ()
+;       (let ((v count))
+;         (set! count (+ count 1))
+;         v))))
 
-(define counter1 (make_counter 0))
-(define counter2 (make_counter 10))
+; (define counter1 (make_counter 0))
+; (define counter2 (make_counter 10))
 
-(display (counter1)) ; Output: 0
-(display (counter1)) ; Output: 1
-(display (counter2)) ; Output: 10
-(display (counter2)) ; Output: 11
+; (display (counter1)) ; Output: 0
+; (display (counter1)) ; Output: 1
+; (display (counter2)) ; Output: 10
+; (display (counter2)) ; Output: 11
 
 ;ex4
 ; (define (greater_than_predicate threshold)
@@ -150,32 +150,28 @@
 
 ;have to make assoc since I havent made it as a builtin
 ; alist is a list of of pairs, ex: '((a . 1) (b . 2) (c . 3))
-; (define (assoc val alist) 
-;     (if (null? alist) #f 
-;         (if (equal? val (car (car alist))) (car alist) (assoc val (cdr alist)))))
+(define (assoc val alist) 
+    (if (null? alist) #f 
+        (if (equal? val (car (car alist))) (car alist) (assoc val (cdr alist)))))
 
 
-;testing assoc
-;(define my_alist '((a . 1) (b . 2) (c . 3)))
-;(display (assoc 'b my_alist)) ; Returns (b . 2)
-;(display (assoc 'd my_alist)) ; Returns #f
+(define (memoize f)
+  (let ((cache '()))
+    (lambda (x)
+      (let ((entry (assoc x cache)))
+        (if entry
+            (cdr entry)
+            (let ((result (f x)))
+              (set! cache (cons (cons x result) cache))
+              result))))))
 
+;; Usage
+(define (slow_square x)
+  (display "Computing...")
+  (* x x))
 
-; (define (memoize f)
-;   (let ((cache '()))
-;     (lambda (x)
-;       (let ((entry (assoc x cache)))
-;         (if entry
-;             (cdr entry)
-;             (let ((result (f x)))
-;               (set! cache (cons (cons x result) cache))
-;               result))))))
-
-; ;; Usage
-; (define (slow-square x)
-;   (display "Computing...\n")
-;   (* x x))
-
-; (define fast-square (memoize slow-square))
-; (fast-square 4) ;; Computes. Only prints computing once
-; (fast-square 4) ;; Uses cache
+(define fast_square (memoize slow_square))
+(display (fast_square 4)) ;; Computes. Only prints computing once
+(display (fast_square 4)) ;; Uses cache, doesnt print computing
+(display (fast_square 5)) ;; Computes. Only prints computing once
+(display (fast_square 5)) ;; Uses cache, doesnt print computing

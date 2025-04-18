@@ -594,6 +594,16 @@ long _vectorq(long self, long val)
         }
         return res;
 }
+//implements cons
+Value *_cons(long self, long car_val, long cdr_val)
+{
+        struct Pair *new_pair = allocate_pair();
+        Value *pair_val_type = make_value_pair(new_pair);
+        set_ith_value_unknown(&pair_val_type->as.pair->car,car_val,0);
+        set_ith_value_unknown(&pair_val_type->as.pair->cdr,cdr_val,0);
+        return pair_val_type;
+
+}
 bool is_list_improper(struct Pair *list)
 {
         if (list->cdr.type == VAL_EMPTY_LIST || list->cdr.type == VAL_PAIR) {

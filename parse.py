@@ -6,14 +6,7 @@ from function import *
 from upvalue import *
 
 #Stuff to do:
-#make cons builtin, then test memoization example
-#test that upvalues with lets work, and mix of lambda and let
-
-
-
-#make closures/upvalues work for lambdas and lets, the problematic thing is the
-#fact that lambdas and lets are anonymous, and to implement closures i've given
-#the environments names, where they're used in resolve_identifier
+#start making gc
 
 #for adding upvalue::::::::::::::
 #in body(), turn locals that are nonptrs to val type and then add. (DONE)
@@ -36,17 +29,6 @@ from upvalue import *
 # a new pointer (DONE)
 
 #-------------------------------------------------------------------------------
-
-#1) make last test in set.scm pass, getter and setter not referring to same a
-#section 25.4 in crafting interpreters talk about this
-
-#2) do more upvalue testing. All tests in closures.scm should pass before moving 
-# to lets/lambdas
-#2) make add_upvalue check if upvalue was already added
-
-#3) work on making lambdas/lets work with upvalues
- 
-#Todo4: implement closures
 #Todo5: implement gc
 #Todo6: test compiler with different optimization levels, see which one you can
 #get away with

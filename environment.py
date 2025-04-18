@@ -121,6 +121,9 @@ BUILTINS = {
     "VECTORQ": Identifier(
         IdentifierType.CLOSURE,
         Identifier(IdentifierType.FUNCTION,Function().set("VECTORQ",["self","val"],2,False))),
+    "CONS": Identifier(
+        IdentifierType.CLOSURE,
+        Identifier(IdentifierType.FUNCTION,Function().set("CONS",["self","car_val","cdr_val"],3,False))),
 }
     
 

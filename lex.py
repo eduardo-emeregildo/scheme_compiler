@@ -219,7 +219,7 @@ TokenType = Enum(
         #("CAR" , 301),
         #("CDR" , 302),
         ("CADR" , 303),
-        ("CONS" , 304),
+        # ("CONS" , 304),
         ("LIST" , 305),
         ("DEFINE" , 306),
         ("SET" , 307),
