@@ -9,6 +9,10 @@ const unsigned long BOOL_MASK = 0x2;
 const unsigned long CHAR_MASK = 0x4;
 const unsigned long TAGGED_TYPE_MASK = 0X7;
 const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
+
+//pointers for linked list of objects
+Object *head = NULL;
+Object *tail = NULL;
 //pass either the 64 bit val or the 64 bit addr(for pointers)
 bool is_int(long item) 
 {
@@ -105,6 +109,7 @@ Value *make_value_int(long integer)
         Value *ptr_value_int = make_tagged_ptr(1);
         ptr_value_int->type = VAL_INT;
         ptr_value_int->as.tagged_type = make_tagged_int(integer);
+        add_object(ptr_value_int);
         return ptr_value_int;
 }
 
@@ -113,6 +118,7 @@ Value *make_value_char(char character)
         Value *ptr_value_char = make_tagged_ptr(1);
         ptr_value_char->type = VAL_CHAR;
         ptr_value_char->as.tagged_type = make_tagged_char(character);
+        add_object(ptr_value_char);
         return ptr_value_char;
 }
 
@@ -121,6 +127,7 @@ Value *make_value_bool(bool boolean)
         Value *ptr_value_bool = make_tagged_ptr(1);
         ptr_value_bool->type = VAL_BOOLEAN;
         ptr_value_bool->as.tagged_type = make_tagged_bool(boolean);
+        add_object(ptr_value_bool);
         return ptr_value_bool;
 }
 
@@ -129,6 +136,7 @@ Value *make_empty_list()
         Value* ptr_empty_list = make_tagged_ptr(1);
         ptr_empty_list->type = VAL_EMPTY_LIST;
         ptr_empty_list->as.empty_list = NULL;
+        add_object(ptr_empty_list);
         return ptr_empty_list;
 }
 
@@ -277,6 +285,7 @@ Value *make_value_double(double num)
         Value *ptr_value_double = make_tagged_ptr(1);
         ptr_value_double->type = VAL_DOUBLE;
         ptr_value_double->as._double = num;
+        add_object(ptr_value_double);
         return ptr_value_double;
 }
 
@@ -285,6 +294,7 @@ Value *make_value_string(struct Str *str_obj)
         Value *ptr_value_string = make_tagged_ptr(1);
         ptr_value_string->type = VAL_STR;
         ptr_value_string->as.str = str_obj;
+        add_object(ptr_value_string);
         return ptr_value_string;
 }
 
@@ -293,6 +303,7 @@ Value *make_value_symbol(struct Str *str_obj)
         Value *ptr_value_symbol = make_tagged_ptr(1);
         ptr_value_symbol->type = VAL_SYMBOL;
         ptr_value_symbol->as.str = str_obj;
+        add_object(ptr_value_symbol);
         return ptr_value_symbol;
 }
 
@@ -301,6 +312,7 @@ Value *make_value_pair(struct Pair *pair_obj)
         Value *ptr_value_pair = make_tagged_ptr(1);
         ptr_value_pair->type = VAL_PAIR;
         ptr_value_pair->as.pair = pair_obj;
+        add_object(ptr_value_pair);
         return ptr_value_pair;
 }
 
@@ -331,6 +343,7 @@ Value *make_value_list(Value *value_obj_array, size_t len)
                 }        
         }
         ptr_value_list->as.pair = head;
+        add_object(ptr_value_list);
         return ptr_value_list;
 }
 
@@ -345,6 +358,7 @@ Value *make_value_vector(Value *value_obj_array, size_t len)
         ptr_value_vector->type = VAL_VECTOR;
         struct Vector *vector_obj = allocate_vector(value_obj_array,len);
         ptr_value_vector->as.vector = vector_obj;
+        add_object(ptr_value_vector);
         return ptr_value_vector;
 }
 
@@ -354,15 +368,17 @@ Value *make_value_function(struct FuncObj *func_obj)
         Value *ptr_value_function = make_tagged_ptr(1);
         ptr_value_function->type = VAL_FUNCTION;
         ptr_value_function->as.function = func_obj;
+        add_object(ptr_value_function); // might not be needed
         return ptr_value_function;
 }
 
 Value *make_value_closure(struct ClosureObj *closure)
 {
-        Value *value_closure = make_tagged_ptr(1);
-        value_closure->type = VAL_CLOSURE;
-        value_closure->as.closure = closure;
-        return value_closure;
+        Value *ptr_value_closure = make_tagged_ptr(1);
+        ptr_value_closure->type = VAL_CLOSURE;
+        ptr_value_closure->as.closure = closure;
+        add_object(ptr_value_closure);
+        return ptr_value_closure;
 }
 
 //similar to set_value_x, but in this case its not known if the input is a value
@@ -705,4 +721,32 @@ long setexclam(long definition,long new_val)
                 free((Value *)new_val);
         }
         return definition;
+}
+
+void mark_obj(Object *obj)
+{
+        if (obj != NULL) {
+                obj->is_marked = true;
+        }
+}
+
+void add_object(Value *val_type)
+{
+        Object *new_object = (Object *)malloc(sizeof(Object));
+        validate_ptr(new_object);
+        new_object->value = val_type;
+        new_object->is_marked = false;
+        new_object->next = NULL;
+        //printf("before changing head and tail, head is %p, tail is %p\n",head,tail);
+        //no objects on the heap, initializing the list so it has one object
+        if (head == NULL) {
+                printf("Initializing list of objects..\n");
+                head = new_object;
+                tail = head;
+                //printf("after changing head and tail, head is %p, tail is %p\n",head,tail);
+                return;
+        }
+        tail->next = new_object;
+        printf("Added object to list!\n");
+        //printf("after changing head and tail, head is %p, tail is %p\n",head,tail);
 }

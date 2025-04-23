@@ -1,0 +1,7 @@
+(define x "hello :D")
+(define y "omg")
+(define z "soul drain")
+(define (foo) 
+    (define c "loc")
+    (+ 1 2))
+(foo)

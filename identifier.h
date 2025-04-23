@@ -75,6 +75,21 @@ struct UpvalueObj {
         int nesting_count; //this combined with offset used for searching
         long value;
 };
+
+//linked list to track all objects that are in the heap. in identifier.h, will create
+// a pointer an Object pointer thats called head and Object pointer thats called
+// tail, since these are the two that I will be using. 
+//they will both be initialized to Null
+
+// head will of course hold a ptr to the first object and tail will hold a pointer
+//to the last obj. // the last object's next field will be Null to denote end of list
+struct Object{
+        Value *value;
+        bool is_marked;
+        struct Object *next;
+};
+typedef struct Object Object;
+
 bool is_int(long item);
 bool is_ptr(long item);
 bool is_bool(long item);
@@ -136,4 +151,6 @@ long get_upvalue(Value *closure, int offset,int nesting_amt);
 long get_upvalue_ptr(Value *closure, int offset,int nesting_amt);
 void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt);
 long setexclam(long definition,long new_val);
+void mark_obj(Object *obj);
+void add_object(Value *val_type);
 #endif
