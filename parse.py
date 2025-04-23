@@ -6,7 +6,8 @@ from function import *
 from upvalue import *
 
 #Stuff to do:
-#start making gc
+#start making functions for deallocating, i.e. deallocate_str,deallocate_function, etc
+#start implementing mark_roots
 
 #for adding upvalue::::::::::::::
 #in body(), turn locals that are nonptrs to val type and then add. (DONE)

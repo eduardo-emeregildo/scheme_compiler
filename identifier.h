@@ -7,7 +7,8 @@
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
-
+#define DEBUG_STRESS_GC
+#define DEBUG_LOG_GC
 typedef enum {
         VAL_CHAR,
         VAL_STR,
@@ -153,4 +154,5 @@ void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt);
 long setexclam(long definition,long new_val);
 void mark_obj(Object *obj);
 void add_object(Value *val_type);
+void collect_garbage();
 #endif

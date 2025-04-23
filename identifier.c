@@ -65,6 +65,9 @@ long untag_int(long num)
 
 Value *make_tagged_ptr(size_t num_value_objects)
 {
+        #ifdef DEBUG_STRESS_GC
+                collect_garbage();
+        #endif
         Value *p = (Value *)malloc(sizeof(Value)*num_value_objects);
         if (p == NULL) {
                 abort_message("Ran out of memory or tried to allocate negative bytes.");
@@ -146,6 +149,9 @@ Str object. symbol types will also use this object
 */
 struct Str *allocate_str(char *str)
 {
+        #ifdef DEBUG_STRESS_GC
+                collect_garbage();
+        #endif
         struct Str *str_obj = (struct Str *)malloc(sizeof(struct Str));
         validate_ptr(str_obj);
         size_t length = strlen(str);
@@ -158,7 +164,9 @@ struct Str *allocate_str(char *str)
 // allocates empty pair
 struct Pair *allocate_pair() 
 {
-        //struct Pair *pair_obj = (struct Pair *)malloc(sizeof(struct Pair));
+        #ifdef DEBUG_STRESS_GC
+                collect_garbage();
+        #endif
         struct Pair *pair_obj = (struct Pair *)calloc(1,sizeof(struct Pair));
         validate_ptr(pair_obj);
         pair_obj->car.type = VAL_EMPTY_LIST;
@@ -169,6 +177,9 @@ struct Pair *allocate_pair()
 //takes in array of vector objects that are already allocated to the heap.
 struct Vector *allocate_vector(Value *vec_elts,size_t size)
 {
+        #ifdef DEBUG_STRESS_GC
+                collect_garbage();
+        #endif
         struct Vector *vec_obj = (struct Vector *)malloc(sizeof(struct Vector));
         validate_ptr(vec_obj);
         vec_obj->size = size;
@@ -178,6 +189,9 @@ struct Vector *allocate_vector(Value *vec_elts,size_t size)
 
 struct FuncObj *allocate_function(void *function_addr,bool is_variadic,int arity)
 {
+        #ifdef DEBUG_STRESS_GC
+                collect_garbage();
+        #endif
         struct FuncObj *func = (struct FuncObj *)malloc(sizeof(struct FuncObj));
         validate_ptr(func);
         func->function_ptr = function_addr;
@@ -188,6 +202,9 @@ struct FuncObj *allocate_function(void *function_addr,bool is_variadic,int arity
 
 struct ClosureObj *allocate_closure(Value *function)
 {
+        #ifdef DEBUG_STRESS_GC
+                collect_garbage();
+        #endif
         struct ClosureObj *closure = (struct ClosureObj *)malloc(sizeof(struct ClosureObj));
         validate_ptr(closure);
         closure->function = function;
@@ -597,6 +614,9 @@ Value *add_upvalue(Value *closure,long value, int offset, int nesting_count)
         if (upvalue_count != 0 && ((upvalue_count & 0x3) == 0)) {
                 printf("Resizing:\n");
                 int new_size = sizeof(struct UpvalueObj) * ((upvalue_count) * 2);
+                #ifdef DEBUG_STRESS_GC
+                        collect_garbage();
+                #endif
                 struct UpvalueObj* new_upvalues = (struct UpvalueObj *)malloc(new_size);
                 int num_bytes = upvalue_count * sizeof(struct UpvalueObj);
                 memcpy(new_upvalues,closure->as.closure->upvalues,num_bytes);
@@ -737,16 +757,29 @@ void add_object(Value *val_type)
         new_object->value = val_type;
         new_object->is_marked = false;
         new_object->next = NULL;
-        //printf("before changing head and tail, head is %p, tail is %p\n",head,tail);
         //no objects on the heap, initializing the list so it has one object
         if (head == NULL) {
-                printf("Initializing list of objects..\n");
+                #ifdef DEBUG_LOG_GC
+                        printf("Initializing list of objects..\n");
+                #endif
                 head = new_object;
                 tail = head;
-                //printf("after changing head and tail, head is %p, tail is %p\n",head,tail);
                 return;
         }
         tail->next = new_object;
-        printf("Added object to list!\n");
-        //printf("after changing head and tail, head is %p, tail is %p\n",head,tail);
+        #ifdef DEBUG_LOG_GC
+                printf("Added object to list!\n");
+        #endif
+}
+
+void collect_garbage()
+{
+        #ifdef DEBUG_LOG_GC
+                printf("--gc begin\n");
+        #endif
+
+        #ifdef DEBUG_LOG_GC
+                printf("--gc end\n");
+        #endif
+        //printf("Running gc..\n");
 }
