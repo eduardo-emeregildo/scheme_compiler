@@ -6,8 +6,11 @@ from function import *
 from upvalue import *
 
 #Stuff to do:
-#start making functions for deallocating, i.e. deallocate_str,deallocate_function, etc
+#-------------------------------------------------------------------------------
 #start implementing mark_roots
+
+#start making functions for deallocating, i.e. deallocate_str,deallocate_function, etc
+#-------------------------------------------------------------------------------
 
 #for adding upvalue::::::::::::::
 #in body(), turn locals that are nonptrs to val type and then add. (DONE)
@@ -29,7 +32,7 @@ from upvalue import *
 #then, make set! modify the existing pointer, rather than setting definition to
 # a new pointer (DONE)
 
-#-------------------------------------------------------------------------------
+
 #Todo5: implement gc
 #Todo6: test compiler with different optimization levels, see which one you can
 #get away with

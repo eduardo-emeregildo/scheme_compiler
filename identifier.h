@@ -27,6 +27,7 @@ typedef enum {
 // this is for boxed types on the heap
 typedef struct {
         ValueType type;
+        bool is_marked;
         union{
                 struct Str *str;
                 double _double;
@@ -86,7 +87,6 @@ struct UpvalueObj {
 //to the last obj. // the last object's next field will be Null to denote end of list
 struct Object{
         Value *value;
-        bool is_marked;
         struct Object *next;
 };
 typedef struct Object Object;
@@ -152,7 +152,7 @@ long get_upvalue(Value *closure, int offset,int nesting_amt);
 long get_upvalue_ptr(Value *closure, int offset,int nesting_amt);
 void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt);
 long setexclam(long definition,long new_val);
-void mark_obj(Object *obj);
+void mark_obj(Value *val);
 void add_object(Value *val_type);
 void collect_garbage();
 #endif

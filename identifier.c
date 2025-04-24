@@ -68,7 +68,8 @@ Value *make_tagged_ptr(size_t num_value_objects)
         #ifdef DEBUG_STRESS_GC
                 collect_garbage();
         #endif
-        Value *p = (Value *)malloc(sizeof(Value)*num_value_objects);
+        //Value *p = (Value *)malloc(sizeof(Value)*num_value_objects);
+        Value *p = (Value *)calloc(num_value_objects,sizeof(Value));
         if (p == NULL) {
                 abort_message("Ran out of memory or tried to allocate negative bytes.");
         }
@@ -743,11 +744,9 @@ long setexclam(long definition,long new_val)
         return definition;
 }
 
-void mark_obj(Object *obj)
+void mark_obj(Value *val)
 {
-        if (obj != NULL) {
-                obj->is_marked = true;
-        }
+        val->is_marked = true;
 }
 
 void add_object(Value *val_type)
@@ -755,7 +754,6 @@ void add_object(Value *val_type)
         Object *new_object = (Object *)malloc(sizeof(Object));
         validate_ptr(new_object);
         new_object->value = val_type;
-        new_object->is_marked = false;
         new_object->next = NULL;
         //no objects on the heap, initializing the list so it has one object
         if (head == NULL) {
