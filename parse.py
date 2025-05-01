@@ -8,6 +8,36 @@ from upvalue import *
 #Stuff to do:
 #-------------------------------------------------------------------------------
 #start implementing mark_roots
+#figure out how to pass local_start and global/local count.
+
+#Once this is done walk through globals/ locals and mark and set the is_marked to
+#true
+
+#i think collect_garbage has to be handled in emit.py, that way I have access to
+#the frontend (i.e.the Environment class etc.) perhaps the gc can be called in
+#emit_identifier_to_section since most allocation is happening here.
+
+#this way when you emit asm to call collect_garbage, you can actually give it arguments
+#one of the args can be the rbp as a pointer. and the  amt of local variables 
+# the current function has, that way you can walk the stack's definitions using
+#array syntax in c (like I did for arg_list)
+
+#for globals, can perhaps give the ptr to the start of bss section, and the amount
+#of globals
+
+
+#was thinking of marking values if they're created in global scope, 
+# but in the case where the global gets redefined, the old value is no longer a root.
+
+#I think what i have to do is just look at the globals 
+# and locals in global env and add mark them.
+
+#also, the locals of the current environment have to be added as roots, since if 
+#gc is called in the middle of a function,it might need its local definitions.
+
+#this is something I need to think about more when implementing gc: the fact 
+#it could be called anywhere at anytime where there's allocation. so it could happen
+#in the middle of a function call
 
 #start making functions for deallocating, i.e. deallocate_str,deallocate_function, etc
 #-------------------------------------------------------------------------------
@@ -414,7 +444,7 @@ class Parser:
                     self.general_function_call()
         else:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
-    
+
     #for general function calling when the compiler cant tell what function 
     # is being used. The function object is in rax.
     def general_function_call(self):
@@ -1099,6 +1129,9 @@ class Parser:
             print("VARIABLE")
             ident_name = self.cur_token.text
             is_global = self.cur_environment.is_global()
+            #setting start of bss section
+            if is_global and self.emitter.first_global_def is None:
+                self.emitter.set_first_global_def(ident_name)
             #define label in bss section only if its new var
             if is_global and not self.cur_environment.is_defined(ident_name):
                 self.emitter.emit_bss_section(f"\t{ident_name}: resq 1")                    

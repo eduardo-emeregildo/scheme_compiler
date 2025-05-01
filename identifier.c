@@ -744,9 +744,10 @@ long setexclam(long definition,long new_val)
         return definition;
 }
 
-void mark_obj(Value *val)
+Value *mark_value(Value *val)
 {
         val->is_marked = true;
+        return val;
 }
 
 void add_object(Value *val_type)
@@ -770,11 +771,24 @@ void add_object(Value *val_type)
         #endif
 }
 
-void collect_garbage()
+void mark_roots()
+{
+        
+}
+
+void collect_garbage(Value **global_start, int global_count, Value **local_start, int local_count)
 {
         #ifdef DEBUG_LOG_GC
                 printf("--gc begin\n");
         #endif
+        //mark_roots();
+        printf("collect_garbage being called :D\n");
+        printf("global start is: %p\n",global_start);
+        printf("global start[0] is: %p\n",global_start[0]);
+        Value *test = global_start[0];
+        if (test != NULL) {
+                printf("TYPE IS: %d\n",test->type);
+        }
 
         #ifdef DEBUG_LOG_GC
                 printf("--gc end\n");

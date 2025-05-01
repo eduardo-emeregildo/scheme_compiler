@@ -29,6 +29,10 @@ class Emitter:
         #holds the current function name(str) to write to, which is a key in 
         #self.functions
         self.cur_function = None
+        
+        # if not None, holds first global identifier as string. This is used to get
+        #the start of bss section
+        self.first_global_def = None
         self.ctrl_flow_label_count = 0 #to generate local control flow labels
         self.lambda_label_count = 0 # for generating lambda labels
     def emit_bss_section(self,code):
@@ -47,6 +51,9 @@ class Emitter:
     
     def emit_function_label(self,label):
         self.emit_function(f"..@{label}:")
+        
+    def set_first_global_def(self,ident_name):
+        self.first_global_def = ident_name
 
     def move_stack_def_to_rax(self,offset,is_global):
         self.emit_to_section(
@@ -179,8 +186,7 @@ class Emitter:
                 f"call allocate_str\n\tmov rdi,rax\n\tcall make_value_symbol")
             case _:
                 sys.exit(
-                "Error, cant compile an identifier since its type is not known.")
-    
+                "Error, cant compile an identifier since its type is not known.")    
     # emits code for set_ith_value_x. Assumes that the first arg is set in rdi
     def set_ith_value(self,ident_obj,index,cur_environment):
         asm_code = []
@@ -619,6 +625,14 @@ class Emitter:
     def emit_identifier_to_section(self,ident_obj,cur_environment):
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
+        self.subtract_rsp(env_depth,is_global)
+        #call collect_garbage
+        self.add_extern("collect_garbage")
+        asm_code = []
+        asm_code.append(f"\tmov rdi, QWORD {self.first_global_def}\n\tmov rsi, 1\n\tmov rdx, 0\n\tmov rcx,1")
+        asm_code.append("\tcall collect_garbage")
+        self.emit_to_section('\n'.join(asm_code),is_global)
+        self.add_rsp(env_depth,is_global)
         self.subtract_rsp(env_depth,is_global)
         self.emit_to_section(
         self.compile_identifier(ident_obj,cur_environment),is_global)

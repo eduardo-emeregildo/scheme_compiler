@@ -1,4 +1,4 @@
-(define x "hello :D")
+(define malecon "hello :D")
 (define y "omg")
 (define z "soul drain")
 ; (define (foo) 
