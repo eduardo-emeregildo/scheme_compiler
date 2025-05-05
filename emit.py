@@ -631,8 +631,11 @@ class Emitter:
         asm_code = []
         asm_code.append(f"\tmov rdi, QWORD {self.first_global_def}")
         asm_code.append(f"\tmov rsi, {global_count}")
-        asm_code.append("\tmov rdx, 0")
-        asm_code.append("\tmov rcx,1")
+        asm_code.append(f"\tmov rdx, {0 if is_global else "rbp"}")
+        local_def_count = len(cur_environment.symbol_table)
+        if not is_global:
+            asm_code.append(f"\tsub rdx, {local_def_count * 8}")
+        asm_code.append(f"\tmov rcx,{0 if is_global else local_def_count}")
         asm_code.append("\tcall collect_garbage")
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(env_depth,is_global)

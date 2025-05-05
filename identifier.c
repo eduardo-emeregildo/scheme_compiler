@@ -776,6 +776,35 @@ void mark_roots()
         
 }
 
+//walks through locals which are on the stack.
+
+// loop starts at the last definition and stops at the first, which is always the
+// self arg.
+
+//remember that the self arg is on the stack as well, and this will be used to check
+// for upvalues to mark 
+void mark_locals(Value **local_start, int local_count)
+{
+        if (local_start == NULL) {
+                printf("in global scope, therefore no locals.\n");
+                return;
+        }
+        for (int i = 0; i < local_count; i++) {
+                Value *current_local = local_start[i];
+                if (current_local == NULL) {
+                        //a global definition is null when its spot in the bss section
+                        // hasnt been written to yet. 
+                        printf("definition %d is null.\n",i);
+                }
+                else if (!is_ptr((long)current_local)) {
+                        printf("definition %d is not a pointer.\n",i);
+                } else {
+                        printf("definition %d's TYPE IS: %d\n",i,((Value *)current_local)->type);
+                        mark_value(current_local);
+                }
+        }
+}
+
 void collect_garbage(Value **global_start, int global_count, Value **local_start, int local_count)
 {
         #ifdef DEBUG_LOG_GC
@@ -785,19 +814,21 @@ void collect_garbage(Value **global_start, int global_count, Value **local_start
         printf("collect_garbage being called :D\n");
         printf("Walking through global definitions:\n");
         for (int i = 0; i < global_count; i++) {
-                Value *tmp = global_start[i];
-                if (tmp == NULL) {
+                Value *current_global = global_start[i];
+                if (current_global == NULL) {
                         //a global definition is null when its spot in the bss section
                         // hasnt been written to yet. 
                         printf("definition %d is null.\n",i);
                 }
-                else if (!is_ptr((long)tmp)) {
+                else if (!is_ptr((long)current_global)) {
                         printf("definition %d is not a pointer.\n",i);
                 } else {
-                        printf("definition %d's TYPE IS: %d\n",i,((Value *)tmp)->type);
-                        mark_value(tmp);
+                        printf("definition %d's TYPE IS: %d\n",i,((Value *)current_global)->type);
+                        mark_value(current_global);
                 }
         }
+        printf("now walking through local definitions:\n");
+        mark_locals(local_start,local_count);
         #ifdef DEBUG_LOG_GC
                 printf("--gc end\n");
         #endif

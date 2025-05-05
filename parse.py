@@ -7,8 +7,11 @@ from upvalue import *
 
 #Stuff to do:
 #-------------------------------------------------------------------------------
+#mark the available upvalues. upvalue stuff should happen in mark_locals, on the
+#last iteration
+
 #start implementing mark_roots
-#figure out how to pass local_start and local count.
+
 
 #Once this is done walk through globals/ locals and mark and set the is_marked to
 #true
@@ -1213,10 +1216,14 @@ class Parser:
             self.cur_environment.set_env_name(function.name)
             if function.name in self.emitter.functions: #for redifining function
                 del self.emitter.functions[function.name]
+            is_parent_global = self.cur_environment.parent.is_global()
+            ident = self.cur_token.text            
+            #setting start of bss section
+            if is_parent_global and self.emitter.first_global_def is None:
+                self.emitter.set_first_global_def(ident)
+
             #declare space in bss section for function obj if function was made
             # from global env
-            is_parent_global = self.cur_environment.parent.is_global()
-            ident = self.cur_token.text
             if is_parent_global and not self.cur_environment.parent.is_defined(ident):
                 self.emitter.emit_bss_section(f"\t{ident}: resq 1")
             self.emitter.emit_function_label(function.name)

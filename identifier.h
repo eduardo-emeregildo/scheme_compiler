@@ -156,4 +156,5 @@ Value *mark_value(Value *val);
 void add_object(Value *val_type);
 void collect_garbage(Value **global_start, int global_count, Value **local_start, int local_count);
 void mark_roots();
+void mark_locals(Value **local_start, int local_count);
 #endif
