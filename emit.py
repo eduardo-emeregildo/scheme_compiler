@@ -622,14 +622,17 @@ class Emitter:
     
         
     #given ident_obj and the current environment, emit in the corresponding place
-    def emit_identifier_to_section(self,ident_obj,cur_environment):
+    def emit_identifier_to_section(self,ident_obj,cur_environment,global_count):
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
         self.subtract_rsp(env_depth,is_global)
         #call collect_garbage
         self.add_extern("collect_garbage")
         asm_code = []
-        asm_code.append(f"\tmov rdi, QWORD {self.first_global_def}\n\tmov rsi, 1\n\tmov rdx, 0\n\tmov rcx,1")
+        asm_code.append(f"\tmov rdi, QWORD {self.first_global_def}")
+        asm_code.append(f"\tmov rsi, {global_count}")
+        asm_code.append("\tmov rdx, 0")
+        asm_code.append("\tmov rcx,1")
         asm_code.append("\tcall collect_garbage")
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(env_depth,is_global)

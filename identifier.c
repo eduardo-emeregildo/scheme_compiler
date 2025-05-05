@@ -783,13 +783,21 @@ void collect_garbage(Value **global_start, int global_count, Value **local_start
         #endif
         //mark_roots();
         printf("collect_garbage being called :D\n");
-        printf("global start is: %p\n",global_start);
-        printf("global start[0] is: %p\n",global_start[0]);
-        Value *test = global_start[0];
-        if (test != NULL) {
-                printf("TYPE IS: %d\n",test->type);
+        printf("Walking through global definitions:\n");
+        for (int i = 0; i < global_count; i++) {
+                Value *tmp = global_start[i];
+                if (tmp == NULL) {
+                        //a global definition is null when its spot in the bss section
+                        // hasnt been written to yet. 
+                        printf("definition %d is null.\n",i);
+                }
+                else if (!is_ptr((long)tmp)) {
+                        printf("definition %d is not a pointer.\n",i);
+                } else {
+                        printf("definition %d's TYPE IS: %d\n",i,((Value *)tmp)->type);
+                        mark_value(tmp);
+                }
         }
-
         #ifdef DEBUG_LOG_GC
                 printf("--gc end\n");
         #endif

@@ -8,7 +8,7 @@ from upvalue import *
 #Stuff to do:
 #-------------------------------------------------------------------------------
 #start implementing mark_roots
-#figure out how to pass local_start and global/local count.
+#figure out how to pass local_start and local count.
 
 #Once this is done walk through globals/ locals and mark and set the is_marked to
 #true
@@ -86,6 +86,7 @@ class Parser:
         self.cur_token = None
         self.peek_token = None
         self.global_environment = Environment()
+        self.global_var_count = 0
         self.cur_environment = self.global_environment
         self.tracker = UpvalueTracker()
         self.next_token()
@@ -295,32 +296,32 @@ class Parser:
             if isinstance(self.cur_token.text,int):
                 self.set_last_exp_res(IdentifierType.INT,str(self.cur_token.text))
                 self.emitter.emit_identifier_to_section(self.last_exp_res,
-                self.cur_environment)
+                self.cur_environment,self.global_var_count)
             else:
                 self.set_last_exp_res(IdentifierType.FLOAT,str(self.cur_token.text))
                 self.emitter.emit_identifier_to_section(self.last_exp_res,
-                self.cur_environment)
+                self.cur_environment,self.global_var_count)
             self.next_token()
         
         elif self.check_token(TokenType.CHAR):
             print("EXPRESSION-CHAR")
             self.set_last_exp_res(IdentifierType.CHAR,self.cur_token.text)
             self.emitter.emit_identifier_to_section(self.last_exp_res,
-            self.cur_environment)
+            self.cur_environment,self.global_var_count)
             self.next_token()
             
         elif self.check_token(TokenType.BOOLEAN):
             print("EXPRESSION-BOOLEAN")
             self.set_last_exp_res(IdentifierType.BOOLEAN,self.cur_token.text)
             self.emitter.emit_identifier_to_section(self.last_exp_res,
-            self.cur_environment)
+            self.cur_environment,self.global_var_count)
             self.next_token()
 
         elif self.check_token(TokenType.STRING):
             print("EXPRESSION-STRING")
             self.set_last_exp_res(IdentifierType.STR,self.cur_token.text)
             self.emitter.emit_identifier_to_section(self.last_exp_res,
-            self.cur_environment)
+            self.cur_environment,self.global_var_count)
             self.next_token()
         
         elif self.check_token(TokenType.IDENTIFIER):
@@ -698,7 +699,8 @@ class Parser:
             self.tracker.turn_tracker_off()
         function_ident = Identifier(IdentifierType.FUNCTION,function)
         self.evaluate_closure(function_ident)
-        self.emitter.emit_identifier_to_section(self.last_exp_res,self.cur_environment)
+        self.emitter.emit_identifier_to_section(
+        self.last_exp_res,self.cur_environment,self.global_var_count)
         print("LAMBDA REQUESTS:")
         print(self.tracker.anonymous_requests)
         self.add_upvals_to_anon_functions(is_global)
@@ -848,7 +850,8 @@ class Parser:
         #Note: A Closure isnt formed here since in let expressions, the closure 
         # will live internally.
         self.emitter.emit_to_section(";compiling let function:",is_global)
-        self.emitter.emit_identifier_to_section(closure_obj,self.cur_environment)
+        self.emitter.emit_identifier_to_section(
+        closure_obj,self.cur_environment,self.global_var_count)
         self.add_upvals_to_anon_functions(is_global)
         #now edit self arg to be the closure obj:
         self.emitter.push_arg(1,parent_env_depth,is_global)
@@ -1134,7 +1137,8 @@ class Parser:
                 self.emitter.set_first_global_def(ident_name)
             #define label in bss section only if its new var
             if is_global and not self.cur_environment.is_defined(ident_name):
-                self.emitter.emit_bss_section(f"\t{ident_name}: resq 1")                    
+                self.emitter.emit_bss_section(f"\t{ident_name}: resq 1")
+                self.global_var_count += 1                 
             self.next_token()
             self.expression()
             self.cur_environment.add_definition(ident_name,
@@ -1168,7 +1172,7 @@ class Parser:
             self.evaluate_closure(function_ident)
             #lastly, make function object in the runtime
             self.emitter.emit_identifier_to_section(self.last_exp_res,
-            self.cur_environment)
+            self.cur_environment,self.global_var_count)
             is_global = self.cur_environment.is_global()
             offset = Environment.get_offset(
             self.cur_environment.symbol_table[ident_name])
@@ -1459,7 +1463,7 @@ class Parser:
         self.evaluate_datum()
         #is_global = self.cur_environment.is_global()
         self.emitter.emit_identifier_to_section(self.last_exp_res,
-        self.cur_environment)
+        self.cur_environment,self.global_var_count)
     
     # (quasiquote <datum>) , but datum is handled differently here. It must accept unquote and unquote-splicing keywords
     # (unquote expr) , (unquote-splicing expr)
