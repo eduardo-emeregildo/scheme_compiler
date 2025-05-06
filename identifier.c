@@ -773,6 +773,11 @@ void add_object(Value *val_type)
 
 void mark_globals(Value **global_start,int global_count)
 {
+        if (global_start == NULL) {
+                printf("first global def hasn't been set yet.\n");
+                return;
+        }
+
         for (int i = 0; i < global_count; i++) {
                 Value *current_global = global_start[i];
                 if (current_global == NULL) {
@@ -816,19 +821,25 @@ void mark_locals(Value **local_start, int local_count)
                         mark_value(current_local);
                 }
         }
+        printf("Now marking upvalues:\n");
+        Value *self_closure = local_start[local_count - 1];
+        struct UpvalueObj *upvalues = self_closure->as.closure->upvalues;
+        int upval_count = self_closure->as.closure->num_upvalues;
+        for (int i = 0; i < upval_count; i++) {
+                printf("upvalue %d being marked.\n",i);
+                mark_value((Value*)upvalues[i].value);
+        }
+
 }
 
 void collect_garbage(Value **global_start, int global_count, Value **local_start, int local_count)
 {
-        #ifdef DEBUG_LOG_GC
-                printf("--gc begin\n");
-        #endif
+        
+        printf("--gc begin\n");
         printf("collect_garbage being called :D\n");
         printf("Walking through global definitions:\n");
         mark_globals(global_start,global_count);
         printf("now walking through local definitions:\n");
         mark_locals(local_start,local_count);
-        #ifdef DEBUG_LOG_GC
-                printf("--gc end\n");
-        #endif
+        printf("--gc end\n\n");
 }

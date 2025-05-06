@@ -8,7 +8,7 @@
 #include <math.h>
 #include <string.h>
 //#define DEBUG_STRESS_GC
-#define DEBUG_LOG_GC
+//#define DEBUG_LOG_GC
 typedef enum {
         VAL_CHAR,
         VAL_STR,

@@ -625,20 +625,28 @@ class Emitter:
     def emit_identifier_to_section(self,ident_obj,cur_environment,global_count):
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
-        self.subtract_rsp(env_depth,is_global)
+        
         #call collect_garbage
+        self.subtract_rsp(env_depth,is_global)
         self.add_extern("collect_garbage")
         asm_code = []
-        asm_code.append(f"\tmov rdi, QWORD {self.first_global_def}")
+        asm_code.append(
+        f"\tmov rdi, QWORD {0 if self.first_global_def is None else self.first_global_def}")
         asm_code.append(f"\tmov rsi, {global_count}")
         asm_code.append(f"\tmov rdx, {0 if is_global else "rbp"}")
         local_def_count = len(cur_environment.symbol_table)
+        if ident_obj.typeof == IdentifierType.CLOSURE:
+            #in the case of compiling closures, at this point they are in the symbol
+            #table but are not on the stack yet, therefore the -1 is to reflect the 
+            #runtime state
+            local_def_count -= 1
         if not is_global:
             asm_code.append(f"\tsub rdx, {local_def_count * 8}")
         asm_code.append(f"\tmov rcx,{0 if is_global else local_def_count}")
         asm_code.append("\tcall collect_garbage")
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(env_depth,is_global)
+        
         self.subtract_rsp(env_depth,is_global)
         self.emit_to_section(
         self.compile_identifier(ident_obj,cur_environment),is_global)

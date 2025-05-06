@@ -7,14 +7,10 @@ from upvalue import *
 
 #Stuff to do:
 #-------------------------------------------------------------------------------
-#mark the available upvalues. upvalue stuff should happen in mark_locals, on the
-#last iteration
-
 #start implementing mark_roots
+#now that roots are marked, being writing the mark sweep algo
 
 
-#Once this is done walk through globals/ locals and mark and set the is_marked to
-#true
 
 #i think collect_garbage has to be handled in emit.py, that way I have access to
 #the frontend (i.e.the Environment class etc.) perhaps the gc can be called in
