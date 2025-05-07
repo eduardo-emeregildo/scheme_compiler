@@ -8,7 +8,7 @@ from upvalue import *
 #Stuff to do:
 #-------------------------------------------------------------------------------
 #start implementing mark_roots
-#now that roots are marked, being writing the mark sweep algo
+#now that roots are marked, begin writing the mark sweep algo
 
 
 
