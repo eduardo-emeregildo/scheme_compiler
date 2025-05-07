@@ -13,6 +13,11 @@ const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
 //pointers for linked list of objects
 Object *head = NULL;
 Object *tail = NULL;
+
+//these are used to track gray objects in the mark sweep algo
+int gray_count = 0;
+int gray_capacity = 0;
+Value **gray_stack = NULL;
 //pass either the 64 bit val or the 64 bit addr(for pointers)
 bool is_int(long item) 
 {
@@ -788,6 +793,7 @@ void mark_globals(Value **global_start,int global_count)
                 } else {
                         printf("definition %d's TYPE IS: %d\n",i,((Value *)current_global)->type);
                         mark_value(current_global);
+                        push_graystack(current_global);
                 }
         }
 }
@@ -814,6 +820,7 @@ void mark_locals(Value **local_start, int local_count)
                 } else {
                         printf("definition %d's TYPE IS: %d\n",i,((Value *)current_local)->type);
                         mark_value(current_local);
+                        push_graystack(current_local);
                 }
         }
         printf("Now marking upvalues:\n");
@@ -823,6 +830,7 @@ void mark_locals(Value **local_start, int local_count)
         for (int i = 0; i < upval_count; i++) {
                 printf("upvalue %d being marked.\n",i);
                 mark_value((Value*)upvalues[i].value);
+                push_graystack((Value*)upvalues[i].value);
         }
 
 }
@@ -836,5 +844,43 @@ void collect_garbage(Value **global_start, int global_count, Value **local_start
         mark_globals(global_start,global_count);
         printf("now walking through local definitions:\n");
         mark_locals(local_start,local_count);
+        printf("number of values in graystack is: %d\n",gray_count);
+        for (int i = 0 ; i < gray_count; i++) {
+                printf("graystack item %d's type is: %d\n",i, gray_stack[i]->type);
+        }
+        reset_graystack();
         printf("--gc end\n\n");
+}
+
+void push_graystack(Value *gray_value)
+{
+        if (gray_capacity == gray_count) {
+                grow_capacity();
+        }
+        gray_stack[gray_count] = gray_value;
+        gray_count++;
+        printf("added object to gray stack\n");
+}
+//to grow gray_stack
+void grow_capacity()
+{
+       //initialization
+        if (gray_stack == NULL) {
+                printf("initializing gray_stack\t");
+                gray_stack = calloc(1,sizeof(Value*));
+                validate_ptr(gray_stack);
+                gray_capacity = 1;
+                return;
+        }
+        printf("resizing gray_stack\t");
+        gray_capacity *= 2;
+        gray_stack = realloc(gray_stack,gray_capacity * sizeof(Value*));
+        validate_ptr(gray_stack);
+}
+void reset_graystack()
+{
+       gray_count = 0;
+       gray_capacity = 0;
+       free(gray_stack);
+       gray_stack = NULL; 
 }

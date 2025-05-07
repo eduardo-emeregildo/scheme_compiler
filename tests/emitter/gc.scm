@@ -1,6 +1,7 @@
 ;(define malecon "hello :D")
 ;(define y "omg")
-;(define z "soul drain")
+;(define z 5.3)
+;(define foo "yar")
 ;(define f 5)
 ;(define g 6)
 

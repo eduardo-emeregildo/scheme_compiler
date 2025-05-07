@@ -7,10 +7,8 @@ from upvalue import *
 
 #Stuff to do:
 #-------------------------------------------------------------------------------
-#start implementing mark_roots
-#now that roots are marked, begin writing the mark sweep algo
-
-
+#process the elements that are in the graystack.  mark the indirect references 
+#that stem off these elements()
 
 #i think collect_garbage has to be handled in emit.py, that way I have access to
 #the frontend (i.e.the Environment class etc.) perhaps the gc can be called in

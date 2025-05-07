@@ -157,4 +157,7 @@ void add_object(Value *val_type);
 void collect_garbage(Value **global_start, int global_count, Value **local_start, int local_count);
 void mark_globals(Value **global_start,int global_count);
 void mark_locals(Value **local_start, int local_count);
+void push_graystack(Value *gray_value);
+void grow_capacity();
+void reset_graystack();
 #endif
