@@ -20,5 +20,4 @@
 (display (fact 2))
 (display (fact 3))
 (display (fact 5))
-
-
+(display (fact 5.0))

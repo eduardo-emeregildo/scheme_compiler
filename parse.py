@@ -7,7 +7,10 @@ from upvalue import *
 
 #Stuff to do:
 #-------------------------------------------------------------------------------
-#write the part of the algo to sweep unused objects.
+#implement free_value, do some thorough testing of sweep,free_value and gc in 
+# general. Try to create cycles, test more complex programs, 
+# programs with function calls with parameters,etc.
+
 
 #i think collect_garbage has to be handled in emit.py, that way I have access to
 #the frontend (i.e.the Environment class etc.) perhaps the gc can be called in

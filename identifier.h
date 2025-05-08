@@ -162,4 +162,6 @@ void grow_capacity();
 void reset_graystack();
 void trace_references();
 void blacken_value(Value *val);
+void free_value(Value *val);
+void sweep();
 #endif

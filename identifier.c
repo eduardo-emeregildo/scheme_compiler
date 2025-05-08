@@ -771,6 +771,7 @@ void add_object(Value *val_type)
                 return;
         }
         tail->next = new_object;
+        tail = new_object;
         #ifdef DEBUG_LOG_GC
                 printf("Added object to list!\n");
         #endif
@@ -855,6 +856,8 @@ void collect_garbage(Value **global_start, int global_count, Value **local_start
         }
         printf("now getting indirect references:\n");
         trace_references();
+        printf("NOW SWEEPING:\n");
+        sweep();
         reset_graystack();
         printf("--gc end\n\n");
 }
@@ -934,5 +937,47 @@ void blacken_value(Value *val)
         default:
                 printf("value being blackened has no indirect references.\n");
                 break;
+        }
+}
+
+void free_value(Value *val)
+{
+
+}
+
+/*
+once all reachable value types are marked, this frees all value types whose 
+is_marked bit is set to false
+*/
+void sweep()
+{
+        Object *cur_obj = head;
+        Object *prev_obj = NULL;
+        while (cur_obj != NULL) {
+                printf(
+                "IN SWEEP. TYPE IS: %d. is_marked is: %d\n",cur_obj->value->type,cur_obj->value->is_marked);
+                if (cur_obj->value->is_marked) {
+                        prev_obj = cur_obj;
+                        cur_obj = cur_obj->next;
+                } else {
+                        //free current value, fix the next ptrs of the linked list.
+                        //and free the current object type
+                        free_value(cur_obj->value);
+                        cur_obj->value = NULL;
+                        //fix pointers of linked list
+                        
+                        if (prev_obj == NULL) {
+                                //object being freed is the 
+                                printf("freeing the head.\n");
+                                head = cur_obj->next;
+                                free(cur_obj);
+                                cur_obj = head;
+                        } else {
+                                printf("freeing normal object.\n");
+                                prev_obj->next = cur_obj->next;
+                                free(cur_obj);
+                                cur_obj = prev_obj->next;
+                        }
+                } 
         }
 }
