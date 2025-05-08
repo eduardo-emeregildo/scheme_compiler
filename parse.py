@@ -7,8 +7,7 @@ from upvalue import *
 
 #Stuff to do:
 #-------------------------------------------------------------------------------
-#process the elements that are in the graystack.  mark the indirect references 
-#that stem off these elements()
+#write the part of the algo to sweep unused objects.
 
 #i think collect_garbage has to be handled in emit.py, that way I have access to
 #the frontend (i.e.the Environment class etc.) perhaps the gc can be called in

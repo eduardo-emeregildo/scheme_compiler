@@ -160,4 +160,6 @@ void mark_locals(Value **local_start, int local_count);
 void push_graystack(Value *gray_value);
 void grow_capacity();
 void reset_graystack();
+void trace_references();
+void blacken_value(Value *val);
 #endif

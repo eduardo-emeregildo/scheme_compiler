@@ -746,7 +746,12 @@ long setexclam(long definition,long new_val)
 
 Value *mark_value(Value *val)
 {
-        val->is_marked = true;
+        if (!val->is_marked) {
+                val->is_marked = true;
+                push_graystack(val);
+        } else {
+                printf("VALUE WAS ALREADY MARKED!\n");
+        }
         return val;
 }
 
@@ -793,7 +798,7 @@ void mark_globals(Value **global_start,int global_count)
                 } else {
                         printf("definition %d's TYPE IS: %d\n",i,((Value *)current_global)->type);
                         mark_value(current_global);
-                        push_graystack(current_global);
+                        //push_graystack(current_global);
                 }
         }
 }
@@ -820,7 +825,7 @@ void mark_locals(Value **local_start, int local_count)
                 } else {
                         printf("definition %d's TYPE IS: %d\n",i,((Value *)current_local)->type);
                         mark_value(current_local);
-                        push_graystack(current_local);
+                        //push_graystack(current_local);
                 }
         }
         printf("Now marking upvalues:\n");
@@ -830,7 +835,7 @@ void mark_locals(Value **local_start, int local_count)
         for (int i = 0; i < upval_count; i++) {
                 printf("upvalue %d being marked.\n",i);
                 mark_value((Value*)upvalues[i].value);
-                push_graystack((Value*)upvalues[i].value);
+                //push_graystack((Value*)upvalues[i].value);
         }
 
 }
@@ -848,6 +853,8 @@ void collect_garbage(Value **global_start, int global_count, Value **local_start
         for (int i = 0 ; i < gray_count; i++) {
                 printf("graystack item %d's type is: %d\n",i, gray_stack[i]->type);
         }
+        printf("now getting indirect references:\n");
+        trace_references();
         reset_graystack();
         printf("--gc end\n\n");
 }
@@ -883,4 +890,49 @@ void reset_graystack()
        gray_capacity = 0;
        free(gray_stack);
        gray_stack = NULL; 
+}
+void trace_references()
+{
+        while (gray_count > 0) {
+                Value *cur_val = gray_stack[--gray_count];
+                blacken_value(cur_val);
+        }
+}
+
+//depending on val's type, set the is_mark flag of any Value struct reference val has.
+//Only pair,vector and closure have indirect references of Value structs
+void blacken_value(Value *val)
+{
+        //printf("In blacken. TYPE IS %d\n",val->type);
+        switch (val->type) {
+        case VAL_PAIR:
+                mark_value(&(val->as.pair->car));
+                //push_graystack(&(val->as.pair->car));
+                mark_value(&(val->as.pair->cdr));
+                //push_graystack(&(val->as.pair->cdr));
+                break;
+        case VAL_CLOSURE:
+                int upval_count = val->as.closure->num_upvalues;
+                struct UpvalueObj *upvalues = val->as.closure->upvalues;
+                mark_value(val->as.closure->function);
+                //push_graystack(val->as.closure->function);
+
+                //now add all upvalues to graystack
+                for (int i = 0; i < upval_count; i++) {
+                        mark_value((Value*)upvalues[i].value);
+                        //push_graystack((Value*)upvalues[i].value);
+                }
+                break;
+        case VAL_VECTOR:
+                int vec_size = val->as.vector->size;
+                Value *vec_items = val->as.vector->items;
+                for (int i = 0; i < vec_size; i++) {
+                        mark_value(&vec_items[i]);
+                        //push_graystack(&val[i]);
+                }
+                break;
+        default:
+                printf("value being blackened has no indirect references.\n");
+                break;
+        }
 }

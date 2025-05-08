@@ -1,7 +1,7 @@
-;(define malecon "hello :D")
-;(define y "omg")
-;(define z 5.3)
-;(define foo "yar")
+(define malecon "hello :D")
+(define y "omg")
+(define z '(1 2 3))
+(define foo "yar")
 ;(define f 5)
 ;(define g 6)
 
@@ -15,5 +15,5 @@
 ; (foo)
 
 ;closure example
-(define (func op) (define (local) (define f "hey") op) (local))
-(func 1)
+;(define (func op) (define (local) (define f "hey") op) (local))
+;(func 1)
