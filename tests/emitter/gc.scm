@@ -1,8 +1,9 @@
-'(1 2)
+;'(1 2)
+(define x +)
 (define malecon "hello :D")
-(define y "omg")
-(define z "hard")
-(define foo "yar")
+;(define y "omg")
+;(define z "hard")
+;(define foo "yar")
 ;(define f 5)
 ;(define g 6)
 

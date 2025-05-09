@@ -5,8 +5,8 @@
 #ifndef lib
 #define lib
 #include "identifier.h"
-#define FUNCTION_OBJ(name_function,is_variadic,arity) {VAL_FUNCTION,.as = {.function = &(struct FuncObj){&name_function,is_variadic,arity}}}
-#define CLOSURE_OBJ(function_ptr) {VAL_CLOSURE,.as = {.closure = &(struct ClosureObj){&function_ptr,NULL,0}}}
+#define FUNCTION_OBJ(name_function,is_variadic,arity) {VAL_FUNCTION,true,.as = {.function = &(struct FuncObj){&name_function,is_variadic,arity}}}
+#define CLOSURE_OBJ(function_ptr) {VAL_CLOSURE,true,.as = {.closure = &(struct ClosureObj){&function_ptr,NULL,0}}}
 //constants
 const long SCHEME_FALSE = 2;
 const long SCHEME_TRUE = 10;

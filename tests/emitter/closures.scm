@@ -85,22 +85,22 @@
 ;(define (func x)(let ((a 1)) (+ a x)))
 ;(func 3) should print 4, the let is capturing x
 
-;(define (make_counter)
-  ;; bind count and create a new procedure that will (when
-  ;; called) increment that binding and return its value
-  ;(let ((count 0))
-    ;(lambda ()
-      ;(set! count (+ count 1))
-      ;count)))
-;(define c1 (make_counter))
-;(define c2 (make_counter))
-;(define c3 (make_counter))
-;(display (c1))
-;(display (c1))
-;(display (c2))
-;(display (c2))
-;(display (c3))
-;(display (c3))
+; (define (make_counter)
+;   ; bind count and create a new procedure that will (when
+;   ; called) increment that binding and return its value
+;   (let ((count 0))
+;     (lambda ()
+;       (set! count (+ count 1))
+;       count)))
+; (define c1 (make_counter))
+; (define c2 (make_counter))
+; (define c3 (make_counter))
+; (display (c1))
+; (display (c1))
+; (display (c2))
+; (display (c2))
+; (display (c3))
+; (display (c3))
 
 
 ;After recreating the example in crafting interpreters:

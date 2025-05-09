@@ -11,6 +11,9 @@ from upvalue import *
 # general. Try to create cycles, test more complex programs, 
 # programs with function calls with parameters,etc.
 
+#check how closures are supposed to be freed. Perhaps the function Value object is not
+#supposed to get freed
+
 
 #i think collect_garbage has to be handled in emit.py, that way I have access to
 #the frontend (i.e.the Environment class etc.) perhaps the gc can be called in
