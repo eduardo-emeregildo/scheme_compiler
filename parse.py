@@ -7,12 +7,23 @@ from upvalue import *
 
 #Stuff to do:
 #-------------------------------------------------------------------------------
+
+#after finding out that to free arrays, it can only be done by passing the start
+#pointer and it frees the whole thing, I have to change some things in blacken_value
+#and free_value (
+# vector and upvalues since of these are arrays, and i was dealing with them elt by elt. 
+# revise every other type though (especially pairs))
+
+#TODO: revise free_value for the rest of the types
+
 #implement free_value, do some thorough testing of sweep,free_value and gc in 
 # general. Try to create cycles, test more complex programs, 
 # programs with function calls with parameters,etc.
 
 #check how closures are supposed to be freed. Perhaps the function Value object is not
 #supposed to get freed
+
+#figure out how to free character arrays, since they are in the assembly(ex: .LC0)
 
 
 #i think collect_garbage has to be handled in emit.py, that way I have access to

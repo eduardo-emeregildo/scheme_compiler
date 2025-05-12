@@ -80,9 +80,12 @@ Value *make_tagged_ptr(size_t num_value_objects)
         }
 
         //adding all value ptrs to linked list
-        for (int i = 0; i < num_value_objects; i++) {
-                add_object(&p[i]);
-        }
+        // for (int i = 0; i < num_value_objects; i++) {
+        //         add_object(&p[i]);
+        // }
+
+        // for arrays just the start ptr needed to free so no need for the for loop
+        add_object(p);
         return p;
 }
 
@@ -178,8 +181,8 @@ struct Pair *allocate_pair()
         validate_ptr(pair_obj);
         pair_obj->car.type = VAL_EMPTY_LIST;
         pair_obj->cdr.type = VAL_EMPTY_LIST;
-        add_object(&pair_obj->car);
-        add_object(&pair_obj->cdr);
+        //add_object(&pair_obj->car);
+        //add_object(&pair_obj->cdr);
         return pair_obj; 
 }
 
@@ -755,6 +758,17 @@ Value *mark_value(Value *val)
         return val;
 }
 
+Value *mark_value_only(Value *val)
+{
+        if (!val->is_marked) {
+                val->is_marked = true;
+        } else {
+                printf("VALUE WAS ALREADY MARKED!\n");
+        }
+        return val;
+}
+
+
 void add_object(Value *val_type)
 {
         Object *new_object = (Object *)malloc(sizeof(Object));
@@ -909,10 +923,10 @@ void blacken_value(Value *val)
         //printf("In blacken. TYPE IS %d\n",val->type);
         switch (val->type) {
         case VAL_PAIR:
-                mark_value(&(val->as.pair->car));
-                //push_graystack(&(val->as.pair->car));
-                mark_value(&(val->as.pair->cdr));
-                //push_graystack(&(val->as.pair->cdr));
+                //mark_value(&(val->as.pair->car));
+                //mark_value(&(val->as.pair->cdr));
+                blacken_value(&(val->as.pair->car));
+                blacken_value(&(val->as.pair->cdr));
                 break;
         case VAL_CLOSURE:
                 int upval_count = val->as.closure->num_upvalues;
@@ -930,9 +944,13 @@ void blacken_value(Value *val)
                 int vec_size = val->as.vector->size;
                 Value *vec_items = val->as.vector->items;
                 for (int i = 0; i < vec_size; i++) {
-                        mark_value(&vec_items[i]);
-                        //push_graystack(&val[i]);
+                        //mark_value(&vec_items[i]);
+
+                        //this instead to mark the indirect references stemming from
+                        //each value
+                        blacken_value(&vec_items[i]);
                 }
+                //mark_value_only(vec_items);
                 break;
         default:
                 printf("value being blackened has no indirect references.\n");
@@ -940,9 +958,53 @@ void blacken_value(Value *val)
         }
 }
 
-void free_value(Value *val)
+//frees value type. is_ptr_freeable is to indicate whether val should be freed,
+//i.e. the ptr in val was obtained from malloc,calloc,realloc.
+void free_value(Value *val,bool is_ptr_freeable)
 {
-
+        //free the fields of val
+        switch(val->type) {
+        case VAL_STR:
+                printf("freeing string\n");
+                free(val->as.str);               
+                break;
+        case VAL_PAIR:
+                printf("freeing pair\n");
+                free_value(&(val->as.pair->car),true);
+                free_value(&(val->as.pair->cdr),false);
+                //free(val->as.pair);
+                printf("done freeing pair\n");
+                break;
+        case VAL_FUNCTION:
+                printf("freeing function\n");
+                free(val->as.function);
+                break;
+        case VAL_CLOSURE:
+                printf("freeing closure\n");
+                free(val->as.closure->upvalues);
+                free(val->as.closure);
+                break;
+        case VAL_VECTOR:
+                printf("freeing vector\n");
+                //free the fields of the elements in items
+                free(val->as.vector->items);
+                free(val->as.vector);
+                break;
+        case VAL_SYMBOL:
+                printf("freeing symbol\n");
+                free(val->as.str);
+                break;
+        default:
+                printf("freeing type %d, which didnt require special handling\n",val->type);
+                break;
+        }
+        if (is_ptr_freeable) {
+                //free the actual value type
+                printf("now freeing actual value struct, with address %p\n",val);
+                free(val);
+        } else {
+                printf("Val is not freeable.\n");
+        }
 }
 
 /*
@@ -962,7 +1024,7 @@ void sweep()
                 } else {
                         //free current value, fix the next ptrs of the linked list.
                         //and free the current object type
-                        free_value(cur_obj->value);
+                        free_value(cur_obj->value,true);
                         cur_obj->value = NULL;
                         //fix pointers of linked list
                         

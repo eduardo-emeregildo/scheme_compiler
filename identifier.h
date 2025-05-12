@@ -153,6 +153,7 @@ long get_upvalue_ptr(Value *closure, int offset,int nesting_amt);
 void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt);
 long setexclam(long definition,long new_val);
 Value *mark_value(Value *val);
+Value *mark_value_only(Value *val);
 void add_object(Value *val_type);
 void collect_garbage(Value **global_start, int global_count, Value **local_start, int local_count);
 void mark_globals(Value **global_start,int global_count);
@@ -162,6 +163,6 @@ void grow_capacity();
 void reset_graystack();
 void trace_references();
 void blacken_value(Value *val);
-void free_value(Value *val);
+void free_value(Value *val,bool is_ptr_freeable);
 void sweep();
 #endif
