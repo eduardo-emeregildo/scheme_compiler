@@ -923,10 +923,10 @@ void blacken_value(Value *val)
         //printf("In blacken. TYPE IS %d\n",val->type);
         switch (val->type) {
         case VAL_PAIR:
-                //mark_value(&(val->as.pair->car));
-                //mark_value(&(val->as.pair->cdr));
-                blacken_value(&(val->as.pair->car));
-                blacken_value(&(val->as.pair->cdr));
+                mark_value(&(val->as.pair->car));
+                mark_value(&(val->as.pair->cdr));
+                //blacken_value(&(val->as.pair->car));
+                //blacken_value(&(val->as.pair->cdr));
                 break;
         case VAL_CLOSURE:
                 int upval_count = val->as.closure->num_upvalues;
@@ -944,11 +944,8 @@ void blacken_value(Value *val)
                 int vec_size = val->as.vector->size;
                 Value *vec_items = val->as.vector->items;
                 for (int i = 0; i < vec_size; i++) {
-                        //mark_value(&vec_items[i]);
-
-                        //this instead to mark the indirect references stemming from
-                        //each value
-                        blacken_value(&vec_items[i]);
+                        mark_value(&vec_items[i]);
+                        //blacken_value(&vec_items[i]);
                 }
                 //mark_value_only(vec_items);
                 break;
@@ -986,9 +983,9 @@ void free_value(Value *val,bool is_ptr_freeable)
                 break;
         case VAL_VECTOR:
                 printf("freeing vector\n");
-                //free the fields of the elements in items
-                free(val->as.vector->items);
                 free(val->as.vector);
+                //items does not need to be freed as the items ptr was already added
+                // to linked list of objects, so sweep will take care of it
                 break;
         case VAL_SYMBOL:
                 printf("freeing symbol\n");

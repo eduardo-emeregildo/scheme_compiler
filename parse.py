@@ -14,7 +14,9 @@ from upvalue import *
 # vector and upvalues since of these are arrays, and i was dealing with them elt by elt. 
 # revise every other type though (especially pairs))
 
-#TODO: revise free_value for the rest of the types
+#TODO: revise free_value for the closure and therest of the types. Also take a 
+#look at blacken_value as these
+#two functions are related(blacken_value determines what wont get called by free_value)
 
 #implement free_value, do some thorough testing of sweep,free_value and gc in 
 # general. Try to create cycles, test more complex programs, 
