@@ -81,16 +81,16 @@
 ;(display (func2 +))
 
 ;variadic functions:
-;(define (variadic_func  foo . args) (foo args))
-;(variadic_func display 1 2 '(3 4) display +)
-;(define (add a b) b) ; "add" is lexed as a builtin
-;(display (+ 1 2))
-;(display add)
-;(display +)
-;(display (+ 1 2 3 4 5 6 7 8 9))
-;(display (+ 3.5 4))
-;(define x 3)
-;(display (+ x 1))
+(define (variadic_func  foo . args) (foo args))
+(variadic_func display 1 2 '(3 4) display +)
+(define (add a b) b) ; "add" is lexed as a builtin
+(display (+ 1 2))
+(display add)
+(display +)
+(display (+ 1 2 3 4 5 6 7 8 9))
+(display (+ 3.5 4))
+(define x 3)
+(display (+ x 1))
 
 ;(define (yeo arg1 arg2 arg3 ) (+ arg1 arg2 arg3 7))
 ;(display (yeo 1 2 3))

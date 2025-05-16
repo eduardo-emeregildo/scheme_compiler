@@ -14,7 +14,14 @@ from upvalue import *
 # vector and upvalues since of these are arrays, and i was dealing with them elt by elt. 
 # revise every other type though (especially pairs))
 
-#TODO: revise free_value for the closure and therest of the types. Also take a 
+#TODO: 
+#rn when calling a lambda function, when its doing the call, the lambda gets freed
+#resulting in a segfault.
+
+#what i think has to be done is that during function call, mark the closure thats being
+#called around the time where emitter.save_rax is called
+
+# revise free_value for closures and the rest of the types. Also take a 
 #look at blacken_value as these
 #two functions are related(blacken_value determines what wont get called by free_value)
 
@@ -578,12 +585,7 @@ class Parser:
         arg_count += 1
         self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
         self.emitter.emit_to_section(";^added self arg",is_global)
-        #now edit the saved closure obj (was saved by save_rax) to be the function
-        #value_ptr:
-        self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
-        self.emitter.get_function_from_closure(callable_obj_depth,is_global)
-        self.emitter.emit_to_section(";done editing closure obj",is_global)
-        
+
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
             arg_count += 1
@@ -598,6 +600,13 @@ class Parser:
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
                 f"{func_obj.name} requires {str(func_obj.arity - 1)} arguments.")
+
+        #now edit the saved closure obj (was saved by save_rax) to be the function
+        #value_ptr:                
+        self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
+        self.emitter.get_function_from_closure(callable_obj_depth,is_global)
+        self.emitter.emit_to_section(";done editing closure obj",is_global)
+        
         self.place_args_and_call_function(
         env_depth,callable_obj_depth,is_global,arg_count,func_obj)
         self.emitter.undo_save_rax(self.cur_environment)
@@ -618,11 +627,6 @@ class Parser:
         arg_count += 1
         self.emitter.push_arg(arg_count,old_env_depth,is_global)
         self.emitter.emit_to_section(";^added self arg",is_global)
-        #now edit the saved closure obj (was saved by save_rax) to be the function
-        #value_ptr:
-        self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
-        self.emitter.get_function_from_closure(callable_obj_depth,is_global)
-        self.emitter.emit_to_section(";done editing closure obj",is_global)
         self.cur_environment.depth -= 8
             
         #push args to stack to store while each arg gets evaluated
@@ -642,7 +646,14 @@ class Parser:
         
         #dealing with stack alignment(stack must be 16 byte aligned at time of call)
         is_alignment_needed = self.check_if_alignment_needed(
-        old_env_depth,func_obj.arity)                
+        old_env_depth,func_obj.arity)
+        
+        #now edit the saved closure obj (was saved by save_rax) to be the function
+        #value_ptr:
+        self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
+        self.emitter.get_function_from_closure(callable_obj_depth,is_global)
+        self.emitter.emit_to_section(";done editing closure obj",is_global)
+        
         #place args in the right spot
         for cur_arg in range(func_obj.arity):
             if cur_arg < 6:                

@@ -1,8 +1,26 @@
-'#(1 2 3)
-(define dont_collect_me '#(4 5))
-(define loc 5.3)
-(display dont_collect_me)
-;(define malecon "hello :D")
+; '#(1 2 3)
+; (define dont_collect_me '#(4 5))
+; (define loc 5.3)
+; (display dont_collect_me)
+
+;freeing closure example with lambda
+((lambda (x) (display x)) 5)
+(define malecon "hello :D")
+
+; ((lambda (x) 
+;     (define (local) (+ x 1))
+;     (local)) 5)
+; (define malecon "hello :D")
+
+;freeing closure with define
+; (define (outer) 
+;     (define loc 7)
+;     (define (inner) loc)
+;     (inner))
+; (outer)
+; (define malecon "hello :D")
+
+
 ;(define y "omg")
 ;(define z "hard")
 ;(define foo "yar")

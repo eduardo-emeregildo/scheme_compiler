@@ -1016,6 +1016,8 @@ void sweep()
                 printf(
                 "IN SWEEP. TYPE IS: %d. is_marked is: %d\n",cur_obj->value->type,cur_obj->value->is_marked);
                 if (cur_obj->value->is_marked) {
+                        //set it back to false for next time gc is called
+                        cur_obj->value->is_marked = false;
                         prev_obj = cur_obj;
                         cur_obj = cur_obj->next;
                 } else {
