@@ -15,6 +15,10 @@ from upvalue import *
 # revise every other type though (especially pairs))
 
 #TODO: 
+#make example in gc.scm work
+#test more/refactor the solution to the problem below that I added in Emitter with
+#the new field callable_obj_offset
+
 #rn when calling a lambda function, when its doing the call, the lambda gets freed
 #resulting in a segfault.
 
@@ -482,6 +486,9 @@ class Parser:
         #these two are the same value, but the different names are for context
         callable_obj_depth = self.cur_environment.depth
         env_depth = self.cur_environment.depth
+        
+        old_offset = self.emitter.callable_obj_offset
+        self.emitter.set_callable_obj_offset(callable_obj_depth)
     
         arg_count += 1
         self.emitter.emit_to_section(
@@ -533,6 +540,9 @@ class Parser:
         variadic_label,callable_obj_depth,env_depth,is_global)
         self.emitter.emit_ctrl_label(is_global,rest_of_function_label)
         self.emitter.undo_save_rax(self.cur_environment)
+        
+        self.emitter.set_callable_obj_offset(old_offset)
+        
         self.evaluate_function_call("")
         self.next_token()
         
@@ -573,6 +583,10 @@ class Parser:
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
         callable_obj_depth = self.cur_environment.depth
+        
+        old_offset = self.emitter.callable_obj_offset
+        self.emitter.set_callable_obj_offset(callable_obj_depth)
+        
         is_alignment_needed = self.check_if_alignment_needed(env_depth,func_obj.arity)
         if is_alignment_needed:
             self.cur_environment.depth -= 8
@@ -612,6 +626,9 @@ class Parser:
         self.emitter.undo_save_rax(self.cur_environment)
         if is_alignment_needed:
             self.cur_environment.depth += 8
+            
+        self.emitter.set_callable_obj_offset(old_offset)
+        
         self.evaluate_function_call(func_obj.name)
         self.next_token()
     
@@ -622,6 +639,10 @@ class Parser:
         is_global = self.cur_environment.is_global()
         old_env_depth = self.cur_environment.depth
         callable_obj_depth = self.cur_environment.depth
+        
+        old_offset = self.emitter.callable_obj_offset
+        self.emitter.set_callable_obj_offset(callable_obj_depth)
+        
         min_args = func_obj.arity - 1
         #adding self arg of the closure
         arg_count += 1
@@ -670,6 +691,9 @@ class Parser:
         self.emitter.add_rsp_given_arity(
         func_obj.arity,old_env_depth,is_global,is_alignment_needed)
         self.emitter.undo_save_rax(self.cur_environment)
+        
+        self.emitter.set_callable_obj_offset(old_offset)
+        
         self.evaluate_function_call(func_obj.name)
         self.next_token()
         

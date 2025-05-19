@@ -1,11 +1,13 @@
-; '#(1 2 3)
-; (define dont_collect_me '#(4 5))
-; (define loc 5.3)
-; (display dont_collect_me)
+;'#(1 2 3 (4 5 6)) ; wasnt freeing the inner pair. Now works!
+(display '#(1 2 3 (4 5 6))) ; make this work
+
+(define dont_collect_me '#(4 5))
+(define loc 5.3)
+(display dont_collect_me)
 
 ;freeing closure example with lambda
-((lambda (x) (display x)) 5)
-(define malecon "hello :D")
+; ((lambda (x) (display x)) 5)
+; (define malecon "hello :D")
 
 ; ((lambda (x) 
 ;     (define (local) (+ x 1))

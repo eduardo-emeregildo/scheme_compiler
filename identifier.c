@@ -602,10 +602,69 @@ long pass_by_value(long arg)
         if (!is_ptr(arg)) {
                 return arg;
         }
-        Value* arg_copy = make_tagged_ptr(1);
-        arg_copy->type = ((Value *)arg)->type;
-        arg_copy->as.tagged_type = ((Value *)arg)->as.tagged_type;
-        return (long)arg_copy;
+        // Value* arg_copy = make_tagged_ptr(1);
+        // arg_copy->type = ((Value *)arg)->type;
+        // arg_copy->as.tagged_type = ((Value *)arg)->as.tagged_type;
+        // return (long)arg_copy;
+
+        Value *copy = value_deep_copy((Value *)arg);
+        return (long)copy;
+}
+
+//does a deep copy of val_type.
+Value *value_deep_copy(Value* val_obj)
+{
+        Value *copy = make_tagged_ptr(1);
+        copy->type = val_obj->type;
+        switch(copy->type) {
+        case VAL_STR:
+                struct Str *str_copy = allocate_str(val_obj->as.str->chars);
+                copy->as.str = str_copy;
+                break;
+        case VAL_SYMBOL:
+                struct Str *symbol_str_copy = allocate_str(val_obj->as.str->chars);
+                copy->as.str = symbol_str_copy;
+                break;
+        case VAL_PAIR:
+                struct Pair *pair_copy = allocate_pair();
+                pair_copy->car = *value_deep_copy(&val_obj->as.pair->car);
+                pair_copy->cdr = *value_deep_copy(&val_obj->as.pair->cdr);
+                copy->as.pair = pair_copy;
+                break;
+        case VAL_VECTOR:
+                Value *vec_items_copy = make_tagged_ptr(val_obj->as.vector->size);
+                int size = val_obj->as.vector->size;
+                for (int i = 0 ;i < size; i++) {
+                        vec_items_copy[i] = *value_deep_copy(&val_obj->as.vector->items[i]);
+                }
+                struct Vector *vector_copy = allocate_vector(vec_items_copy,size);
+                copy->as.vector = vector_copy;
+                break;
+        case VAL_FUNCTION:
+                void *function_addr = val_obj->as.function->function_ptr;
+                bool is_variadic = val_obj->as.function->is_variadic;
+                int arity = val_obj->as.function->arity;
+                struct FuncObj *function_copy = allocate_function(function_addr,is_variadic,arity);
+                copy->as.function = function_copy;
+                break;
+        case VAL_CLOSURE:
+                struct ClosureObj *closure_copy = 
+                allocate_closure(value_deep_copy(val_obj->as.closure->function));
+                copy->as.closure = closure_copy;
+                int num_upvalues = val_obj->as.closure->num_upvalues;
+                //deep copy of upvalue array
+                for (int i = 0; i < num_upvalues; i++) {
+                        int nesting_count = val_obj->as.closure->upvalues[i].nesting_count;
+                        int offset = val_obj->as.closure->upvalues[i].offset;
+                        Value *upvalue_copy = 
+                        value_deep_copy((Value *)val_obj->as.closure->upvalues[i].value);
+                        add_upvalue(copy,(long)upvalue_copy,offset,nesting_count);
+                }
+                break;
+        default:
+                copy->as.tagged_type = val_obj->as.tagged_type;
+        }
+        return copy;
 }
 
 Value *add_upvalue(Value *closure,long value, int offset, int nesting_count)
@@ -959,11 +1018,16 @@ void blacken_value(Value *val)
 //i.e. the ptr in val was obtained from malloc,calloc,realloc.
 void free_value(Value *val,bool is_ptr_freeable)
 {
+        if (val == NULL) {
+                printf("value was already freed!\n");
+                return;
+        }
         //free the fields of val
         switch(val->type) {
         case VAL_STR:
                 printf("freeing string\n");
-                free(val->as.str);               
+                free(val->as.str);
+                val->as.str = NULL;
                 break;
         case VAL_PAIR:
                 printf("freeing pair\n");
@@ -975,21 +1039,32 @@ void free_value(Value *val,bool is_ptr_freeable)
         case VAL_FUNCTION:
                 printf("freeing function\n");
                 free(val->as.function);
+                val->as.function = NULL;
                 break;
         case VAL_CLOSURE:
                 printf("freeing closure\n");
                 free(val->as.closure->upvalues);
                 free(val->as.closure);
+                val->as.closure->upvalues = NULL;
+                val->as.closure = NULL;
                 break;
         case VAL_VECTOR:
                 printf("freeing vector\n");
+                int size = val->as.vector->size;
+                Value *vec_items = val->as.vector->items;
+                printf("freeing items of vector:\n");
+                //starts at i = 1 because vec_items[0] is already in the linked list,
+                // so will get picked up
+                for (int i = 1; i < size; i++) {
+                        free_value(&vec_items[i],false);
+                }
                 free(val->as.vector);
-                //items does not need to be freed as the items ptr was already added
-                // to linked list of objects, so sweep will take care of it
+                val->as.vector = NULL;
                 break;
         case VAL_SYMBOL:
                 printf("freeing symbol\n");
                 free(val->as.str);
+                val->as.str = NULL;
                 break;
         default:
                 printf("freeing type %d, which didnt require special handling\n",val->type);
@@ -1002,6 +1077,7 @@ void free_value(Value *val,bool is_ptr_freeable)
         } else {
                 printf("Val is not freeable.\n");
         }
+        val = NULL;
 }
 
 /*
