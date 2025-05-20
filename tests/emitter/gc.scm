@@ -1,5 +1,5 @@
 ;'#(1 2 3 (4 5 6)) ; wasnt freeing the inner pair. Now works!
-(display '#(1 2 3 (4 5 6))) ; make this work
+(display '#(1 2 3 (4 5 6))) ;works!
 
 (define dont_collect_me '#(4 5))
 (define loc 5.3)

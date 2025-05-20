@@ -140,7 +140,7 @@ Value *check_if_callable(long type);
 Value *make_arg_list(Value *func_obj,long *args,int arg_amount);
 Value *make_arg_list_min_args(int min_args,long *args,int arg_amount);
 long pass_by_value(long arg);
-Value *value_deep_copy(Value* val_type);
+void value_deep_copy(Value *copy,Value* val_obj);
 void turn_to_val_type(long non_ptr_type,Value *val_obj);
 long move_local_to_heap(long local);
 long turn_to_non_ptr_type(Value *ptr_type);

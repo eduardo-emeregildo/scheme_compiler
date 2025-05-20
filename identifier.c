@@ -607,14 +607,16 @@ long pass_by_value(long arg)
         // arg_copy->as.tagged_type = ((Value *)arg)->as.tagged_type;
         // return (long)arg_copy;
 
-        Value *copy = value_deep_copy((Value *)arg);
+        Value *copy = make_tagged_ptr(1);
+        value_deep_copy(copy,(Value *)arg);
+        // Value *copy = value_deep_copy((Value *)arg);
         return (long)copy;
 }
 
-//does a deep copy of val_type.
-Value *value_deep_copy(Value* val_obj)
+//does a deep copy of val_type. copy is what gets edited
+void value_deep_copy(Value *copy,Value* val_obj)
 {
-        Value *copy = make_tagged_ptr(1);
+        //Value *copy = make_tagged_ptr(1);
         copy->type = val_obj->type;
         switch(copy->type) {
         case VAL_STR:
@@ -627,15 +629,16 @@ Value *value_deep_copy(Value* val_obj)
                 break;
         case VAL_PAIR:
                 struct Pair *pair_copy = allocate_pair();
-                pair_copy->car = *value_deep_copy(&val_obj->as.pair->car);
-                pair_copy->cdr = *value_deep_copy(&val_obj->as.pair->cdr);
+                value_deep_copy(&pair_copy->car,&val_obj->as.pair->car);
+                value_deep_copy(&pair_copy->cdr,&val_obj->as.pair->cdr);
                 copy->as.pair = pair_copy;
                 break;
         case VAL_VECTOR:
                 Value *vec_items_copy = make_tagged_ptr(val_obj->as.vector->size);
                 int size = val_obj->as.vector->size;
                 for (int i = 0 ;i < size; i++) {
-                        vec_items_copy[i] = *value_deep_copy(&val_obj->as.vector->items[i]);
+                        value_deep_copy(&vec_items_copy[i],&val_obj->as.vector->items[i]);
+                        
                 }
                 struct Vector *vector_copy = allocate_vector(vec_items_copy,size);
                 copy->as.vector = vector_copy;
@@ -648,23 +651,24 @@ Value *value_deep_copy(Value* val_obj)
                 copy->as.function = function_copy;
                 break;
         case VAL_CLOSURE:
-                struct ClosureObj *closure_copy = 
-                allocate_closure(value_deep_copy(val_obj->as.closure->function));
+                Value *function = make_tagged_ptr(1);
+                value_deep_copy(function,val_obj->as.closure->function);
+                struct ClosureObj *closure_copy = allocate_closure(function);
                 copy->as.closure = closure_copy;
                 int num_upvalues = val_obj->as.closure->num_upvalues;
                 //deep copy of upvalue array
                 for (int i = 0; i < num_upvalues; i++) {
                         int nesting_count = val_obj->as.closure->upvalues[i].nesting_count;
                         int offset = val_obj->as.closure->upvalues[i].offset;
-                        Value *upvalue_copy = 
-                        value_deep_copy((Value *)val_obj->as.closure->upvalues[i].value);
+                        Value *upvalue_copy = make_tagged_ptr(1);
+                        value_deep_copy(upvalue_copy,(Value *)val_obj->as.closure->upvalues[i].value);
                         add_upvalue(copy,(long)upvalue_copy,offset,nesting_count);
                 }
                 break;
         default:
                 copy->as.tagged_type = val_obj->as.tagged_type;
         }
-        return copy;
+        // return copy;
 }
 
 Value *add_upvalue(Value *closure,long value, int offset, int nesting_count)

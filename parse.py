@@ -14,8 +14,10 @@ from upvalue import *
 # vector and upvalues since of these are arrays, and i was dealing with them elt by elt. 
 # revise every other type though (especially pairs))
 
-#TODO: 
-#make example in gc.scm work
+#TODO:
+#keep testing gc, see what to do about strings
+
+
 #test more/refactor the solution to the problem below that I added in Emitter with
 #the new field callable_obj_offset
 
