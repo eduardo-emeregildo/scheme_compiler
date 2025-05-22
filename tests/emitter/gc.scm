@@ -1,13 +1,39 @@
 ;'#(1 2 3 (4 5 6)) ; wasnt freeing the inner pair. Now works!
-(display '#(1 2 3 (4 5 6))) ;works!
+;(display '#(1 2 3 (4 5 6))) ;works!
 
-(define dont_collect_me '#(4 5))
-(define loc 5.3)
-(display dont_collect_me)
+;(define dont_collect_me '#(4 5))
+;(define loc 5.3)
+;(display dont_collect_me)
 
 ;freeing closure example with lambda
-; ((lambda (x) (display x)) 5)
+; ((lambda (x) 
+;     (define (local) (display x))
+;     (local)) 5)
 ; (define malecon "hello :D")
+
+;closure with upvalues is a global, so dont free upvalues. works!
+; (define (outer x)
+;     (define (inner) (display x))
+;     (inner))
+; (outer 5)
+; (define malecon "hello")
+
+(define (make_counter)
+  ; bind count and create a new procedure that will (when
+  ; called) increment that binding and return its value
+  (let ((count 0))
+    (lambda ()
+      (set! count (+ count 1))
+      count)))
+(define c1 (make_counter))
+(define c2 (make_counter))
+(define c3 (make_counter))
+(display (c1))
+(display (c1))
+(display (c2))
+(display (c2))
+(display (c3))
+(display (c3))
 
 ; ((lambda (x) 
 ;     (define (local) (+ x 1))

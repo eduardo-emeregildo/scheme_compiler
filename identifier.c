@@ -14,6 +14,8 @@ const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
 Object *head = NULL;
 Object *tail = NULL;
 
+long global_var_count = 0;
+
 //these are used to track gray objects in the mark sweep algo
 int gray_count = 0;
 int gray_capacity = 0;
@@ -514,11 +516,11 @@ Value *check_param_function_call(Value *func_obj,long *args,int arg_amount)
 Value *check_if_callable(long type)
 {
         if (!is_ptr(type)) {
-                abort_message("application not a procedure.\n");
+                abort_message("application not a procedure\n");
         }
         Value *value_type = (Value *)type;
         if (value_type->type != VAL_CLOSURE) {
-                abort_message("application not a procedure.\n");
+                abort_message("application not a procedure\n");
         }
         return value_type->as.closure->function;
 }
@@ -860,7 +862,7 @@ void mark_globals(Value **global_start,int global_count)
                 printf("first global def hasn't been set yet.\n");
                 return;
         }
-
+        printf("in mark_globals, about to iterate all globals:\n");
         for (int i = 0; i < global_count; i++) {
                 Value *current_global = global_start[i];
                 if (current_global == NULL) {
@@ -918,10 +920,11 @@ void mark_locals(Value **local_start, int local_count)
 
 }
 
-void collect_garbage(Value **global_start, int global_count, Value **local_start, int local_count)
+void collect_garbage(Value **global_start, long global_count, Value **local_start, int local_count)
 {
         
         printf("--gc begin\n");
+        printf("global count is %ld\n",global_count);
         printf("collect_garbage being called :D\n");
         printf("Walking through global definitions:\n");
         mark_globals(global_start,global_count);

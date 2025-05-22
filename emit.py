@@ -631,12 +631,17 @@ class Emitter:
         self.emit_to_section('\n'.join(asm_code),is_global)
         self.add_rsp(cur_env_depth,is_global)
     
+    def inc_global_var_count(self,cur_environment):
+        is_global = cur_environment.is_global()
+        self.add_extern("global_var_count")
+        self.emit_to_section("\tinc QWORD [global_var_count]",is_global)
         
+        
+    
     #given ident_obj and the current environment, emit in the corresponding place
-    def emit_identifier_to_section(self,ident_obj,cur_environment,global_count):
+    def emit_identifier_to_section(self,ident_obj,cur_environment):
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
-        
         if self.CALL_GC:
             #mark callable object(only happens when in the process of a function call)
             if self.callable_obj_offset is not None:
@@ -649,10 +654,11 @@ class Emitter:
             #call collect_garbage
             self.subtract_rsp(env_depth,is_global)
             self.add_extern("collect_garbage")
+            self.add_extern("global_var_count")
             asm_code = []
             asm_code.append(
             f"\tmov rdi, QWORD {0 if self.first_global_def is None else self.first_global_def}")
-            asm_code.append(f"\tmov rsi, {global_count}")
+            asm_code.append("\tmov rsi, QWORD [global_var_count]")
             asm_code.append(f"\tmov rdx, {0 if is_global else "rbp"}")
             local_def_count = len(cur_environment.symbol_table)
             if ident_obj.typeof == IdentifierType.CLOSURE:
