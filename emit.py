@@ -650,6 +650,15 @@ class Emitter:
                 self.emit_to_section(
                 f"\tmov rdi, QWORD [rbp{self.callable_obj_offset:+}]\n\tcall mark_value",is_global)    
                 self.add_rsp(env_depth,is_global)
+                #now mark the saved args
+                self.add_extern("check_type_and_mark_value")
+                self.emit_to_section(";now marking saved args:",is_global)
+                for offset in cur_environment.args_for_functions:
+                    self.subtract_rsp(env_depth,is_global)
+                    self.emit_to_section(
+                    f"\tmov rdi, QWORD [rbp{offset:+}]\n\tcall check_type_and_mark_value",is_global)
+                    self.add_rsp(env_depth,is_global)
+                    
                 
             #call collect_garbage
             self.subtract_rsp(env_depth,is_global)
@@ -759,15 +768,19 @@ class Emitter:
     
     #push the arg to the stack so that its stored while evaluating each arg
     #if arity is None you are pushing args for arg thats being used a function
-    def push_arg(self,arg_num,env_depth,is_global,arity = None):
+    def push_arg(self,arg_num,cur_env,env_depth,is_global,arity = None):
         if arity is None:
+            offset = env_depth - (8*arg_num)
             self.emit_to_section(
-            f"\tmov QWORD [rbp{env_depth - (8*arg_num):+}],rax",is_global)
-            return
+            f"\tmov QWORD [rbp{offset:+}],rax",is_global)
+            cur_env.save_arg_offset(offset)
+            return offset
         #since arity is known, push arguments backwards
+        offset = env_depth - ((arity-(arg_num - 1))*8)
         self.emit_to_section(
-        f"\tmov QWORD [rbp{env_depth - ((arity-(arg_num - 1))*8):+}], rax",
-        is_global)
+        f"\tmov QWORD [rbp{offset:+}], rax",is_global)
+        cur_env.save_arg_offset(offset)
+        return offset
     
     def emit_pass_by_value(self,env_depth,is_global):
         self.add_extern("pass_by_value")

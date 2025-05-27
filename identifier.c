@@ -823,14 +823,12 @@ Value *mark_value(Value *val)
         return val;
 }
 
-Value *mark_value_only(Value *val)
+Value *check_type_and_mark_value(Value *val)
 {
-        if (!val->is_marked) {
-                val->is_marked = true;
-        } else {
-                printf("VALUE WAS ALREADY MARKED!\n");
+        if (!is_ptr((long)val)) {
+                return NULL;
         }
-        return val;
+        return mark_value(val);
 }
 
 
@@ -1013,7 +1011,6 @@ void blacken_value(Value *val)
                         mark_value(&vec_items[i]);
                         //blacken_value(&vec_items[i]);
                 }
-                //mark_value_only(vec_items);
                 break;
         default:
                 printf("value being blackened has no indirect references.\n");

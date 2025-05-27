@@ -15,6 +15,21 @@ from upvalue import *
 # revise every other type though (especially pairs))
 
 #TODO:
+#make changes to variadic_function_call, general_function_call and lets. What i have to do
+# is make offsets_used_for_args list and add to the list every time push_arg is called.
+#then after the function call, remove with remove_saved_offsets
+
+#perhaps store offsets of all args of a function, and then using these mark those offsets.
+#has to deal with nested functions though, 
+# so the thing to store these offsets can be a dictionary. can use emitter.cur_function as the key.
+
+#this can maybe be a member of the environment class. a list of arg offsets to be used
+#for a function call
+
+#the logic would be: If in a function call, mark all the arguments that are already on the stack
+
+
+#closures_with_lambda_let and builtins.scm are failing. fix.
 #keep testing gc, see what to do about strings, determine when to call gc
 
 
@@ -494,7 +509,7 @@ class Parser:
         arg_count += 1
         self.emitter.emit_to_section(
         ";general_function_call,storing self arg on line below:",is_global)
-        self.emitter.push_arg(arg_count,env_depth,is_global)
+        self.emitter.push_arg(arg_count,self.cur_environment,env_depth,is_global)
         self.cur_environment.depth -= 8
         
         #evaluates the args
@@ -503,7 +518,7 @@ class Parser:
             arg_count += 1
             self.expression()
             self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
-            self.emitter.push_arg(arg_count,env_depth,is_global)
+            self.emitter.push_arg(arg_count,self.cur_environment,env_depth,is_global)
             self.cur_environment.depth -= 8
         self.cur_environment.depth += 8*arg_count
         
@@ -584,7 +599,7 @@ class Parser:
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
         callable_obj_depth = self.cur_environment.depth
-        
+        offsets_used_for_args = []
         old_offset = self.emitter.callable_obj_offset
         self.emitter.set_callable_obj_offset(callable_obj_depth)
         
@@ -598,7 +613,9 @@ class Parser:
         
         #adding the self arg of the closure:
         arg_count += 1
-        self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
+        self_arg_offset = self.emitter.push_arg(
+        arg_count,self.cur_environment,env_depth,is_global,func_obj.arity)
+        offsets_used_for_args.append(self_arg_offset)
         self.emitter.emit_to_section(";^added self arg",is_global)
 
         while not self.check_token(TokenType.EXPR_END):
@@ -610,7 +627,8 @@ class Parser:
             #pass by value
             self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
             #push each arg to the stack so that they're stored while evaluating each arg
-            self.emitter.push_arg(arg_count,env_depth,is_global,func_obj.arity)
+            arg_offset = self.emitter.push_arg(arg_count,self.cur_environment,env_depth,is_global,func_obj.arity)
+            offsets_used_for_args.append(arg_offset)
         self.cur_environment.depth += func_obj.arity*8
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
@@ -625,6 +643,7 @@ class Parser:
         self.place_args_and_call_function(
         env_depth,callable_obj_depth,is_global,arg_count,func_obj)
         self.emitter.undo_save_rax(self.cur_environment)
+        self.cur_environment.remove_saved_offsets(offsets_used_for_args)
         if is_alignment_needed:
             self.cur_environment.depth += 8
             
@@ -647,7 +666,7 @@ class Parser:
         min_args = func_obj.arity - 1
         #adding self arg of the closure
         arg_count += 1
-        self.emitter.push_arg(arg_count,old_env_depth,is_global)
+        self.emitter.push_arg(arg_count,self.cur_environment,old_env_depth,is_global)
         self.emitter.emit_to_section(";^added self arg",is_global)
         self.cur_environment.depth -= 8
             
@@ -656,7 +675,7 @@ class Parser:
             arg_count += 1
             self.expression()
             self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
-            self.emitter.push_arg(arg_count,old_env_depth,is_global)
+            self.emitter.push_arg(arg_count,self.cur_environment,old_env_depth,is_global)
             self.cur_environment.depth -= 8
         if arg_count < min_args:
             self.abort(f"Arity mismatch. {func_obj.name} requires at least" + 
@@ -905,7 +924,7 @@ class Parser:
         closure_obj,self.cur_environment)
         self.add_upvals_to_anon_functions(is_global)
         #now edit self arg to be the closure obj:
-        self.emitter.push_arg(1,parent_env_depth,is_global)
+        self.emitter.push_arg(1,self.cur_environment,parent_env_depth,is_global)
         self.emitter.emit_to_section(";^updated self arg",is_global)
         
         self.cur_environment.depth = parent_env_depth
@@ -945,7 +964,7 @@ class Parser:
             self.emitter.set_current_function(previous_function)
             self.cur_environment = parent_env
             is_global = self.cur_environment.is_global()
-            self.emitter.push_arg(arg_count,parent_env_depth,is_global)
+            self.emitter.push_arg(arg_count,self.cur_environment,parent_env_depth,is_global)
             self.emitter.emit_to_section(";^self arg",is_global)
             self.cur_environment.depth -= 8
             #switch back to child environment
@@ -969,7 +988,7 @@ class Parser:
         
         self.expression()
         is_global = self.cur_environment.is_global()
-        self.emitter.push_arg(arg_count,parent_env_depth,is_global)
+        self.emitter.push_arg(arg_count,self.cur_environment,parent_env_depth,is_global)
         self.cur_environment.depth -= 8
         #switch back to child environment
         self.emitter.set_current_function(child_function)

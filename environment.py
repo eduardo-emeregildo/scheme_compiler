@@ -148,6 +148,18 @@ class Environment:
         self.symbol_table = {}
         self.parent = parent
         self.depth = 0
+        #this is a set of offsets. these offsets are args that have been computed for
+        #future function calls. Entire purpose of this is for the gc, so we can mark
+        #args of a function call so they wont get collected before the function gets called
+        self.args_for_functions = set()
+        
+    def save_arg_offset(self, offset):
+        self.args_for_functions.add(offset)
+        
+    def remove_saved_offsets(self,offset_array):
+        for offset in offset_array:
+            self.args_for_functions.remove(offset)
+            
         
     def add_definition(self,ident_name,identifier_obj):
         if self.parent is None:

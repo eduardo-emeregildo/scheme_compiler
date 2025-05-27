@@ -18,22 +18,12 @@
 ; (outer 5)
 ; (define malecon "hello")
 
-(define (make_counter)
-  ; bind count and create a new procedure that will (when
-  ; called) increment that binding and return its value
-  (let ((count 0))
-    (lambda ()
-      (set! count (+ count 1))
-      count)))
-(define c1 (make_counter))
-(define c2 (make_counter))
-(define c3 (make_counter))
-(display (c1))
-(display (c1))
-(display (c2))
-(display (c2))
-(display (c3))
-(display (c3))
+;(display (- 1))
+;(display (- 2))
+;(display (- 5 3 4))
+;(display (- 5 3.0 4))
+(display (= 5.3 10))
+(display (= 10 10))
 
 ; ((lambda (x) 
 ;     (define (local) (+ x 1))
