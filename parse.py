@@ -15,11 +15,12 @@ from upvalue import *
 # revise every other type though (especially pairs))
 
 #TODO:
-
-#make changes to general_function_call and lets (basically everywhere push_arg is called). 
+#make changes to lets (basically everywhere push_arg is called). 
 # What i have to do is make offsets_used_for_args list and add to the list every 
 # time push_arg is called. then after the function call, remove with 
 # remove_saved_offsets
+
+#after these changes closures_lambda_let should work
 
 #perhaps store offsets of all args of a function, and then using these mark those offsets.
 #has to deal with nested functions though, 
@@ -505,13 +506,16 @@ class Parser:
         callable_obj_depth = self.cur_environment.depth
         env_depth = self.cur_environment.depth
         
+        offsets_used_for_args = []
         old_offset = self.emitter.callable_obj_offset
         self.emitter.set_callable_obj_offset(callable_obj_depth)
     
         arg_count += 1
         self.emitter.emit_to_section(
         ";general_function_call,storing self arg on line below:",is_global)
-        self.emitter.push_arg(arg_count,self.cur_environment,env_depth,is_global)
+        self_arg_offset = self.emitter.push_arg(
+        arg_count,self.cur_environment,env_depth,is_global)
+        offsets_used_for_args.append(self_arg_offset)
         self.cur_environment.depth -= 8
         
         #evaluates the args
@@ -520,7 +524,9 @@ class Parser:
             arg_count += 1
             self.expression()
             self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
-            self.emitter.push_arg(arg_count,self.cur_environment,env_depth,is_global)
+            arg_offset = self.emitter.push_arg(
+            arg_count,self.cur_environment,env_depth,is_global)
+            offsets_used_for_args.append(arg_offset)
             self.cur_environment.depth -= 8
         self.cur_environment.depth += 8*arg_count
         
@@ -558,7 +564,7 @@ class Parser:
         variadic_label,callable_obj_depth,env_depth,is_global)
         self.emitter.emit_ctrl_label(is_global,rest_of_function_label)
         self.emitter.undo_save_rax(self.cur_environment)
-        
+        self.cur_environment.remove_saved_offsets(offsets_used_for_args)
         self.emitter.set_callable_obj_offset(old_offset)
         
         self.evaluate_function_call("")

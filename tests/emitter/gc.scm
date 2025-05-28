@@ -20,13 +20,13 @@
 
 ;(display (- 1))
 ;(display (- 2))
-;(display (- 5 3 4))
-;(display (- 5 3.0 4))
-;(display (= 5.3 10))
-;(display (= 10 10))
+; (display (- 5 3 4))
+; (display (- 5 3.0 4))
 
-(define (var_fun one two . args) (define foo "yea")(display (append args 6)))
-(var_fun 1 2 3 4 5)
+;test to see if general_function_call marks args that are processed so they dont get collected:
+(define (adder one two) (+ one two))
+(define (func op) (display (op 2.3 4)))
+(func adder)
 
 ; ((lambda (x) 
 ;     (define (local) (+ x 1))

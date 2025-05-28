@@ -653,11 +653,14 @@ class Emitter:
                 #now mark the saved args
                 self.add_extern("check_type_and_mark_value")
                 self.emit_to_section(";now marking saved args:",is_global)
+                
+                self.subtract_rsp(env_depth,is_global)
                 for offset in cur_environment.args_for_functions:
-                    self.subtract_rsp(env_depth,is_global)
+                    #self.subtract_rsp(env_depth,is_global)
                     self.emit_to_section(
                     f"\tmov rdi, QWORD [rbp{offset:+}]\n\tcall check_type_and_mark_value",is_global)
-                    self.add_rsp(env_depth,is_global)
+                    #self.add_rsp(env_depth,is_global)
+                self.add_rsp(env_depth,is_global)
                     
                 
             #call collect_garbage
