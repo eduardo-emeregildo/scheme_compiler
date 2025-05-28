@@ -15,12 +15,7 @@ from upvalue import *
 # revise every other type though (especially pairs))
 
 #TODO:
-#make changes to lets (basically everywhere push_arg is called). 
-# What i have to do is make offsets_used_for_args list and add to the list every 
-# time push_arg is called. then after the function call, remove with 
-# remove_saved_offsets
-
-#after these changes closures_lambda_let should work
+#figure out why closures_lambda_let isnt working
 
 #perhaps store offsets of all args of a function, and then using these mark those offsets.
 #has to deal with nested functions though, 
@@ -884,6 +879,7 @@ class Parser:
         let_name = None
         let_name_internal = self.emitter.create_lambda_name()
         is_global = self.cur_environment.is_global()
+        offsets_used_for_args = []
         if is_global:
             self.tracker.turn_tracker_on()
         #setting up new environment for let
@@ -914,8 +910,9 @@ class Parser:
         function,let_name,arg_count,parent_env_depth,parent_env,previous_function)
         while not self.check_token(TokenType.EXPR_END):
             arg_count += 1
-            self.binding_spec(
+            arg_offset = self.binding_spec(
             function,let_name,arg_count,parent_env_depth,parent_env,previous_function)
+            offsets_used_for_args.append(arg_offset)
         self.next_token()
         function_ident_obj = Identifier(IdentifierType.FUNCTION,function)
         closure_obj = Identifier(IdentifierType.CLOSURE,function_ident_obj)
@@ -938,7 +935,9 @@ class Parser:
         closure_obj,self.cur_environment)
         self.add_upvals_to_anon_functions(is_global)
         #now edit self arg to be the closure obj:
-        self.emitter.push_arg(1,self.cur_environment,parent_env_depth,is_global)
+        self_arg_offset = self.emitter.push_arg(
+        1,self.cur_environment,parent_env_depth,is_global)
+        offsets_used_for_args.append(self_arg_offset)
         self.emitter.emit_to_section(";^updated self arg",is_global)
         
         self.cur_environment.depth = parent_env_depth
@@ -960,6 +959,7 @@ class Parser:
         self.emitter.emit_function_call_in_rax(is_global)
         self.emitter.add_rsp_given_arity(
         function.arity,parent_env_depth,is_global,is_alignment_needed)
+        self.cur_environment.remove_saved_offsets(offsets_used_for_args)
         self.match(TokenType.EXPR_END)
         self.evaluate_function_call("")
     
@@ -978,13 +978,13 @@ class Parser:
             self.emitter.set_current_function(previous_function)
             self.cur_environment = parent_env
             is_global = self.cur_environment.is_global()
-            self.emitter.push_arg(arg_count,self.cur_environment,parent_env_depth,is_global)
-            self.emitter.emit_to_section(";^self arg",is_global)
+            # arg_offset = self.emitter.push_arg(arg_count,self.cur_environment,parent_env_depth,is_global)
+            # self.emitter.emit_to_section(";^self arg",is_global)
             self.cur_environment.depth -= 8
             #switch back to child environment
             self.emitter.set_current_function(child_function)
             self.cur_environment = child_env
-            return
+            return None
         
         self.match(TokenType.EXPR_START)
         if not self.check_token(TokenType.IDENTIFIER):
@@ -1002,12 +1002,13 @@ class Parser:
         
         self.expression()
         is_global = self.cur_environment.is_global()
-        self.emitter.push_arg(arg_count,self.cur_environment,parent_env_depth,is_global)
+        arg_offset = self.emitter.push_arg(arg_count,self.cur_environment,parent_env_depth,is_global)
         self.cur_environment.depth -= 8
         #switch back to child environment
         self.emitter.set_current_function(child_function)
         self.cur_environment = child_env
         self.match(TokenType.EXPR_END)
+        return arg_offset
     
     # (let* (<binding spec>*) <body>)
     def let_star_exp(self):

@@ -661,6 +661,7 @@ class Emitter:
                     f"\tmov rdi, QWORD [rbp{offset:+}]\n\tcall check_type_and_mark_value",is_global)
                     #self.add_rsp(env_depth,is_global)
                 self.add_rsp(env_depth,is_global)
+                self.emit_to_section(";done marking saved args:",is_global)
                     
                 
             #call collect_garbage
