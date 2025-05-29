@@ -8,23 +8,19 @@ from upvalue import *
 #Stuff to do:
 #-------------------------------------------------------------------------------
 
-#after finding out that to free arrays, it can only be done by passing the start
-#pointer and it frees the whole thing, I have to change some things in blacken_value
-#and free_value (
-# vector and upvalues since of these are arrays, and i was dealing with them elt by elt. 
-# revise every other type though (especially pairs))
-
 #TODO:
-#figure out why closures_lambda_let isnt working
+#implement the live_locals stack
 
-#perhaps store offsets of all args of a function, and then using these mark those offsets.
-#has to deal with nested functions though, 
-# so the thing to store these offsets can be a dictionary. can use emitter.cur_function as the key.
+#figure out why closures_lambda_let isnt working. I think it might have to do with if.
+#for example if I evaluate one of the if branches and the second branch causes a collection,
+#the first branch will get collected. I have to check for all expressions. perhaps at certain points
+#the value at rax should be marked.
 
-#this can maybe be a member of the environment class. a list of arg offsets to be used
-#for a function call
+#To generalize the above, right now some temporaries are being free too early.
+#I just finished handling temporaries in the case of processed args before a call,
+#which were stored on the stack, but there can be others. Basically whenever the result
+#of self.expression is needed at a later point, this can happen
 
-#the logic would be: If in a function call, mark all the arguments that are already on the stack
 
 
 #closures_with_lambda_let and builtins.scm are failing. fix.

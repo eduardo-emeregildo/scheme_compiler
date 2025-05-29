@@ -9,6 +9,15 @@ const unsigned long BOOL_MASK = 0x2;
 const unsigned long CHAR_MASK = 0x4;
 const unsigned long TAGGED_TYPE_MASK = 0X7;
 const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
+const unsigned long LIVE_LOCAL_MAX = 256;
+
+/*
+live_locals is a stack to track the locals that are currently in use. the main 
+usage of this is so that during collect_garbage, all the locals that the gc will
+keep will be in here.
+*/
+Value *live_locals[LIVE_LOCAL_MAX];
+int live_locals_top = 0; // points to slot where next push will go to
 
 //pointers for linked list of objects
 Object *head = NULL;
@@ -1121,4 +1130,32 @@ void sweep()
                         }
                 } 
         }
+}
+
+
+void push_to_live_local(Value *val)
+{
+        if (live_locals_top >= LIVE_LOCAL_MAX) {
+                abort_message("ran out of space on live_locals.\n");
+        }
+        live_locals[live_locals_top] = val;
+        live_locals_top++;
+}
+
+void pop_live_local()
+{
+        if (live_locals_top == 0) {
+                abort_message("live_locals is already empty.\n");
+        }
+        live_locals_top--;
+}
+
+void pop_n_locals(int amount_to_pop) 
+{
+        int new_top = live_locals_top -= amount_to_pop;
+        if (new_top < 0) {
+                abort_message("live_locals does not have n objects to pop\n");
+        }
+        live_locals_top -= new_top;
+
 }

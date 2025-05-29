@@ -166,4 +166,7 @@ void trace_references();
 void blacken_value(Value *val);
 void free_value(Value *val,bool is_ptr_freeable);
 void sweep();
+void push_to_live_local(Value *val);
+void pop_live_local();
+void pop_n_locals(int amount_to_pop) 
 #endif
