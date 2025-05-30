@@ -42,7 +42,7 @@ class Emitter:
         # gets set back to what it was previously
         self.callable_obj_offset = None
         
-        self.CALL_GC = True
+        self.CALL_GC = False
     def emit_bss_section(self,code):
         self.bss_section += code + '\n'
 
@@ -698,10 +698,10 @@ class Emitter:
         else:
             self.emit_function(asm_code)
             
-    #emits_definition to corresponding place. this definitely needs to be
-    #revisited to implement closures
-    #offset used for local_definitions b/c they have to go on the stack
-    def emit_definition(self,ident_name,is_global,offset = None):
+    #emits_definition to corresponding place.
+    def emit_definition(self,ident_name,cur_environment,offset = None):
+        is_global = cur_environment.is_global()
+        env_depth = cur_environment.depth
         if is_global:
             if offset is not None:
                 sys.exit(
@@ -710,6 +710,9 @@ class Emitter:
             self.emit_main_section(f"\tmov QWORD [{ident_name}],rax")
         elif offset is not None:
             self.emit_function(f"\tmov QWORD [rbp{offset:+}], rax")
+            self.subtract_rsp(abs(env_depth),is_global)
+            self.emit_push_live_local(is_global)
+            self.add_rsp(abs(env_depth),is_global)
         else:
             sys.exit("Error, must pass an offset when emitting local definition.")
         
@@ -874,11 +877,6 @@ class Emitter:
         f"\tmov rax, {builtin_name}\n\t" + 
         f"add rax, 8\n\tmov rax, QWORD[rax]\n\tcall QWORD [rax]",is_global)
     
-    #calls a defined function given the name of it
-    # def emit_global_function_call(self,func_name,is_global):
-    #     self.emit_to_section(f"\tmov rax,QWORD[{func_name}]\n\t" + 
-    #     f"add rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
-    
     #calls function (function obj must be on the stack) given its offset on the 
     #stack
     def emit_function_call(self,func_offset,is_global):
@@ -889,6 +887,26 @@ class Emitter:
     def emit_function_call_in_rax(self,is_global):
         self.emit_to_section( 
         f"\tadd rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
+    
+    def emit_push_live_local(self,is_global):
+        if is_global:
+            sys.exit("cant push_live_local in global scope.")
+        self.add_extern("push_to_live_local")
+        self.emit_to_section("\tmov rdi, rax\n\tcall push_to_live_local",is_global)
+    
+    
+    def push_args_to_live_locals(self,arity,cur_environment):
+        is_global = cur_environment.is_global()
+        env_depth = cur_environment.depth
+        self.emit_to_section(";adding args to live_locals", is_global)
+        self.subtract_rsp(abs(env_depth),is_global)
+        for i in range(arity):
+            self.emit_to_section(f"\tmov rax, QWORD [rbp{-(i + 1)*8}]",is_global)
+            self.emit_push_live_local(is_global)
+        self.add_rsp(abs(env_depth),is_global)
+        self.emit_to_section(";done adding args to live_locals", is_global)
+        
+        
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 

@@ -9,7 +9,11 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#implement the live_locals stack
+#add the popping of live locals on function exit.
+#add the usage of live_locals in lambdas/lets
+#incorporate live_locals into collect_garbage method.
+#replace the args_for_function with using live_locals to store processed args
+
 
 #figure out why closures_lambda_let isnt working. I think it might have to do with if.
 #for example if I evaluate one of the if branches and the second branch causes a collection,
@@ -1226,7 +1230,7 @@ class Parser:
             Identifier(self.last_exp_res.typeof,self.last_exp_res.value))
             offset = Environment.get_offset(
             self.cur_environment.symbol_table[ident_name])
-            self.emitter.emit_definition(ident_name,is_global,offset)
+            self.emitter.emit_definition(ident_name,self.cur_environment,offset)
             
         elif self.check_token(TokenType.EXPR_START):
             #function case
@@ -1254,10 +1258,9 @@ class Parser:
             #lastly, make function object in the runtime
             self.emitter.emit_identifier_to_section(self.last_exp_res,
             self.cur_environment)
-            is_global = self.cur_environment.is_global()
             offset = Environment.get_offset(
             self.cur_environment.symbol_table[ident_name])
-            self.emitter.emit_definition(ident_name,is_global,offset)
+            self.emitter.emit_definition(ident_name,self.cur_environment,offset)
         else:
             self.abort("Incorrect syntax in definition expression")
             
@@ -1357,6 +1360,9 @@ class Parser:
         print("BODY")
         if self.check_token(TokenType.EXPR_END):
             self.abort("in function definition, empty body.")
+            
+        #add args to live_locals
+        self.emitter.push_args_to_live_locals(function.arity,self.cur_environment)
         #Process all definitions, then call self.expression to create function
         #body
         while self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.DEFINE):

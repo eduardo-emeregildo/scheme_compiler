@@ -28,40 +28,32 @@
 ; (define (func op) (display (op 2.3 4)))
 ; (func adder)
 
-; (define (assoc val alist) 
-;     (if (null? alist) #f 
-;         (if (equal? val (car (car alist))) (car alist) (assoc val (cdr alist)))))
-
-; (define (memoize f)
-;   (let ((cache '()))
-;     (lambda (x)
-;       (let ((entry (assoc x cache)))
-;         (if entry
-;             (cdr entry)
-;             (let ((result (f x)))
-;               (set! cache (cons (cons x result) cache))
-;               result))))))
-; (define (slow_square x)
-;   (display "Computing...")
-;   (* x x))
-
-; (define fast_square (memoize slow_square))
-; ; (display (fast_square 4)) ;; Computes. Only prints computing once
-; (display (assoc 'a '((a . 1) (b . 2) (c . 3))))
-; (display (assoc 'b '((a . 1) (b . 2) (c . 3))))
-; (display (assoc 'c '((a . 1) (b . 2) (c . 3))))
-
+(define foo "foo")
+(define (bar one two . three)
+    (define local "bar")
+    (define local2 "aaa")
+    (define (loc_fun) 3)
+    three)
 ;this is a more simplified example of the problem with closures_lambda_let.
 ;since inner invokes the gc, it frees outer's definitions
-(define (outer) 
-    (define x 3.5)
-    (define y 4)
-    (define (inner)
-        (define foo "hallo")
-        (display "inner called"))
-    (inner)
-    (+ x y))
-(display (outer))
+; (define (outer) 
+;     (define x 3.5)
+;     (define y 4)
+;     (define (inner)
+;         (define foo "hallo")
+;         (display "inner called"))
+;     (inner)
+;     (+ x y))
+; (display (outer))
+
+;once you replace args_for_function with using the live_locals stack use the 
+;example below to test.
+; (define (one)
+;     (define h "in one")
+;     5.3)
+
+; (define (two arg1 arg2 arg3) (+ arg1 arg2 arg3))
+; (display (two 1.1 (one) 3))
 
 
 ; ((lambda (x) 

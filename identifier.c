@@ -9,7 +9,7 @@ const unsigned long BOOL_MASK = 0x2;
 const unsigned long CHAR_MASK = 0x4;
 const unsigned long TAGGED_TYPE_MASK = 0X7;
 const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
-const unsigned long LIVE_LOCAL_MAX = 256;
+#define LIVE_LOCAL_MAX 256
 
 /*
 live_locals is a stack to track the locals that are currently in use. the main 
@@ -1142,12 +1142,13 @@ void push_to_live_local(Value *val)
         live_locals_top++;
 }
 
-void pop_live_local()
+Value* pop_live_local()
 {
         if (live_locals_top == 0) {
                 abort_message("live_locals is already empty.\n");
         }
         live_locals_top--;
+        return live_locals[live_locals_top];
 }
 
 void pop_n_locals(int amount_to_pop) 
