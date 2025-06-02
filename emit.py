@@ -905,6 +905,19 @@ class Emitter:
             self.emit_push_live_local(is_global)
         self.add_rsp(abs(env_depth),is_global)
         self.emit_to_section(";done adding args to live_locals", is_global)
+    
+    def pop_live_locals(self,cur_environment,amount_to_pop):
+        is_global = cur_environment.is_global()
+        env_depth = cur_environment.depth
+        self.add_extern("pop_n_locals")
+        #since at this point the function finished executing so rbp-8 can be overwritten
+        self.emit_to_section("\tmov QWORD [rbp - 8],rax; store result",is_global)
+        self.subtract_rsp(abs(env_depth),is_global)
+        self.emit_to_section(f"\tmov rdi, {amount_to_pop}\n\tcall pop_n_locals",is_global)
+        self.add_rsp(abs(env_depth),is_global)
+        self.emit_to_section("\tmov rax,QWORD [rbp - 8]; restore result",is_global)
+        
+        
         
         
     #to declare functions defined in runtime

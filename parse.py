@@ -9,8 +9,8 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#add the popping of live locals on function exit.
 #add the usage of live_locals in lambdas/lets
+#check that all test files pass with gc off.
 #incorporate live_locals into collect_garbage method.
 #replace the args_for_function with using live_locals to store processed args
 
@@ -1411,6 +1411,8 @@ class Parser:
             
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
+        live_locals_count = function.arity + len(function.local_definitions)
+        self.emitter.pop_live_locals(self.cur_environment,live_locals_count)
         self.emitter.emit_function_epilog()
         
     def is_constant(self):

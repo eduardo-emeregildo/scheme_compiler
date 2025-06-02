@@ -34,7 +34,8 @@
     (define local2 "aaa")
     (define (loc_fun) 3)
     three)
-;this is a more simplified example of the problem with closures_lambda_let.
+
+;below is a more simplified example of the problem with closures_lambda_let.
 ;since inner invokes the gc, it frees outer's definitions
 ; (define (outer) 
 ;     (define x 3.5)

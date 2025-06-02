@@ -1153,10 +1153,10 @@ Value* pop_live_local()
 
 void pop_n_locals(int amount_to_pop) 
 {
-        int new_top = live_locals_top -= amount_to_pop;
+        
+        int new_top = live_locals_top - amount_to_pop;
         if (new_top < 0) {
                 abort_message("live_locals does not have n objects to pop\n");
         }
-        live_locals_top -= new_top;
-
+        live_locals_top = new_top;
 }
