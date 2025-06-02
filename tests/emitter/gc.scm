@@ -1,15 +1,15 @@
-;'#(1 2 3 (4 5 6)) ; wasnt freeing the inner pair. Now works!
-;(display '#(1 2 3 (4 5 6))) ;works!
+; '#(1 2 3 (4 5 6)) ; wasnt freeing the inner pair. Now works!
+; (display '#(1 2 3 (4 5 6))) ;works!
 
 ;(define dont_collect_me '#(4 5))
 ;(define loc 5.3)
 ;(display dont_collect_me)
 
 ;freeing closure example with lambda
-; ((lambda (x) 
-;     (define (local) (display x))
-;     (local)) 5)
-; (define malecon "hello :D")
+((lambda (x) 
+    (define (local) (define foo "test")(display x))
+    (local)) 5)
+(define malecon "hello :D")
 
 ;closure with upvalues is a global, so dont free upvalues. works!
 ; (define (outer x)
@@ -28,12 +28,12 @@
 ; (define (func op) (display (op 2.3 4)))
 ; (func adder)
 
-(define foo "foo")
-(define (bar one two . three)
-    (define local "bar")
-    (define local2 "aaa")
-    (define (loc_fun) 3)
-    three)
+; (define foo "foo")
+; (define (bar one two . three)
+;     (define local "bar")
+;     (define local2 "aaa")
+;     (define (loc_fun) 3)
+;     three)
 
 ;below is a more simplified example of the problem with closures_lambda_let.
 ;since inner invokes the gc, it frees outer's definitions

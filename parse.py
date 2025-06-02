@@ -9,10 +9,9 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#add the usage of live_locals in lambdas/lets
-#check that all test files pass with gc off.
-#incorporate live_locals into collect_garbage method.
 #replace the args_for_function with using live_locals to store processed args
+#also check if the callable_obj_offset approach can be replaced with the use of live_locals
+#after this is done test all files to see if they pass with gc on
 
 
 #figure out why closures_lambda_let isnt working. I think it might have to do with if.

@@ -890,53 +890,77 @@ void mark_globals(Value **global_start,int global_count)
         }
 }
 
-//walks through locals which are on the stack.
+// walks through locals which are on live_locals
 
 // loop starts at the last definition and stops at the first, which is always the
 // self arg.
-void mark_locals(Value **local_start, int local_count)
+// void mark_locals(Value **local_start, int local_count)
+// {
+//         if (local_start == NULL) {
+//                 printf("in global scope, therefore no locals.\n");
+//                 return;
+//         }
+//         for (int i = 0; i < local_count; i++) {
+//                 Value *current_local = local_start[i];
+//                 if (current_local == NULL) {
+//                         //a global definition is null when its spot in the bss section
+//                         // hasnt been written to yet. 
+//                         printf("definition %d is null.\n",i);
+//                 }
+//                 else if (!is_ptr((long)current_local)) {
+//                         printf("definition %d is not a pointer.\n",i);
+//                 } else {
+//                         printf("definition %d's TYPE IS: %d\n",i,((Value *)current_local)->type);
+//                         mark_value(current_local);
+//                         //push_graystack(current_local);
+//                 }
+//         }
+//         printf("Now marking upvalues:\n");
+//         Value *self_closure = local_start[local_count - 1];
+//         struct UpvalueObj *upvalues = self_closure->as.closure->upvalues;
+//         int upval_count = self_closure->as.closure->num_upvalues;
+//         for (int i = 0; i < upval_count; i++) {
+//                 printf("upvalue %d being marked.\n",i);
+//                 mark_value((Value*)upvalues[i].value);
+//                 //push_graystack((Value*)upvalues[i].value);
+//         }
+
+// }
+
+void mark_locals(Value *self_closure)
 {
-        if (local_start == NULL) {
-                printf("in global scope, therefore no locals.\n");
+        for (int i = 0; i < live_locals_top; i++) {
+                if (is_ptr((long)live_locals[i])) {
+                        mark_value(live_locals[i]);
+                }
+
+        }
+        printf("now marking upvalues:\n");
+        if (self_closure == NULL) {
+                printf("in global scope, so no upvalues.\n");
                 return;
         }
-        for (int i = 0; i < local_count; i++) {
-                Value *current_local = local_start[i];
-                if (current_local == NULL) {
-                        //a global definition is null when its spot in the bss section
-                        // hasnt been written to yet. 
-                        printf("definition %d is null.\n",i);
-                }
-                else if (!is_ptr((long)current_local)) {
-                        printf("definition %d is not a pointer.\n",i);
-                } else {
-                        printf("definition %d's TYPE IS: %d\n",i,((Value *)current_local)->type);
-                        mark_value(current_local);
-                        //push_graystack(current_local);
-                }
-        }
-        printf("Now marking upvalues:\n");
-        Value *self_closure = local_start[local_count - 1];
         struct UpvalueObj *upvalues = self_closure->as.closure->upvalues;
         int upval_count = self_closure->as.closure->num_upvalues;
         for (int i = 0; i < upval_count; i++) {
                 printf("upvalue %d being marked.\n",i);
                 mark_value((Value*)upvalues[i].value);
-                //push_graystack((Value*)upvalues[i].value);
         }
-
+        printf("done marking upvalues:\n");
 }
 
-void collect_garbage(Value **global_start, long global_count, Value **local_start, int local_count)
+
+
+
+void collect_garbage(Value **global_start, long global_count, Value *self_closure)
 {
-        
         printf("--gc begin\n");
         printf("global count is %ld\n",global_count);
         printf("collect_garbage being called :D\n");
         printf("Walking through global definitions:\n");
         mark_globals(global_start,global_count);
         printf("now walking through local definitions:\n");
-        mark_locals(local_start,local_count);
+        mark_locals(self_closure);
         printf("number of values in graystack is: %d\n",gray_count);
         for (int i = 0 ; i < gray_count; i++) {
                 printf("graystack item %d's type is: %d\n",i, gray_stack[i]->type);
@@ -1153,7 +1177,6 @@ Value* pop_live_local()
 
 void pop_n_locals(int amount_to_pop) 
 {
-        
         int new_top = live_locals_top - amount_to_pop;
         if (new_top < 0) {
                 abort_message("live_locals does not have n objects to pop\n");
