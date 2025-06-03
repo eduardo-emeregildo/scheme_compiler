@@ -42,16 +42,17 @@
 ; (define (foo first second) first)
 ; (display (foo 1.1 2))
 
-(define (foo first second) (= first second))
-(display (foo 1.1 2))
+; (define (foo first second) (= first second))
+; (display (foo 1.1 2))
 
 ;to test variadic function calls after pushing args to live_locals
-; (define (foo first second) (= first second))
-; (foo 1.1 2)
+(define (foo first second) (+ first second))
+(display (foo 1.1 2))
 
 
-;(define (foo op arg) (op arg 1))
-;(foo + 1.1)
+;to test general function calls after pushing args to live_locals
+; (define (foo op arg) (op arg 1))
+; (foo + 1.1)
 
 
 ;below is a more simplified example of the problem with closures_lambda_let.

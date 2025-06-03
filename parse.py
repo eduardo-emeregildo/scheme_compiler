@@ -9,7 +9,7 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#do whats under for variadic function call, general function call and lets. 
+#do whats under for general function call and lets. 
 
 #replace the args_for_function with using live_locals to store processed args
 #also check if the callable_obj_offset approach can be replaced with the use of live_locals
@@ -668,19 +668,22 @@ class Parser:
         is_global = self.cur_environment.is_global()
         old_env_depth = self.cur_environment.depth
         callable_obj_depth = self.cur_environment.depth
-        offsets_used_for_args = []
+        # offsets_used_for_args = []
         
-        old_offset = self.emitter.callable_obj_offset
-        self.emitter.set_callable_obj_offset(callable_obj_depth)
+        # old_offset = self.emitter.callable_obj_offset
+        # self.emitter.set_callable_obj_offset(callable_obj_depth)
         
         min_args = func_obj.arity - 1
         #adding self arg of the closure
         arg_count += 1
         self_arg_offset = self.emitter.push_arg(
         arg_count,self.cur_environment,old_env_depth,is_global)
-        offsets_used_for_args.append(self_arg_offset)
+        # offsets_used_for_args.append(self_arg_offset)
         self.emitter.emit_to_section(";^added self arg",is_global)
         self.cur_environment.depth -= 8
+        self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
+        self.emitter.emit_push_live_local(is_global,self_arg_offset)
+        self.emitter.add_rsp(abs(self.cur_environment.depth),is_global)
             
         #push args to stack to store while each arg gets evaluated
         while not self.check_token(TokenType.EXPR_END):
@@ -689,11 +692,19 @@ class Parser:
             self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
             arg_offset = self.emitter.push_arg(
             arg_count,self.cur_environment,old_env_depth,is_global)
-            offsets_used_for_args.append(arg_offset)
+            # offsets_used_for_args.append(arg_offset)
             self.cur_environment.depth -= 8
+            self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
+            self.emitter.emit_push_live_local(is_global,arg_offset)
+            self.emitter.add_rsp(abs(self.cur_environment.depth),is_global)
         if arg_count < min_args:
             self.abort(f"Arity mismatch. {func_obj.name} requires at least" + 
             f" {min_args-1} arguments")
+        #pop args from live locals. if this placement gives problems, perhaps place
+        #it below emit_make_arg_list
+        self.emitter.emit_to_section(";popping locals in variadic function",is_global)
+        self.emitter.pop_live_locals(self.cur_environment,arg_count,False)
+        
         #now make varargs list
         self.emitter.emit_make_arg_list(
         min_args,func_obj.arity,arg_count,old_env_depth,is_global)
@@ -725,9 +736,9 @@ class Parser:
         self.emitter.add_rsp_given_arity(
         func_obj.arity,old_env_depth,is_global,is_alignment_needed)
         self.emitter.undo_save_rax(self.cur_environment)
-        self.cur_environment.remove_saved_offsets(offsets_used_for_args)
+        # self.cur_environment.remove_saved_offsets(offsets_used_for_args)
         
-        self.emitter.set_callable_obj_offset(old_offset)
+        # self.emitter.set_callable_obj_offset(old_offset)
         
         self.evaluate_function_call(func_obj.name)
         self.next_token()
