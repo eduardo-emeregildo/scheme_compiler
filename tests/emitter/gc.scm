@@ -6,10 +6,10 @@
 ;(display dont_collect_me)
 
 ;freeing closure example with lambda
-((lambda (x) 
-    (define (local) (define foo "test")(display x))
-    (local)) 5)
-(define malecon "hello :D")
+; ((lambda (x) 
+;     (define (local) (define foo "test")(display x))
+;     (local)) 5)
+; (define malecon "hello :D")
 
 ;closure with upvalues is a global, so dont free upvalues. works!
 ; (define (outer x)
@@ -28,12 +28,31 @@
 ; (define (func op) (display (op 2.3 4)))
 ; (func adder)
 
+;scratch
 ; (define foo "foo")
 ; (define (bar one two . three)
 ;     (define local "bar")
 ;     (define local2 "aaa")
 ;     (define (loc_fun) 3)
 ;     three)
+; (display (bar 1 2 3))
+;scratch end
+
+;to test normal function calls after pushing args to live_locals
+; (define (foo first second) first)
+; (display (foo 1.1 2))
+
+(define (foo first second) (= first second))
+(display (foo 1.1 2))
+
+;to test variadic function calls after pushing args to live_locals
+; (define (foo first second) (= first second))
+; (foo 1.1 2)
+
+
+;(define (foo op arg) (op arg 1))
+;(foo + 1.1)
+
 
 ;below is a more simplified example of the problem with closures_lambda_let.
 ;since inner invokes the gc, it frees outer's definitions
@@ -46,6 +65,7 @@
 ;     (inner)
 ;     (+ x y))
 ; (display (outer))
+
 
 ;once you replace args_for_function with using the live_locals stack use the 
 ;example below to test.

@@ -9,6 +9,8 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
+#do whats under for variadic function call, general function call and lets. 
+
 #replace the args_for_function with using live_locals to store processed args
 #also check if the callable_obj_offset approach can be replaced with the use of live_locals
 #after this is done test all files to see if they pass with gc on
@@ -601,10 +603,7 @@ class Parser:
         is_global = self.cur_environment.is_global()
         env_depth = self.cur_environment.depth
         callable_obj_depth = self.cur_environment.depth
-        offsets_used_for_args = []
-        old_offset = self.emitter.callable_obj_offset
-        self.emitter.set_callable_obj_offset(callable_obj_depth)
-        
+
         is_alignment_needed = self.check_if_alignment_needed(env_depth,func_obj.arity)
         if is_alignment_needed:
             self.cur_environment.depth -= 8
@@ -617,9 +616,11 @@ class Parser:
         arg_count += 1
         self_arg_offset = self.emitter.push_arg(
         arg_count,self.cur_environment,env_depth,is_global,func_obj.arity)
-        offsets_used_for_args.append(self_arg_offset)
         self.emitter.emit_to_section(";^added self arg",is_global)
-
+        self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
+        self.emitter.emit_push_live_local(is_global,self_arg_offset)
+        self.emitter.add_rsp(abs(self.cur_environment.depth),is_global)
+    
         while not self.check_token(TokenType.EXPR_END):
             print("OPERAND")
             arg_count += 1
@@ -629,13 +630,22 @@ class Parser:
             #pass by value
             self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
             #push each arg to the stack so that they're stored while evaluating each arg
-            arg_offset = self.emitter.push_arg(arg_count,self.cur_environment,env_depth,is_global,func_obj.arity)
-            offsets_used_for_args.append(arg_offset)
-        self.cur_environment.depth += func_obj.arity*8
+            arg_offset = self.emitter.push_arg(
+            arg_count,self.cur_environment,env_depth,is_global,func_obj.arity)
+            self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
+            self.emitter.emit_push_live_local(is_global,arg_offset)
+            self.emitter.add_rsp(abs(self.cur_environment.depth),is_global)
         if arg_count != func_obj.arity:
                 self.abort(f"Arity mismatch. Function " + 
                 f"{func_obj.name} requires {str(func_obj.arity - 1)} arguments.")
-
+        
+        #now pop args from live_locals since you are about to do the function call
+        self.emitter.emit_to_section(";popping locals",is_global)
+        self.emitter.pop_live_locals(self.cur_environment,arg_count,False)
+        
+        #now that args have been processed, restore the env depth
+        self.cur_environment.depth += func_obj.arity*8
+        
         #now edit the saved closure obj (was saved by save_rax) to be the function
         #value_ptr:                
         self.emitter.emit_to_section(";editing closure obj to be function obj",is_global)
@@ -645,12 +655,9 @@ class Parser:
         self.place_args_and_call_function(
         env_depth,callable_obj_depth,is_global,arg_count,func_obj)
         self.emitter.undo_save_rax(self.cur_environment)
-        self.cur_environment.remove_saved_offsets(offsets_used_for_args)
+        # self.cur_environment.remove_saved_offsets(offsets_used_for_args)
         if is_alignment_needed:
             self.cur_environment.depth += 8
-            
-        self.emitter.set_callable_obj_offset(old_offset)
-        
         self.evaluate_function_call(func_obj.name)
         self.next_token()
     

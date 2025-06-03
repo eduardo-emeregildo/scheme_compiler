@@ -644,24 +644,24 @@ class Emitter:
         env_depth = abs(cur_environment.depth)
         if self.CALL_GC:
             #mark callable object(only happens when in the process of a function call)
-            if self.callable_obj_offset is not None:
-                self.add_extern("mark_value")
-                self.subtract_rsp(env_depth,is_global)
-                self.emit_to_section(
-                f"\tmov rdi, QWORD [rbp{self.callable_obj_offset:+}]\n\tcall mark_value",is_global)    
-                self.add_rsp(env_depth,is_global)
-                #now mark the saved args
-                self.add_extern("check_type_and_mark_value")
-                self.emit_to_section(";now marking saved args:",is_global)
+            # if self.callable_obj_offset is not None:
+            #     self.add_extern("mark_value")
+            #     self.subtract_rsp(env_depth,is_global)
+            #     self.emit_to_section(
+            #     f"\tmov rdi, QWORD [rbp{self.callable_obj_offset:+}]\n\tcall mark_value",is_global)    
+            #     self.add_rsp(env_depth,is_global)
+            #     #now mark the saved args
+            #     self.add_extern("check_type_and_mark_value")
+            #     self.emit_to_section(";now marking saved args:",is_global)
                 
-                self.subtract_rsp(env_depth,is_global)
-                for offset in cur_environment.args_for_functions:
-                    #self.subtract_rsp(env_depth,is_global)
-                    self.emit_to_section(
-                    f"\tmov rdi, QWORD [rbp{offset:+}]\n\tcall check_type_and_mark_value",is_global)
-                    #self.add_rsp(env_depth,is_global)
-                self.add_rsp(env_depth,is_global)
-                self.emit_to_section(";done marking saved args:",is_global)
+            #     self.subtract_rsp(env_depth,is_global)
+            #     for offset in cur_environment.args_for_functions:
+            #         #self.subtract_rsp(env_depth,is_global)
+            #         self.emit_to_section(
+            #         f"\tmov rdi, QWORD [rbp{offset:+}]\n\tcall check_type_and_mark_value",is_global)
+            #         #self.add_rsp(env_depth,is_global)
+            #     self.add_rsp(env_depth,is_global)
+            #     self.emit_to_section(";done marking saved args:",is_global)
                     
                 
             #call collect_garbage
@@ -879,10 +879,14 @@ class Emitter:
         self.emit_to_section( 
         f"\tadd rax, 8\n\tmov rax, QWORD [rax]\n\tcall QWORD [rax]",is_global)
     
-    def emit_push_live_local(self,is_global):
-        if is_global:
-            sys.exit("cant push_live_local in global scope.")
+    #if an offset is given, will first move what is in that offset to rax and then
+    #push to live_local
+    def emit_push_live_local(self,is_global,offset = None):
+        # if is_global:
+        #     sys.exit("cant push_live_local in global scope.")
         self.add_extern("push_to_live_local")
+        if offset is not None:
+            self.emit_to_section(f"\tmov rax, QWORD [rbp{offset:+}]",is_global)
         self.emit_to_section("\tmov rdi, rax\n\tcall push_to_live_local",is_global)
     
     
@@ -897,20 +901,23 @@ class Emitter:
         self.add_rsp(abs(env_depth),is_global)
         self.emit_to_section(";done adding args to live_locals", is_global)
     
-    def pop_live_locals(self,cur_environment,amount_to_pop):
+    #pops_from live_locals. if restore_rax is true, will save rax and restore it
+    #to what it was before the call to pop_n_locals. restore_rax should always be
+    #true when exiting function calls
+    def pop_live_locals(self,cur_environment,amount_to_pop,restore_rax = True):
         is_global = cur_environment.is_global()
         env_depth = cur_environment.depth
         self.add_extern("pop_n_locals")
-        #since at this point the function finished executing so rbp-8 can be overwritten
-        self.emit_to_section("\tmov QWORD [rbp - 8],rax; store result",is_global)
+        if restore_rax:
+            #since at this point the function finished executing so rbp-8 can be overwritten
+            self.emit_to_section("\tmov QWORD [rbp - 8],rax; store result",is_global)
         self.subtract_rsp(abs(env_depth),is_global)
         self.emit_to_section(f"\tmov rdi, {amount_to_pop}\n\tcall pop_n_locals",is_global)
         self.add_rsp(abs(env_depth),is_global)
-        self.emit_to_section("\tmov rax,QWORD [rbp - 8]; restore result",is_global)
+        if restore_rax:
+            self.emit_to_section("\tmov rax,QWORD [rbp - 8]; restore result",is_global)
         
-        
-        
-        
+                
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 
