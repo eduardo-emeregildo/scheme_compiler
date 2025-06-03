@@ -9,7 +9,7 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#do whats under for general function call and lets. 
+#do whats under for let function calls. 
 
 #replace the args_for_function with using live_locals to store processed args
 #also check if the callable_obj_offset approach can be replaced with the use of live_locals
@@ -502,17 +502,15 @@ class Parser:
         callable_obj_depth = self.cur_environment.depth
         env_depth = self.cur_environment.depth
         
-        offsets_used_for_args = []
-        old_offset = self.emitter.callable_obj_offset
-        self.emitter.set_callable_obj_offset(callable_obj_depth)
-    
         arg_count += 1
         self.emitter.emit_to_section(
         ";general_function_call,storing self arg on line below:",is_global)
         self_arg_offset = self.emitter.push_arg(
         arg_count,self.cur_environment,env_depth,is_global)
-        offsets_used_for_args.append(self_arg_offset)
         self.cur_environment.depth -= 8
+        self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
+        self.emitter.emit_push_live_local(is_global,self_arg_offset)
+        self.emitter.add_rsp(abs(self.cur_environment.depth),is_global)
         
         #evaluates the args
         while not self.check_token(TokenType.EXPR_END):
@@ -522,8 +520,15 @@ class Parser:
             self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
             arg_offset = self.emitter.push_arg(
             arg_count,self.cur_environment,env_depth,is_global)
-            offsets_used_for_args.append(arg_offset)
             self.cur_environment.depth -= 8
+            self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
+            self.emitter.emit_push_live_local(is_global,arg_offset)
+            self.emitter.add_rsp(abs(self.cur_environment.depth),is_global)
+        
+        #pop args from live locals. if this placement gives problems, perhaps place
+        #it below emit_function_check or emit_zero_check
+        self.emitter.emit_to_section(";popping locals in general function",is_global)
+        self.emitter.pop_live_locals(self.cur_environment,arg_count,False)
         self.cur_environment.depth += 8*arg_count
         
         # now perform runtime checks to see if  operator is a function/ 
@@ -560,9 +565,6 @@ class Parser:
         variadic_label,callable_obj_depth,env_depth,is_global)
         self.emitter.emit_ctrl_label(is_global,rest_of_function_label)
         self.emitter.undo_save_rax(self.cur_environment)
-        self.cur_environment.remove_saved_offsets(offsets_used_for_args)
-        self.emitter.set_callable_obj_offset(old_offset)
-        
         self.evaluate_function_call("")
         self.next_token()
         
@@ -668,10 +670,6 @@ class Parser:
         is_global = self.cur_environment.is_global()
         old_env_depth = self.cur_environment.depth
         callable_obj_depth = self.cur_environment.depth
-        # offsets_used_for_args = []
-        
-        # old_offset = self.emitter.callable_obj_offset
-        # self.emitter.set_callable_obj_offset(callable_obj_depth)
         
         min_args = func_obj.arity - 1
         #adding self arg of the closure
@@ -692,7 +690,7 @@ class Parser:
             self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
             arg_offset = self.emitter.push_arg(
             arg_count,self.cur_environment,old_env_depth,is_global)
-            # offsets_used_for_args.append(arg_offset)
+            
             self.cur_environment.depth -= 8
             self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
             self.emitter.emit_push_live_local(is_global,arg_offset)
