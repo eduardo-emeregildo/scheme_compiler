@@ -51,9 +51,9 @@
 
 
 ;to test general function calls after pushing args to live_locals
-(define (foo op arg) (op arg 1))
-(display (foo + 1.1))
-(display (foo eq? '(1 2 3 4 5 6)))
+; (define (foo op arg) (op arg 1))
+; (display (foo + 1.1))
+; (display (foo eq? '(1 2 3 4 5 6)))
 
 
 ;below is a more simplified example of the problem with closures_lambda_let.
@@ -68,9 +68,8 @@
 ;     (+ x y))
 ; (display (outer))
 
-
 ;once you replace args_for_function with using the live_locals stack use the 
-;example below to test.
+;example below to test. works!
 ; (define (one)
 ;     (define h "in one")
 ;     5.3)
@@ -78,6 +77,11 @@
 ; (define (two arg1 arg2 arg3) (+ arg1 arg2 arg3))
 ; (display (two 1.1 (one) 3))
 
+(display (let ((a 1) (b 2) (c 3) (d 4) (e 5) (f 6) (g 7)) g))
+
+;lambda test
+; (define glob 1)
+; (display (let ((x 5) (y 7)) (+ x y glob)))
 
 ; ((lambda (x) 
 ;     (define (local) (+ x 1))
@@ -109,5 +113,5 @@
 ; (foo)
 
 ;closure example
-;(define (func op) (define (local) (define f "hey") op) (local))
-;(func 1)
+; (define (func op) (define (local) (define f "hey") op) (local))
+; display (func 1)

@@ -105,6 +105,11 @@ class Emitter:
     
     def set_rax_true(self,is_global):
         self.emit_to_section("\tmov rax, TRUE",is_global)
+        
+    #given an offset, will set rax to whats on the stack at that offset
+    def set_rax_to_local_def(self,is_global,offset):
+        self.emit_to_section(
+        f"\tmov rax, QWORD [rbp{offset:+}];setting rax to be self closure",is_global)
     
     def emit_function_epilog(self):
         self.emit_function(f"\tpop rbp\n\tret")
@@ -917,7 +922,6 @@ class Emitter:
         if restore_rax:
             self.emit_to_section("\tmov rax,QWORD [rbp - 8]; restore result",is_global)
         
-                
     #to declare functions defined in runtime
     def emit_externs(self):
         self.emit_text_section("" if len(self.externs) == 0 

@@ -9,7 +9,8 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#do whats under for let function calls. 
+#change push_args_to_locals so that it properly pushes args 7 and on to live_locals.
+#Rn its not going on the other side of the stack
 
 #replace the args_for_function with using live_locals to store processed args
 #also check if the callable_obj_offset approach can be replaced with the use of live_locals
@@ -894,7 +895,7 @@ class Parser:
         let_name = None
         let_name_internal = self.emitter.create_lambda_name()
         is_global = self.cur_environment.is_global()
-        offsets_used_for_args = []
+        # offsets_used_for_args = []
         if is_global:
             self.tracker.turn_tracker_on()
         #setting up new environment for let
@@ -925,9 +926,9 @@ class Parser:
         function,let_name,arg_count,parent_env_depth,parent_env,previous_function)
         while not self.check_token(TokenType.EXPR_END):
             arg_count += 1
-            arg_offset = self.binding_spec(
+            self.binding_spec(
             function,let_name,arg_count,parent_env_depth,parent_env,previous_function)
-            offsets_used_for_args.append(arg_offset)
+            # offsets_used_for_args.append(arg_offset)
         self.next_token()
         function_ident_obj = Identifier(IdentifierType.FUNCTION,function)
         closure_obj = Identifier(IdentifierType.CLOSURE,function_ident_obj)
@@ -952,8 +953,20 @@ class Parser:
         #now edit self arg to be the closure obj:
         self_arg_offset = self.emitter.push_arg(
         1,self.cur_environment,parent_env_depth,is_global)
-        offsets_used_for_args.append(self_arg_offset)
         self.emitter.emit_to_section(";^updated self arg",is_global)
+        # offsets_used_for_args.append(self_arg_offset)
+        
+        #push self arg to live_locals
+        self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
+        self.emitter.emit_push_live_local(is_global,self_arg_offset)
+        self.emitter.add_rsp(abs(self.cur_environment.depth),is_global)
+        
+        #pop args from live_locals
+        self.emitter.emit_to_section(";popping locals let call",is_global)
+        self.emitter.pop_live_locals(self.cur_environment,arg_count,False)
+        
+        #set rax to the let closure
+        self.emitter.set_rax_to_local_def(is_global,self_arg_offset)
         
         self.cur_environment.depth = parent_env_depth
         self.emitter.emit_to_section(";starting function call of let",is_global)
@@ -974,7 +987,7 @@ class Parser:
         self.emitter.emit_function_call_in_rax(is_global)
         self.emitter.add_rsp_given_arity(
         function.arity,parent_env_depth,is_global,is_alignment_needed)
-        self.cur_environment.remove_saved_offsets(offsets_used_for_args)
+        # self.cur_environment.remove_saved_offsets(offsets_used_for_args)
         self.match(TokenType.EXPR_END)
         self.evaluate_function_call("")
     
@@ -999,7 +1012,7 @@ class Parser:
             #switch back to child environment
             self.emitter.set_current_function(child_function)
             self.cur_environment = child_env
-            return None
+            return
         
         self.match(TokenType.EXPR_START)
         if not self.check_token(TokenType.IDENTIFIER):
@@ -1017,13 +1030,18 @@ class Parser:
         
         self.expression()
         is_global = self.cur_environment.is_global()
-        arg_offset = self.emitter.push_arg(arg_count,self.cur_environment,parent_env_depth,is_global)
+        arg_offset = self.emitter.push_arg(
+        arg_count,self.cur_environment,parent_env_depth,is_global)
         self.cur_environment.depth -= 8
+        
+        self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
+        self.emitter.emit_push_live_local(is_global,arg_offset)
+        self.emitter.add_rsp(abs(self.cur_environment.depth),is_global)
+        
         #switch back to child environment
         self.emitter.set_current_function(child_function)
         self.cur_environment = child_env
         self.match(TokenType.EXPR_END)
-        return arg_offset
     
     # (let* (<binding spec>*) <body>)
     def let_star_exp(self):
