@@ -78,6 +78,7 @@
 ; (display (two 1.1 (one) 3))
 
 (display (let ((a 1) (b 2) (c 3) (d 4) (e 5) (f 6) (g 7)) g))
+(define (func one two three four five six seven eight nine) (define f "hey") nine)
 
 ;lambda test
 ; (define glob 1)

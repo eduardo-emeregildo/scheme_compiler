@@ -36,18 +36,9 @@ class Emitter:
         self.ctrl_flow_label_count = 0 #to generate local control flow labels
         self.lambda_label_count = 0 # for generating lambda labels
         
-        #this is set during a function call, which stores the offset of the closure object
-        #that is temporarily put on the stack. This field exists only for the gc
-        #to be able to reference it. #when a function call finishes, 
-        # gets set back to what it was previously
-        self.callable_obj_offset = None
-        
         self.CALL_GC = True
     def emit_bss_section(self,code):
         self.bss_section += code + '\n'
-
-    def set_callable_obj_offset(self,offset):
-        self.callable_obj_offset = offset
 
     def emit_function(self,code):
         if self.cur_function is None:
@@ -647,28 +638,7 @@ class Emitter:
     def emit_identifier_to_section(self,ident_obj,cur_environment):
         is_global = cur_environment.is_global()
         env_depth = abs(cur_environment.depth)
-        if self.CALL_GC:
-            #mark callable object(only happens when in the process of a function call)
-            # if self.callable_obj_offset is not None:
-            #     self.add_extern("mark_value")
-            #     self.subtract_rsp(env_depth,is_global)
-            #     self.emit_to_section(
-            #     f"\tmov rdi, QWORD [rbp{self.callable_obj_offset:+}]\n\tcall mark_value",is_global)    
-            #     self.add_rsp(env_depth,is_global)
-            #     #now mark the saved args
-            #     self.add_extern("check_type_and_mark_value")
-            #     self.emit_to_section(";now marking saved args:",is_global)
-                
-            #     self.subtract_rsp(env_depth,is_global)
-            #     for offset in cur_environment.args_for_functions:
-            #         #self.subtract_rsp(env_depth,is_global)
-            #         self.emit_to_section(
-            #         f"\tmov rdi, QWORD [rbp{offset:+}]\n\tcall check_type_and_mark_value",is_global)
-            #         #self.add_rsp(env_depth,is_global)
-            #     self.add_rsp(env_depth,is_global)
-            #     self.emit_to_section(";done marking saved args:",is_global)
-                    
-                
+        if self.CALL_GC:    
             #call collect_garbage
             self.subtract_rsp(env_depth,is_global)
             self.add_extern("collect_garbage")
@@ -901,7 +871,11 @@ class Emitter:
         self.emit_to_section(";adding args to live_locals", is_global)
         self.subtract_rsp(abs(env_depth),is_global)
         for i in range(arity):
-            self.emit_to_section(f"\tmov rax, QWORD [rbp{-(i + 1)*8}]",is_global)
+            if i > 5:
+                #for args 7 and on, that are on the other side of the stack
+                self.emit_to_section(f"\tmov rax, QWORD [rbp+{(i - 4)*8}]",is_global)
+            else:
+                self.emit_to_section(f"\tmov rax, QWORD [rbp{-(i + 1)*8}]",is_global)
             self.emit_push_live_local(is_global)
         self.add_rsp(abs(env_depth),is_global)
         self.emit_to_section(";done adding args to live_locals", is_global)

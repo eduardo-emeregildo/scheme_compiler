@@ -9,32 +9,9 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#change push_args_to_locals so that it properly pushes args 7 and on to live_locals.
-#Rn its not going on the other side of the stack
-
-#replace the args_for_function with using live_locals to store processed args
-#also check if the callable_obj_offset approach can be replaced with the use of live_locals
-#after this is done test all files to see if they pass with gc on
+#figure out why vec_list_manipulation is failing and fix.
 
 
-#figure out why closures_lambda_let isnt working. I think it might have to do with if.
-#for example if I evaluate one of the if branches and the second branch causes a collection,
-#the first branch will get collected. I have to check for all expressions. perhaps at certain points
-#the value at rax should be marked.
-
-#To generalize the above, right now some temporaries are being free too early.
-#I just finished handling temporaries in the case of processed args before a call,
-#which were stored on the stack, but there can be others. Basically whenever the result
-#of self.expression is needed at a later point, this can happen
-
-
-
-#closures_with_lambda_let and builtins.scm are failing. fix.
-#keep testing gc, see what to do about strings, determine when to call gc
-
-
-#test more/refactor the solution to the problem below that I added in Emitter with
-#the new field callable_obj_offset
 
 #rn when calling a lambda function, when its doing the call, the lambda gets freed
 #resulting in a segfault.
@@ -895,7 +872,6 @@ class Parser:
         let_name = None
         let_name_internal = self.emitter.create_lambda_name()
         is_global = self.cur_environment.is_global()
-        # offsets_used_for_args = []
         if is_global:
             self.tracker.turn_tracker_on()
         #setting up new environment for let
@@ -928,7 +904,6 @@ class Parser:
             arg_count += 1
             self.binding_spec(
             function,let_name,arg_count,parent_env_depth,parent_env,previous_function)
-            # offsets_used_for_args.append(arg_offset)
         self.next_token()
         function_ident_obj = Identifier(IdentifierType.FUNCTION,function)
         closure_obj = Identifier(IdentifierType.CLOSURE,function_ident_obj)
@@ -954,7 +929,6 @@ class Parser:
         self_arg_offset = self.emitter.push_arg(
         1,self.cur_environment,parent_env_depth,is_global)
         self.emitter.emit_to_section(";^updated self arg",is_global)
-        # offsets_used_for_args.append(self_arg_offset)
         
         #push self arg to live_locals
         self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
@@ -987,7 +961,6 @@ class Parser:
         self.emitter.emit_function_call_in_rax(is_global)
         self.emitter.add_rsp_given_arity(
         function.arity,parent_env_depth,is_global,is_alignment_needed)
-        # self.cur_environment.remove_saved_offsets(offsets_used_for_args)
         self.match(TokenType.EXPR_END)
         self.evaluate_function_call("")
     
