@@ -446,8 +446,10 @@ long _append(long self,Value *varargs)
         while (!is_list_initialized) {
                 if (vararg_cur_pair->car.type == VAL_PAIR) {
                 //copy, then check if improper
-                cur_list->car = vararg_cur_pair->car.as.pair->car;
-                cur_list->cdr = vararg_cur_pair->car.as.pair->cdr;
+                // cur_list->car = vararg_cur_pair->car.as.pair->car;
+                // cur_list->cdr = vararg_cur_pair->car.as.pair->cdr;
+                value_deep_copy(&cur_list->car,&vararg_cur_pair->car.as.pair->car);
+                value_deep_copy(&cur_list->cdr,&vararg_cur_pair->car.as.pair->cdr);
                 is_list_initialized = true;
                 cur_list = advance_lst_to_end(cur_list);
                 //if list is improper, check that current vararg is the last one
@@ -627,8 +629,10 @@ void append_to_list(struct Pair *list,struct Pair *varargs)
         bool end_of_varargs = false;
         while (!end_of_varargs) {
                 //add to the cdr of the list
-                list->cdr.type = varargs->car.type;
-                list->cdr.as.tagged_type = varargs->car.as.tagged_type;
+
+                //list->cdr.type = varargs->car.type;
+                // list->cdr.as.tagged_type = varargs->car.as.tagged_type;
+                value_deep_copy(&list->cdr,&varargs->car);
                 if (varargs->car.type == VAL_PAIR) {        
                         list = advance_lst_to_end(list);
                         if (is_list_improper(list)) {        

@@ -9,59 +9,10 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#figure out why vec_list_manipulation is still failing. I think now the problem is _append
-
-#the problem is in _append. varargs is '((1 2 3))and whats happening is that
-#inner list gets freed first and then when the outer list gets freed, it tries to
-#free the inner list again.
-
-#rn when calling a lambda function, when its doing the call, the lambda gets freed
-#resulting in a segfault.
-
-#what i think has to be done is that during function call, mark the closure thats being
-#called around the time where emitter.save_rax is called
-
-# revise free_value for closures and the rest of the types. Also take a 
-#look at blacken_value as these
-#two functions are related(blacken_value determines what wont get called by free_value)
-
-#implement free_value, do some thorough testing of sweep,free_value and gc in 
-# general. Try to create cycles, test more complex programs, 
-# programs with function calls with parameters,etc.
-
-#check how closures are supposed to be freed. Perhaps the function Value object is not
-#supposed to get freed
+#keep testing gc with the rest of the test files. Fix any bugs you find.
+#figure out when to call gc
 
 #figure out how to free character arrays, since they are in the assembly(ex: .LC0)
-
-
-#i think collect_garbage has to be handled in emit.py, that way I have access to
-#the frontend (i.e.the Environment class etc.) perhaps the gc can be called in
-#emit_identifier_to_section since most allocation is happening here.
-
-#this way when you emit asm to call collect_garbage, you can actually give it arguments
-#one of the args can be the rbp as a pointer. and the  amt of local variables 
-# the current function has, that way you can walk the stack's definitions using
-#array syntax in c (like I did for arg_list)
-
-#for globals, can perhaps give the ptr to the start of bss section, and the amount
-#of globals
-
-
-#was thinking of marking values if they're created in global scope, 
-# but in the case where the global gets redefined, the old value is no longer a root.
-
-#I think what i have to do is just look at the globals 
-# and locals in global env and add mark them.
-
-#also, the locals of the current environment have to be added as roots, since if 
-#gc is called in the middle of a function,it might need its local definitions.
-
-#this is something I need to think about more when implementing gc: the fact 
-#it could be called anywhere at anytime where there's allocation. so it could happen
-#in the middle of a function call
-
-#start making functions for deallocating, i.e. deallocate_str,deallocate_function, etc
 #-------------------------------------------------------------------------------
 
 #for adding upvalue::::::::::::::

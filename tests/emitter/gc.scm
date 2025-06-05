@@ -79,8 +79,11 @@
 
 
 
-(append '(1 2 3) 4) ;(1 2 3 . 4)
-(define foo "hey")
+(display (append '(1 2 3) '(4)))
+(define f "hey")
+; (display (append '() '() 4))
+; (display (append '()  '(1 2 3)))
+
 ; (display (append '(1 2 3) '(4)))
 
 ; (display (append 4))
