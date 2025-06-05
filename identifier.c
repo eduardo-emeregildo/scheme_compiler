@@ -560,7 +560,8 @@ Value *make_arg_list(Value *func_obj,long *args,int arg_amount)
         struct Pair *cur_pair = head;
         for (int i = varargs_index; i > -1;i--) {
                 if (is_ptr(args[i])) {
-                        cur_pair->car = *(Value *)args[i];
+                        // cur_pair->car = *(Value *)args[i];
+                        value_deep_copy(&cur_pair->car,((Value *)args[i]));
                 } else {
                         turn_to_val_type(args[i],&cur_pair->car);
                 }
@@ -593,7 +594,9 @@ Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
         struct Pair *cur_pair = head;
         for (int i = varargs_index; i > -1;i--) {
                 if (is_ptr(args[i])) {
-                        cur_pair->car = *(Value *)args[i];
+                        //cur_pair->car = *(Value *)args[i];
+                        value_deep_copy(&cur_pair->car,((Value *)args[i]));
+
                 } else {
                         turn_to_val_type(args[i],&cur_pair->car);
                 }

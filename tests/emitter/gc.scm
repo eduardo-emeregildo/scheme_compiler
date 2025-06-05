@@ -77,8 +77,16 @@
 ; (define (two arg1 arg2 arg3) (+ arg1 arg2 arg3))
 ; (display (two 1.1 (one) 3))
 
-(display (let ((a 1) (b 2) (c 3) (d 4) (e 5) (f 6) (g 7)) g))
-(define (func one two three four five six seven eight nine) (define f "hey") nine)
+
+
+(append '(1 2 3) 4) ;(1 2 3 . 4)
+(define foo "hey")
+; (display (append '(1 2 3) '(4)))
+
+; (display (append 4))
+; (display (append '(1 2 3)))
+; (define foo "hey")
+;(display (append '()))
 
 ;lambda test
 ; (define glob 1)

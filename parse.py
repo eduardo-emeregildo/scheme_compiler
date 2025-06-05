@@ -9,9 +9,11 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#figure out why vec_list_manipulation is failing and fix.
+#figure out why vec_list_manipulation is still failing. I think now the problem is _append
 
-
+#the problem is in _append. varargs is '((1 2 3))and whats happening is that
+#inner list gets freed first and then when the outer list gets freed, it tries to
+#free the inner list again.
 
 #rn when calling a lambda function, when its doing the call, the lambda gets freed
 #resulting in a segfault.
