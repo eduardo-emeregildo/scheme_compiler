@@ -78,16 +78,24 @@
 ; (display (two 1.1 (one) 3))
 
 
+; fix this before the last line it works, but calling gc after globalGet call
+; causes a segfault, probably due to set!
+(display "example from crafting interpreters, should print updated:")
+(define globalSet 0)
+(define globalGet 1)
+(define (main_func)
+  (define a "initial")
+  (define (setter) (set! a "updated"))
+  (define (getter) (display a))
+  (set! globalSet setter) (set! globalGet getter))
+(main_func)
+(globalSet)
+(globalGet)
+(define fooo "foo")
 
-(display (append '(1 2 3) '(4)))
-(define f "hey")
-; (display (append '() '() 4))
-; (display (append '()  '(1 2 3)))
 
-; (display (append '(1 2 3) '(4)))
 
-; (display (append 4))
-; (display (append '(1 2 3)))
+
 ; (define foo "hey")
 ;(display (append '()))
 

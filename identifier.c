@@ -787,9 +787,10 @@ void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt)
                                 turn_to_val_type(new_val,(Value *)upvalues[i].value);
                         } else {
                                 Value *cur_upvalue = (Value *)upvalues[i].value;
-                                cur_upvalue->type = ((Value *)new_val)->type;
-                                cur_upvalue->as.tagged_type = ((Value *)new_val)->as.tagged_type;
-                                free((Value *)new_val);
+                                // cur_upvalue->type = ((Value *)new_val)->type;
+                                // cur_upvalue->as.tagged_type = ((Value *)new_val)->as.tagged_type;
+                                // free((Value *)new_val);
+                                value_deep_copy(cur_upvalue,((Value *)new_val));
                         }
 
                         return;
@@ -817,9 +818,10 @@ long setexclam(long definition,long new_val)
 
         } else {
                 Value *new_val_obj = (Value *)new_val;
-                definition_obj->type = new_val_obj->type;
-                definition_obj->as.tagged_type = new_val_obj->as.tagged_type;
-                free((Value *)new_val);
+                // definition_obj->type = new_val_obj->type;
+                // definition_obj->as.tagged_type = new_val_obj->as.tagged_type;
+                // free((Value *)new_val);
+                value_deep_copy(definition_obj,new_val_obj);
         }
         return definition;
 }
