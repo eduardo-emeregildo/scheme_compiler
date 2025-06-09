@@ -9,7 +9,11 @@ const unsigned long BOOL_MASK = 0x2;
 const unsigned long CHAR_MASK = 0x4;
 const unsigned long TAGGED_TYPE_MASK = 0X7;
 const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
+//these are to determine when the gc should be called
+int bytes_allocated = 0;
+int next_gc = 512;
 #define LIVE_LOCAL_MAX 256
+#define GC_HEAP_GROW_FACTOR 2;
 
 /*
 live_locals is a stack to track the locals that are currently in use. the main 
@@ -84,18 +88,11 @@ Value *make_tagged_ptr(size_t num_value_objects)
         #ifdef DEBUG_STRESS_GC
                 collect_garbage();
         #endif
-        //Value *p = (Value *)malloc(sizeof(Value)*num_value_objects);
         Value *p = (Value *)calloc(num_value_objects,sizeof(Value));
         if (p == NULL) {
                 abort_message("Ran out of memory or tried to allocate negative bytes.");
         }
-
-        //adding all value ptrs to linked list
-        // for (int i = 0; i < num_value_objects; i++) {
-        //         add_object(&p[i]);
-        // }
-
-        // for arrays just the start ptr needed to free so no need for the for loop
+        bytes_allocated += sizeof(Value) * num_value_objects;
         add_object(p);
         return p;
 }
@@ -175,6 +172,7 @@ struct Str *allocate_str(char *str)
         #endif
         struct Str *str_obj = (struct Str *)malloc(sizeof(struct Str));
         validate_ptr(str_obj);
+        bytes_allocated += sizeof(struct Str);
         size_t length = strlen(str);
         str_obj->length = length;
         str_obj->chars = str;
@@ -190,6 +188,7 @@ struct Pair *allocate_pair()
         #endif
         struct Pair *pair_obj = (struct Pair *)calloc(1,sizeof(struct Pair));
         validate_ptr(pair_obj);
+        bytes_allocated += sizeof(struct Pair);
         pair_obj->car.type = VAL_EMPTY_LIST;
         pair_obj->cdr.type = VAL_EMPTY_LIST;
         //add_object(&pair_obj->car);
@@ -205,6 +204,7 @@ struct Vector *allocate_vector(Value *vec_elts,size_t size)
         #endif
         struct Vector *vec_obj = (struct Vector *)malloc(sizeof(struct Vector));
         validate_ptr(vec_obj);
+        bytes_allocated += sizeof(struct Vector);
         vec_obj->size = size;
         vec_obj->items = vec_elts;
         return vec_obj;
@@ -217,6 +217,7 @@ struct FuncObj *allocate_function(void *function_addr,bool is_variadic,int arity
         #endif
         struct FuncObj *func = (struct FuncObj *)malloc(sizeof(struct FuncObj));
         validate_ptr(func);
+        bytes_allocated += sizeof(struct FuncObj);
         func->function_ptr = function_addr;
         func->is_variadic = is_variadic;
         func->arity = arity;
@@ -230,9 +231,11 @@ struct ClosureObj *allocate_closure(Value *function)
         #endif
         struct ClosureObj *closure = (struct ClosureObj *)malloc(sizeof(struct ClosureObj));
         validate_ptr(closure);
+        bytes_allocated += sizeof(struct ClosureObj);
         closure->function = function;
         closure->upvalues = (struct UpvalueObj *)malloc(sizeof(struct UpvalueObj)*4);
         validate_ptr(closure->upvalues);
+        bytes_allocated += sizeof(struct UpvalueObj) * 4;
         closure->num_upvalues = 0;
         return closure;
 }
@@ -698,7 +701,9 @@ Value *add_upvalue(Value *closure,long value, int offset, int nesting_count)
                 #ifdef DEBUG_STRESS_GC
                         collect_garbage();
                 #endif
+                bytes_allocated -= (sizeof(struct UpvalueObj) *upvalue_count);
                 struct UpvalueObj* new_upvalues = (struct UpvalueObj *)malloc(new_size);
+                bytes_allocated += new_size;
                 int num_bytes = upvalue_count * sizeof(struct UpvalueObj);
                 memcpy(new_upvalues,closure->as.closure->upvalues,num_bytes);
                 free(closure->as.closure->upvalues);
@@ -959,7 +964,18 @@ void mark_locals(Value *self_closure)
 
 void collect_garbage(Value **global_start, long global_count, Value *self_closure)
 {
+        
+        if (bytes_allocated < 0) {
+                abort_message("There's a problem with how im deducting bytes_allocated.\n");
+
+        }
+        if (bytes_allocated < next_gc) {
+                printf("only %d bytes have been allocated, so not enough to call gc\n",bytes_allocated);
+                return;
+        }
         printf("--gc begin\n");
+        printf("BYTES ALLOCATED IS: %d\n",bytes_allocated);
+        int prev_bytes_allocated = bytes_allocated;
         printf("global count is %ld\n",global_count);
         printf("collect_garbage being called :D\n");
         printf("Walking through global definitions:\n");
@@ -975,6 +991,10 @@ void collect_garbage(Value **global_start, long global_count, Value *self_closur
         printf("NOW SWEEPING:\n");
         sweep();
         reset_graystack();
+        printf(
+        "After gc finished running, bytes_allocated is now %d, so %d bytes were freed\n"
+        ,bytes_allocated,prev_bytes_allocated - bytes_allocated);
+        next_gc = bytes_allocated * GC_HEAP_GROW_FACTOR;
         printf("--gc end\n\n");
 }
 
@@ -1069,6 +1089,7 @@ void free_value(Value *val,bool is_ptr_freeable)
         case VAL_STR:
                 printf("freeing string\n");
                 free(val->as.str);
+                bytes_allocated -= sizeof(struct Str);
                 val->as.str = NULL;
                 break;
         case VAL_PAIR:
@@ -1077,16 +1098,20 @@ void free_value(Value *val,bool is_ptr_freeable)
                 free_value(&(val->as.pair->cdr),false);
                 //free(val->as.pair);
                 printf("done freeing pair\n");
+                bytes_allocated -= sizeof(struct Pair);
                 break;
         case VAL_FUNCTION:
                 printf("freeing function\n");
                 free(val->as.function);
+                bytes_allocated -= sizeof(struct FuncObj);
                 val->as.function = NULL;
                 break;
         case VAL_CLOSURE:
                 printf("freeing closure\n");
                 free(val->as.closure->upvalues);
+                bytes_allocated -= (sizeof(struct UpvalueObj) * val->as.closure->num_upvalues);
                 free(val->as.closure);
+                bytes_allocated -= sizeof(struct ClosureObj);
                 val->as.closure->upvalues = NULL;
                 val->as.closure = NULL;
                 break;
@@ -1101,11 +1126,14 @@ void free_value(Value *val,bool is_ptr_freeable)
                         free_value(&vec_items[i],false);
                 }
                 free(val->as.vector);
+                bytes_allocated -= sizeof(struct Vector);
+                bytes_allocated -= (sizeof(Value) * (size-1));
                 val->as.vector = NULL;
                 break;
         case VAL_SYMBOL:
                 printf("freeing symbol\n");
                 free(val->as.str);
+                bytes_allocated -= sizeof(struct Str);
                 val->as.str = NULL;
                 break;
         default:
@@ -1115,6 +1143,7 @@ void free_value(Value *val,bool is_ptr_freeable)
         if (is_ptr_freeable) {
                 //free the actual value type
                 printf("now freeing actual value struct, with address %p\n",val);
+                bytes_allocated -= sizeof(Value);
                 free(val);
         } else {
                 printf("Val is not freeable.\n");

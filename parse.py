@@ -9,8 +9,11 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#keep testing gc with the rest of the test files. Fix any bugs you find.
-#figure out when to call gc
+#fix how im deducting bytes_allocated. builtins.scm test currently failing
+
+#figure out when to call gc.
+#add the check to see if gc should be run without changing how the emitting
+#works
 
 #figure out how to free character arrays, since they are in the assembly(ex: .LC0)
 #-------------------------------------------------------------------------------
