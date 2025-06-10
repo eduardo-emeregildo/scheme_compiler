@@ -9,9 +9,10 @@ const unsigned long BOOL_MASK = 0x2;
 const unsigned long CHAR_MASK = 0x4;
 const unsigned long TAGGED_TYPE_MASK = 0X7;
 const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
+#define DEBUG_SYMBOLS_GC
 //these are to determine when the gc should be called
 int bytes_allocated = 0;
-int next_gc = 512;
+int next_gc = 2048;
 #define LIVE_LOCAL_MAX 256
 #define GC_HEAP_GROW_FACTOR 2;
 
@@ -85,9 +86,6 @@ long untag_int(long num)
 
 Value *make_tagged_ptr(size_t num_value_objects)
 {
-        #ifdef DEBUG_STRESS_GC
-                collect_garbage();
-        #endif
         Value *p = (Value *)calloc(num_value_objects,sizeof(Value));
         if (p == NULL) {
                 abort_message("Ran out of memory or tried to allocate negative bytes.");
@@ -167,9 +165,6 @@ Str object. symbol types will also use this object
 */
 struct Str *allocate_str(char *str)
 {
-        #ifdef DEBUG_STRESS_GC
-                collect_garbage();
-        #endif
         struct Str *str_obj = (struct Str *)malloc(sizeof(struct Str));
         validate_ptr(str_obj);
         bytes_allocated += sizeof(struct Str);
@@ -183,9 +178,6 @@ struct Str *allocate_str(char *str)
 // allocates empty pair
 struct Pair *allocate_pair() 
 {
-        #ifdef DEBUG_STRESS_GC
-                collect_garbage();
-        #endif
         struct Pair *pair_obj = (struct Pair *)calloc(1,sizeof(struct Pair));
         validate_ptr(pair_obj);
         bytes_allocated += sizeof(struct Pair);
@@ -199,9 +191,6 @@ struct Pair *allocate_pair()
 //takes in array of vector objects that are already allocated to the heap.
 struct Vector *allocate_vector(Value *vec_elts,size_t size)
 {
-        #ifdef DEBUG_STRESS_GC
-                collect_garbage();
-        #endif
         struct Vector *vec_obj = (struct Vector *)malloc(sizeof(struct Vector));
         validate_ptr(vec_obj);
         bytes_allocated += sizeof(struct Vector);
@@ -212,9 +201,6 @@ struct Vector *allocate_vector(Value *vec_elts,size_t size)
 
 struct FuncObj *allocate_function(void *function_addr,bool is_variadic,int arity)
 {
-        #ifdef DEBUG_STRESS_GC
-                collect_garbage();
-        #endif
         struct FuncObj *func = (struct FuncObj *)malloc(sizeof(struct FuncObj));
         validate_ptr(func);
         bytes_allocated += sizeof(struct FuncObj);
@@ -226,9 +212,6 @@ struct FuncObj *allocate_function(void *function_addr,bool is_variadic,int arity
 
 struct ClosureObj *allocate_closure(Value *function)
 {
-        #ifdef DEBUG_STRESS_GC
-                collect_garbage();
-        #endif
         struct ClosureObj *closure = (struct ClosureObj *)malloc(sizeof(struct ClosureObj));
         validate_ptr(closure);
         bytes_allocated += sizeof(struct ClosureObj);
@@ -698,9 +681,7 @@ Value *add_upvalue(Value *closure,long value, int offset, int nesting_count)
         if (upvalue_count != 0 && ((upvalue_count & 0x3) == 0)) {
                 printf("Resizing:\n");
                 int new_size = sizeof(struct UpvalueObj) * ((upvalue_count) * 2);
-                #ifdef DEBUG_STRESS_GC
-                        collect_garbage();
-                #endif
+
                 bytes_allocated -= (sizeof(struct UpvalueObj) *upvalue_count);
                 struct UpvalueObj* new_upvalues = (struct UpvalueObj *)malloc(new_size);
                 bytes_allocated += new_size;
@@ -837,7 +818,9 @@ Value *mark_value(Value *val)
                 val->is_marked = true;
                 push_graystack(val);
         } else {
-                printf("VALUE WAS ALREADY MARKED!\n");
+                #ifdef DEBUG_SYMBOLS_GC
+                        printf("VALUE WAS ALREADY MARKED!\n");
+                #endif
         }
         return val;
 }
@@ -859,27 +842,25 @@ void add_object(Value *val_type)
         new_object->next = NULL;
         //no objects on the heap, initializing the list so it has one object
         if (head == NULL) {
-                #ifdef DEBUG_LOG_GC
-                        printf("Initializing list of objects..\n");
-                #endif
                 head = new_object;
                 tail = head;
                 return;
         }
         tail->next = new_object;
         tail = new_object;
-        #ifdef DEBUG_LOG_GC
-                printf("Added object to list!\n");
-        #endif
 }
 
 void mark_globals(Value **global_start,int global_count)
 {
         if (global_start == NULL) {
-                printf("first global def hasn't been set yet.\n");
+                #ifdef DEBUG_SYMBOLS_GC
+                        printf("first global def hasn't been set yet.\n");
+                #endif
                 return;
         }
-        printf("in mark_globals, about to iterate all globals:\n");
+        #ifdef DEBUG_SYMBOLS_GC
+                printf("in mark_globals, about to iterate all globals:\n");
+        #endif
         for (int i = 0; i < global_count; i++) {
                 Value *current_global = global_start[i];
                 if (current_global == NULL) {
@@ -888,54 +869,23 @@ void mark_globals(Value **global_start,int global_count)
                         hasnt been written to yet. this happens when the definition
                         is in the process of being made
                         */
-                        printf("definition %d is null.\n",i);
+                       #ifdef DEBUG_SYMBOLS_GC
+                                printf("definition %d is null.\n",i);
+                       #endif
+                        
                 }
                 else if (!is_ptr((long)current_global)) {
-                        printf("definition %d is not a pointer.\n",i);
+                        #ifdef DEBUG_SYMBOLS_GC
+                                printf("definition %d is not a pointer.\n",i);
+                        #endif
                 } else {
-                        printf("definition %d's TYPE IS: %d\n",i,((Value *)current_global)->type);
+                        #ifdef DEBUG_SYMBOLS_GC
+                                printf("definition %d's TYPE IS: %d\n",i,((Value *)current_global)->type);
+                        #endif
                         mark_value(current_global);
-                        //push_graystack(current_global);
                 }
         }
 }
-
-// walks through locals which are on live_locals
-
-// loop starts at the last definition and stops at the first, which is always the
-// self arg.
-// void mark_locals(Value **local_start, int local_count)
-// {
-//         if (local_start == NULL) {
-//                 printf("in global scope, therefore no locals.\n");
-//                 return;
-//         }
-//         for (int i = 0; i < local_count; i++) {
-//                 Value *current_local = local_start[i];
-//                 if (current_local == NULL) {
-//                         //a global definition is null when its spot in the bss section
-//                         // hasnt been written to yet. 
-//                         printf("definition %d is null.\n",i);
-//                 }
-//                 else if (!is_ptr((long)current_local)) {
-//                         printf("definition %d is not a pointer.\n",i);
-//                 } else {
-//                         printf("definition %d's TYPE IS: %d\n",i,((Value *)current_local)->type);
-//                         mark_value(current_local);
-//                         //push_graystack(current_local);
-//                 }
-//         }
-//         printf("Now marking upvalues:\n");
-//         Value *self_closure = local_start[local_count - 1];
-//         struct UpvalueObj *upvalues = self_closure->as.closure->upvalues;
-//         int upval_count = self_closure->as.closure->num_upvalues;
-//         for (int i = 0; i < upval_count; i++) {
-//                 printf("upvalue %d being marked.\n",i);
-//                 mark_value((Value*)upvalues[i].value);
-//                 //push_graystack((Value*)upvalues[i].value);
-//         }
-
-// }
 
 void mark_locals(Value *self_closure)
 {
@@ -945,18 +895,28 @@ void mark_locals(Value *self_closure)
                 }
 
         }
-        printf("now marking upvalues:\n");
+        #ifdef DEBUG_SYMBOLS_GC
+                printf("now marking upvalues:\n");
+        #endif
+        
         if (self_closure == NULL) {
-                printf("in global scope, so no upvalues.\n");
+                #ifdef DEBUG_SYMBOLS_GC
+                        printf("in global scope, so no upvalues.\n");
+                #endif
                 return;
         }
         struct UpvalueObj *upvalues = self_closure->as.closure->upvalues;
         int upval_count = self_closure->as.closure->num_upvalues;
         for (int i = 0; i < upval_count; i++) {
-                printf("upvalue %d being marked.\n",i);
+                #ifdef DEBUG_SYMBOLS_GC
+                        printf("upvalue %d being marked.\n",i);
+                #endif
                 mark_value((Value*)upvalues[i].value);
         }
-        printf("done marking upvalues:\n");
+        #ifdef DEBUG_SYMBOLS_GC
+                printf("done marking upvalues:\n");
+        #endif
+        
 }
 
 
@@ -964,38 +924,47 @@ void mark_locals(Value *self_closure)
 
 void collect_garbage(Value **global_start, long global_count, Value *self_closure)
 {
-        
         if (bytes_allocated < 0) {
                 abort_message("There's a problem with how im deducting bytes_allocated.\n");
 
         }
-        if (bytes_allocated < next_gc) {
-                printf("only %d bytes have been allocated, so not enough to call gc\n",bytes_allocated);
+        if (bytes_allocated <= next_gc) {
+                //printf("only %d bytes of the %d bytes have been allocated, so not enough to call gc\n",bytes_allocated,next_gc);
                 return;
         }
-        printf("--gc begin\n");
-        printf("BYTES ALLOCATED IS: %d\n",bytes_allocated);
-        int prev_bytes_allocated = bytes_allocated;
-        printf("global count is %ld\n",global_count);
-        printf("collect_garbage being called :D\n");
-        printf("Walking through global definitions:\n");
+        #ifdef DEBUG_SYMBOLS_GC
+                printf("--gc begin\n");
+                printf("BYTES ALLOCATED IS: %d\n",bytes_allocated);
+                int prev_bytes_allocated = bytes_allocated;
+                printf("global count is %ld\n",global_count);
+                printf("collect_garbage being called :D\n");
+                printf("Walking through global definitions:\n");
+        #endif
         mark_globals(global_start,global_count);
-        printf("now walking through local definitions:\n");
+        #ifdef DEBUG_SYMBOLS_GC
+                printf("now walking through local definitions:\n");
+        #endif
         mark_locals(self_closure);
-        printf("number of values in graystack is: %d\n",gray_count);
-        for (int i = 0 ; i < gray_count; i++) {
-                printf("graystack item %d's type is: %d\n",i, gray_stack[i]->type);
-        }
-        printf("now getting indirect references:\n");
+        #ifdef DEBUG_SYMBOLS_GC
+                printf("number of values in graystack is: %d\n",gray_count);
+                for (int i = 0 ; i < gray_count; i++) {
+                        printf("graystack item %d's type is: %d\n",i, gray_stack[i]->type);
+                }
+                printf("now getting indirect references:\n");
+        #endif
         trace_references();
-        printf("NOW SWEEPING:\n");
+        #ifdef DEBUG_SYMBOLS_GC
+                printf("NOW SWEEPING:\n");
+        #endif
         sweep();
         reset_graystack();
-        printf(
-        "After gc finished running, bytes_allocated is now %d, so %d bytes were freed\n"
-        ,bytes_allocated,prev_bytes_allocated - bytes_allocated);
         next_gc = bytes_allocated * GC_HEAP_GROW_FACTOR;
-        printf("--gc end\n\n");
+        #ifdef DEBUG_SYMBOLS_GC
+                printf(
+                "After gc finished running, bytes_allocated is now %d, so %d bytes were freed\n"
+                ,bytes_allocated,prev_bytes_allocated - bytes_allocated);
+                printf("--gc end\n\n");
+        #endif
 }
 
 void push_graystack(Value *gray_value)
@@ -1005,20 +974,23 @@ void push_graystack(Value *gray_value)
         }
         gray_stack[gray_count] = gray_value;
         gray_count++;
-        printf("added object to gray stack\n");
+        #ifdef DEBUG_SYMBOLS_GC
+                printf("added object to gray stack\n");
+        #endif
+        
 }
 //to grow gray_stack
 void grow_capacity()
 {
        //initialization
         if (gray_stack == NULL) {
-                printf("initializing gray_stack\t");
+                //printf("initializing gray_stack\t");
                 gray_stack = calloc(1,sizeof(Value*));
                 validate_ptr(gray_stack);
                 gray_capacity = 1;
                 return;
         }
-        printf("resizing gray_stack\t");
+        //printf("resizing gray_stack\t");
         gray_capacity *= 2;
         gray_stack = realloc(gray_stack,gray_capacity * sizeof(Value*));
         validate_ptr(gray_stack);
@@ -1047,19 +1019,14 @@ void blacken_value(Value *val)
         case VAL_PAIR:
                 mark_value(&(val->as.pair->car));
                 mark_value(&(val->as.pair->cdr));
-                //blacken_value(&(val->as.pair->car));
-                //blacken_value(&(val->as.pair->cdr));
                 break;
         case VAL_CLOSURE:
                 int upval_count = val->as.closure->num_upvalues;
                 struct UpvalueObj *upvalues = val->as.closure->upvalues;
                 mark_value(val->as.closure->function);
-                //push_graystack(val->as.closure->function);
-
                 //now add all upvalues to graystack
                 for (int i = 0; i < upval_count; i++) {
                         mark_value((Value*)upvalues[i].value);
-                        //push_graystack((Value*)upvalues[i].value);
                 }
                 break;
         case VAL_VECTOR:
@@ -1071,7 +1038,9 @@ void blacken_value(Value *val)
                 }
                 break;
         default:
-                printf("value being blackened has no indirect references.\n");
+                #ifdef DEBUG_SYMBOLS_GC
+                        printf("value being blackened has no indirect references.\n");
+                #endif
                 break;
         }
 }
@@ -1084,30 +1053,26 @@ void free_value(Value *val,bool is_ptr_freeable)
                 printf("value was already freed!\n");
                 return;
         }
+        #ifdef DEBUG_SYMBOLS_GC
+                printf("freeing val of type %d\n",val->type);
+        #endif 
         //free the fields of val
         switch(val->type) {
         case VAL_STR:
-                printf("freeing string\n");
                 free(val->as.str);
                 bytes_allocated -= sizeof(struct Str);
                 val->as.str = NULL;
                 break;
         case VAL_PAIR:
-                printf("freeing pair\n");
                 free_value(&(val->as.pair->car),true);
                 free_value(&(val->as.pair->cdr),false);
-                //free(val->as.pair);
-                printf("done freeing pair\n");
-                bytes_allocated -= sizeof(struct Pair);
                 break;
         case VAL_FUNCTION:
-                printf("freeing function\n");
                 free(val->as.function);
                 bytes_allocated -= sizeof(struct FuncObj);
                 val->as.function = NULL;
                 break;
         case VAL_CLOSURE:
-                printf("freeing closure\n");
                 free(val->as.closure->upvalues);
                 bytes_allocated -= (sizeof(struct UpvalueObj) * val->as.closure->num_upvalues);
                 free(val->as.closure);
@@ -1116,10 +1081,9 @@ void free_value(Value *val,bool is_ptr_freeable)
                 val->as.closure = NULL;
                 break;
         case VAL_VECTOR:
-                printf("freeing vector\n");
                 int size = val->as.vector->size;
                 Value *vec_items = val->as.vector->items;
-                printf("freeing items of vector:\n");
+                //printf("freeing items of vector:\n");
                 //starts at i = 1 because vec_items[0] is already in the linked list,
                 // so will get picked up
                 for (int i = 1; i < size; i++) {
@@ -1127,27 +1091,23 @@ void free_value(Value *val,bool is_ptr_freeable)
                 }
                 free(val->as.vector);
                 bytes_allocated -= sizeof(struct Vector);
-                bytes_allocated -= (sizeof(Value) * (size-1));
                 val->as.vector = NULL;
                 break;
         case VAL_SYMBOL:
-                printf("freeing symbol\n");
                 free(val->as.str);
                 bytes_allocated -= sizeof(struct Str);
                 val->as.str = NULL;
                 break;
         default:
-                printf("freeing type %d, which didnt require special handling\n",val->type);
+                //type didnt require special handling
                 break;
         }
         if (is_ptr_freeable) {
                 //free the actual value type
-                printf("now freeing actual value struct, with address %p\n",val);
-                bytes_allocated -= sizeof(Value);
+                // printf("now freeing actual value struct, with address %p\n",val);
                 free(val);
-        } else {
-                printf("Val is not freeable.\n");
         }
+        bytes_allocated -= sizeof(Value);
         val = NULL;
 }
 
@@ -1160,8 +1120,12 @@ void sweep()
         Object *cur_obj = head;
         Object *prev_obj = NULL;
         while (cur_obj != NULL) {
-                printf(
-                "IN SWEEP. TYPE IS: %d. is_marked is: %d\n",cur_obj->value->type,cur_obj->value->is_marked);
+                #ifdef DEBUG_SYMBOLS_GC
+                        printf(
+                        "IN SWEEP. TYPE IS: %d. is_marked is: %d\n",
+                        cur_obj->value->type,cur_obj->value->is_marked);
+                #endif
+                
                 if (cur_obj->value->is_marked) {
                         //set it back to false for next time gc is called
                         cur_obj->value->is_marked = false;
@@ -1175,13 +1139,11 @@ void sweep()
                         //fix pointers of linked list
                         
                         if (prev_obj == NULL) {
-                                //object being freed is the 
-                                printf("freeing the head.\n");
+                                //object being freed is the head
                                 head = cur_obj->next;
                                 free(cur_obj);
                                 cur_obj = head;
                         } else {
-                                printf("freeing normal object.\n");
                                 prev_obj->next = cur_obj->next;
                                 free(cur_obj);
                                 cur_obj = prev_obj->next;

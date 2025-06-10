@@ -9,6 +9,8 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
+#the if condition in collect_garbage (bytes_allocated <= next_gc) is making closures_lambda_let not pass.
+#fix this.
 #fix how im deducting bytes_allocated. builtins.scm test currently failing
 
 #figure out when to call gc.
