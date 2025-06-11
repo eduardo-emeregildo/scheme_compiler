@@ -9,14 +9,8 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
-#the if condition in collect_garbage (bytes_allocated <= next_gc) is making closures_lambda_let not pass.
-#fix this.
-#fix how im deducting bytes_allocated. builtins.scm test currently failing
-
-#figure out when to call gc.
-#add the check to see if gc should be run without changing how the emitting
-#works
-
+#keep testing gc
+#see if i can remove emitting assembly to call collect_garbage
 #figure out how to free character arrays, since they are in the assembly(ex: .LC0)
 #-------------------------------------------------------------------------------
 
