@@ -746,13 +746,11 @@ class Emitter:
             offset = env_depth - (8*arg_num)
             self.emit_to_section(
             f"\tmov QWORD [rbp{offset:+}],rax",is_global)
-            cur_env.save_arg_offset(offset)
             return offset
         #since arity is known, push arguments backwards
         offset = env_depth - ((arity-(arg_num - 1))*8)
         self.emit_to_section(
         f"\tmov QWORD [rbp{offset:+}], rax",is_global)
-        cur_env.save_arg_offset(offset)
         return offset
     
     def emit_pass_by_value(self,env_depth,is_global):

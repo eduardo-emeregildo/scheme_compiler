@@ -443,10 +443,12 @@ long move_local_to_heap(long local)
 {
         //if already on the heap
         if (is_ptr(local)) {
+                push_to_live_local((Value *)local);
                 return local;
         }
         Value* local_heap = make_tagged_ptr(1);
         turn_to_val_type(local,local_heap);
+        push_to_live_local(local_heap);
         return (long)local_heap;
 }
 
@@ -909,7 +911,7 @@ void mark_locals(Value *self_closure)
         int upval_count = self_closure->as.closure->num_upvalues;
         for (int i = 0; i < upval_count; i++) {
                 #ifdef DEBUG_SYMBOLS_GC
-                        printf("upvalue %d being marked.\n",i);
+                        printf("upvalue %d of type %d being marked.\n",i,((Value*)upvalues[i].value)->type);
                 #endif
                 mark_value((Value*)upvalues[i].value);
         }
@@ -1175,6 +1177,7 @@ void pop_n_locals(int amount_to_pop)
 {
         int new_top = live_locals_top - amount_to_pop;
         if (new_top < 0) {
+                printf("live_locals_top is: %d, amount_to_pop is: %d\n",live_locals_top,amount_to_pop);
                 abort_message("live_locals does not have n objects to pop\n");
         }
         live_locals_top = new_top;

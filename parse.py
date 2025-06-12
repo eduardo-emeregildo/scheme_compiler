@@ -9,6 +9,11 @@ from upvalue import *
 #-------------------------------------------------------------------------------
 
 #TODO:
+#first fix problem with gc.scm failing after adding a function call above.
+#seems like something is being collected too early
+#perhaps let or lambda might be collected as its being compiled
+
+#check all builtins to see if value_deep_copy needs to be used in them (make_vector,vector_set etc)
 #keep testing gc
 #see if i can remove emitting assembly to call collect_garbage
 #figure out how to free character arrays, since they are in the assembly(ex: .LC0)
@@ -232,6 +237,9 @@ class Parser:
                         self.emitter.save_rax(self.cur_environment)
                         self.emitter.emit_move_local_to_heap(
                         upvalue_offset,self.cur_environment)
+                        
+                        self.cur_environment.locals_moved_to_heap_count += 1
+                        
                         self.cur_environment.set_def_as_captured(request[1])
                         env_depth = self.cur_environment.depth
                         #restore rax
@@ -1358,6 +1366,9 @@ class Parser:
                     if not is_captured:
                         self.emitter.emit_move_local_to_heap(
                         upvalue_offset,self.cur_environment)
+                        
+                        self.cur_environment.locals_moved_to_heap_count += 1
+                        
                         self.cur_environment.set_def_as_captured(request[1])
                     self.emitter.emit_add_upvalue(
                     self.cur_environment,inner_function_offset,upvalue_offset,nest_count)
@@ -1369,7 +1380,11 @@ class Parser:
             
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
-        live_locals_count = function.arity + len(function.local_definitions)
+        live_locals_count = function.arity + len(function.local_definitions) + \
+        self.cur_environment.locals_moved_to_heap_count
+        print("ENV NAME IS: ",self.cur_environment.name," LOCALS_MOVED_TO_HEAP_COUNT IS: ", self.cur_environment.locals_moved_to_heap_count)
+        print("LIVE_LOCALS_COUNT IS: ",live_locals_count)
+        self.emitter.emit_to_section(";popping live locals on function exit",self.cur_environment.is_global())
         self.emitter.pop_live_locals(self.cur_environment,live_locals_count)
         self.emitter.emit_function_epilog()
         

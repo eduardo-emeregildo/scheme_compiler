@@ -93,6 +93,8 @@
 ; (globalGet)
 ; (define fooo "foo")
 
+
+(+ 3 4 5 6)
 (define (assoc val alist) 
     (if (null? alist) #f 
         (if (equal? val (car (car alist))) (car alist) (assoc val (cdr alist)))))
@@ -116,7 +118,7 @@
 (define fast_square (memoize slow_square))
 (display (fast_square 4)) ;; Computes. Only prints computing once
 (display (fast_square 4)) ;; Uses cache, doesnt print computing
-(display (fast_square 4)) ;; Uses cache, doesnt print computing
+;(display (fast_square 5)) ;; Uses cache, doesnt print computing
 
 
 ; (define foo "hey")
