@@ -5,15 +5,7 @@ from environment import *
 from function import *
 from upvalue import *
 
-#Stuff to do:
-#-------------------------------------------------------------------------------
-
 #TODO:
-#first fix problem with gc.scm failing after adding a function call above.
-#seems like something is being collected too early
-#perhaps let or lambda might be collected as its being compiled
-
-#check all builtins to see if value_deep_copy needs to be used in them (make_vector,vector_set etc)
 #keep testing gc
 #see if i can remove emitting assembly to call collect_garbage
 #figure out how to free character arrays, since they are in the assembly(ex: .LC0)
@@ -834,6 +826,7 @@ class Parser:
         is_global = self.cur_environment.is_global()
         if is_global:
             self.tracker.turn_tracker_on()
+        self.emitter.emit_to_section(";start of let args:",is_global)
         #setting up new environment for let
         parent_env = self.cur_environment
         parent_env_depth = self.cur_environment.depth
@@ -963,6 +956,9 @@ class Parser:
         
         self.expression()
         is_global = self.cur_environment.is_global()
+        
+        self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
+        
         arg_offset = self.emitter.push_arg(
         arg_count,self.cur_environment,parent_env_depth,is_global)
         self.cur_environment.depth -= 8

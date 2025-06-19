@@ -99,7 +99,6 @@
     (if (null? alist) #f 
         (if (equal? val (car (car alist))) (car alist) (assoc val (cdr alist)))))
 
-
 (define (memoize f)
   (let ((cache '()))
     (lambda (x)
@@ -118,7 +117,8 @@
 (define fast_square (memoize slow_square))
 (display (fast_square 4)) ;; Computes. Only prints computing once
 (display (fast_square 4)) ;; Uses cache, doesnt print computing
-;(display (fast_square 5)) ;; Uses cache, doesnt print computing
+;(display (fast_square 5)) ;; Uses cache, doesnt print 
+
 
 
 ; (define foo "hey")

@@ -821,7 +821,7 @@ Value *mark_value(Value *val)
                 push_graystack(val);
         } else {
                 #ifdef DEBUG_SYMBOLS_GC
-                        printf("VALUE WAS ALREADY MARKED!\n");
+                        printf("VALUE OF TYPE %d WAS ALREADY MARKED!\n",val->type);
                 #endif
         }
         return val;
