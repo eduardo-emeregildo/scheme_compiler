@@ -20,7 +20,7 @@ class Emitter:
         self.includes = {f'%include "place_args.inc"'}
         self.externs = set() #for tracking which externs need to be added
         self.local_labels = [] #for creating character arrays. will go under
-        #main section. if i wanna add string interning this is where i would have to look
+        #main section.
         self.bss_section = "section .bss\n"
         self.text_section = "section .text\nglobal main\n"
         self.main_code = "main:\n\tpush rbp\n\tmov rbp,rsp\n"
@@ -151,8 +151,6 @@ class Emitter:
                     return '\n'.join(asm_code)
                 asm_code.append(self.compile_list(ident_obj,cur_environment))
                 asm_code.append("\tmov rdi, rsi\n\tcall make_value_pair")                
-                # self.add_extern("print_list")
-                # asm_code.append("\tmov rdi,rax\n\tcall print_list")
                 return '\n'.join(asm_code)
             case IdentifierType.VECTOR:
                 self.add_extern("make_value_vector")
@@ -160,8 +158,6 @@ class Emitter:
                 asm_code.append(self.compile_vector(ident_obj,cur_environment))
                 asm_code.append(f"\tmov rdi,rsi\n\tmov rsi,{len(ident_obj.value)}")
                 asm_code.append("\tcall make_value_vector")
-                # self.add_extern("print_vector")
-                # asm_code.append("\tmov rdi,rax\n\tcall print_vector")
                 return '\n'.join(asm_code)
             case IdentifierType.FUNCTION:
                 if ident_obj.value.name in BUILTINS:
@@ -177,7 +173,7 @@ class Emitter:
                 asm_code.append(f"\tmov rdi, rax\n\tcall make_value_function")
                 return '\n'.join(asm_code)
             case IdentifierType.CLOSURE:
-                #first compile the function, then the closure.
+                #first compile the function, then the closure
                 asm_code = []
                 asm_code.append(self.compile_identifier(ident_obj.value,cur_environment))
                 self.add_extern("allocate_closure")
@@ -307,9 +303,7 @@ class Emitter:
         last_elt_index = len(ident_obj.value) - 1
         self.add_extern("allocate_pair")
         if len(ident_obj.value) == 0: #empty list
-            # self.add_extern("make_empty_list")
             return "\tcall allocate_pair\n\tmov rsi,rax"
-            # return "\tcall make_empty_list\n\tmov rsi,rax"
         asm_code.append("\tcall allocate_pair\n\tpush rax\n\tpush rax")
         # now build the list
         for i,ident in enumerate(ident_obj.value):
@@ -331,9 +325,6 @@ class Emitter:
                 self.add_extern("set_ith_value_pair")
                 #set cdr to empty pair
                 asm_code.append(self.emit_cdr_ptr())
-                #perhaps the commented line below can be used instead of pushing
-                # and popping since allocate_pair takes no args
-                # asm_code.append("\tmov rdi, rax\n\tcall allocate_pair")
                 asm_code.append("\tpush rdi\n\tcall allocate_pair")
                 asm_code.append("\tpop rdi\n\tmov rsi,rax\n\tmov rdx,0")
                 asm_code.append("\tcall set_ith_value_pair")
@@ -381,8 +372,6 @@ class Emitter:
         #now call check_param_function_call:
         asm_code.append(f"\tmov rdi, QWORD [rbp{param_offset:+}]")
         asm_code.append(f"\tlea rsi, QWORD [rbp{first_arg_offset:+}]")
-        #asm_code.append(f"\tlea rax, QWORD [rbp{first_arg_offset:+}]")
-        #asm_code.append("\tmov rsi,rax")
         asm_code.append(f"\tmov rdx, {arg_count}")
         asm_code.append("\tcall check_param_function_call")
         self.subtract_rsp(env_depth + 8*arg_count,is_global)
@@ -552,8 +541,6 @@ class Emitter:
     def set_definition(self,offset,ident_name,env_depth,is_global):
         self.add_extern("setexclam")
         if offset is None:
-            # self.emit_to_section(
-            # f"\tmov QWORD [{ident_name}], rax ;set! global",is_global)
             #global case
             asm_code = []
             asm_code.append(f"\tmov rdi, QWORD [{ident_name}]")
@@ -565,8 +552,6 @@ class Emitter:
             self.emit_to_section(
             f"\tmov QWORD [{ident_name}], rax ;set! global",is_global)
         else:
-            # self.emit_to_section(
-            # f"\tmov QWORD [rbp{offset:+}], rax ;set! local",is_global)
             asm_code = []
             asm_code.append(f"\tmov rdi, QWORD [rbp{offset:+}]")
             asm_code.append("\tmov rsi, rax")
@@ -730,7 +715,6 @@ class Emitter:
     #for putting args 7 and further to the stack
     #rbx used for temporary storage
     def emit_arg_to_stack(self,arg_num,env_depth,is_global,arity,align_needed = False):
-        
         self.emit_to_section(
         f"\tmov rbx, QWORD [rbp{env_depth - (8*(arg_num + 1)):+}]",is_global)
         if align_needed:
@@ -855,8 +839,6 @@ class Emitter:
     #if an offset is given, will first move what is in that offset to rax and then
     #push to live_local
     def emit_push_live_local(self,is_global,offset = None):
-        # if is_global:
-        #     sys.exit("cant push_live_local in global scope.")
         self.add_extern("push_to_live_local")
         if offset is not None:
             self.emit_to_section(f"\tmov rax, QWORD [rbp{offset:+}]",is_global)

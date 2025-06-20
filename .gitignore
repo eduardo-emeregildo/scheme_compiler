@@ -20,3 +20,5 @@ lib.o
 lib_test*
 stack_alignment.c
 identifier_test.c
+generation.py
+scheme_list.py

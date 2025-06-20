@@ -117,7 +117,7 @@
 (define fast_square (memoize slow_square))
 (display (fast_square 4)) ;; Computes. Only prints computing once
 (display (fast_square 4)) ;; Uses cache, doesnt print computing
-;(display (fast_square 5)) ;; Uses cache, doesnt print 
+(display (fast_square 5)) ;; Uses cache, doesnt print 
 
 
 
