@@ -17,4 +17,4 @@
 (display ((lambda x (cdr x)) 45 46 47))
 
 ;checking that user cant make a function of the name LA followed by a number
-;(define (LA1) (display "hallooo"))
+; (define (LA1) (display "hallooo"))

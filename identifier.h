@@ -7,8 +7,6 @@
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
-//#define DEBUG_STRESS_GC
-//#define DEBUG_LOG_GC
 typedef enum {
         VAL_CHAR,
         VAL_STR,
@@ -84,7 +82,7 @@ struct UpvalueObj {
 //they will both be initialized to Null
 
 // head will of course hold a ptr to the first object and tail will hold a pointer
-//to the last obj. // the last object's next field will be Null to denote end of list
+//to the last obj.the last object's next field will be Null to denote end of list
 struct Object{
         Value *value;
         struct Object *next;
@@ -156,10 +154,8 @@ long setexclam(long definition,long new_val);
 Value *mark_value(Value *val);
 Value *check_type_and_mark_value(Value *val);
 void add_object(Value *val_type);
-// void collect_garbage(Value **global_start,long global_count, Value **local_start, int local_count);
 void collect_garbage(Value **global_start, long global_count, Value *self_closure);
 void mark_globals(Value **global_start,int global_count);
-//void mark_locals(Value **local_start, int local_count);
 void mark_locals(Value * self_closure);
 void push_graystack(Value *gray_value);
 void grow_capacity();

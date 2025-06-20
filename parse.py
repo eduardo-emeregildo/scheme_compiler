@@ -6,31 +6,7 @@ from function import *
 from upvalue import *
 
 #TODO:
-#keep testing gc
-#see if i can remove emitting assembly to call collect_garbage
-#figure out how to free character arrays, since they are in the assembly(ex: .LC0)
-#-------------------------------------------------------------------------------
-
-#for adding upvalue::::::::::::::
-#in body(), turn locals that are nonptrs to val type and then add. (DONE)
-# Also change the is_captured flag to true (DONE).
-
-# If adding upvalue thats not local, just pass it as it is as it will correctly be ptr type.
-#if same local is being used as an upvalue more than once, remember that it needs
-#to be done only once. Also add local to captured_defs
-
-#for getting upvalue::::::::::::::
-#in get_upvalue, if upvalue is int,bool,char, return just the tagged type. (DONE)
-
-# in set! though, you dont do this. You pass the ptr type no matter what in set! 
-# when you're setting an upvalue  (DONE)
-
-#if the local gets used, have to turn it back to a non ptr type. This will happen
-# in EXPRESSION-VARIABLE (DONE)
-
-#then, make set! modify the existing pointer, rather than setting definition to
-# a new pointer (DONE)
-
+#clean up code, get ready for making it public 
 
 #Todo5: implement gc
 #Todo6: test compiler with different optimization levels, see which one you can
@@ -44,7 +20,8 @@ from upvalue import *
 # 3. have display print out special characters, i.e. \n,\t etc
 # 4. imports
 # 5. have a "debug" mode where it prints all the symbols,terminals,nonterminals
-    
+# 6. Add some macros for casting to improve readability    
+# 7. see if i can remove emitting assembly to call collect_garbage
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
     def __init__(self, lexer,emitter):
@@ -133,8 +110,6 @@ class Parser:
     def evaluate_function_call(self,func_name):
         self.set_last_exp_res(IdentifierType.FUNCTION_CALL,func_name)
     
-    #sets last_exp_res to a vector. Might need to rename other functions above
-    #to have set in the name instead of evaluate
     def set_vector(self,vector_obj):
         self.set_last_exp_res(IdentifierType.VECTOR,vector_obj)
     
@@ -176,8 +151,6 @@ class Parser:
                 for i in range(nest_count,0,-1):
                     inner_function_name = env.name
                     env = env.parent
-                    #using env.name for for inner, which would fail for 
-                    #lets, have to fix when i get to lets
                     is_local = True if i == 1 else False
                     upvalue_request = [inner_function_name,offset,is_local,i]
                     if self.is_definition_name_okay(inner_function_name):
@@ -186,7 +159,7 @@ class Parser:
                         self.tracker.add_anonymous_request(env.name,upvalue_request)
         return definition_result
     
-    #to resolve and evaluate identifier. result will be in rax
+    #result will be in rax
     def resolve_and_eval_identifier(self):
         is_global = self.cur_environment.is_global()
         definition_result = self.resolve_identifier()
@@ -213,7 +186,6 @@ class Parser:
         #if no requests, wont do anything
         if self.tracker.function_has_anon_requests(cur_function):
             function_requests = self.tracker.get_anonymous_requests(cur_function)
-            print("FUNCTION REQUESTS FOR ",cur_function ,"ARE: ", function_requests)
             for request in function_requests:
                 inner_function_def = self.cur_environment.symbol_table[request[0]] 
                 inner_function_offset = inner_function_def[0]
@@ -223,7 +195,6 @@ class Parser:
                 nest_count = request[3]
                 if is_local:
                     #first turn non ptr types to ptr types, then do emit_add_upvalue.
-                    #have to set is_captured also
                     if not is_captured:
                         #save rax to restore after move_local_to_heap
                         self.emitter.save_rax(self.cur_environment)
@@ -253,7 +224,6 @@ class Parser:
         #Parse all expressions in the program
         while not self.check_token(TokenType.EOF):
             self.expression()
-        # self.emitter.emit_global_definitions(self.global_environment.symbol_table)
         self.emitter.emit_main_section("\tmov rax,0\n\tpop rbp\n\tret")
     
     #after self.expression() is executed, what the expression evaluates to
@@ -374,7 +344,6 @@ class Parser:
                 print("EXPRESSION-BEGIN")
                 self.expression()
                 self.match(TokenType.EXPR_END)
-                #self.parens.pop()
                 
             # (delay <expression>)
             elif self.check_token(TokenType.DELAY):
@@ -382,7 +351,6 @@ class Parser:
                 print("EXPRESSION-DELAY")
                 self.expression()
                 self.match(TokenType.EXPR_END)
-                #self.parens.pop()
             
             elif self.check_token(TokenType.DO):
                 self.next_token()
@@ -391,20 +359,13 @@ class Parser:
             elif self.check_token(TokenType.QUASIQUOTE):
                 self.next_token()
                 self.quasiquote_exp()
+                
             #<procedure call> ::= (<operator> <operand>*)
-            #first exp must be an ident_obj of type function
             else:
                 print("EXPRESSION-PROCEDURECALL")
                 print("OPERATOR")
                 self.expression()
                 if self.last_exp_res.typeof == IdentifierType.CLOSURE:
-                    print("CLOSURE :DDDDDDDDD")
-                    #load the function value ptr in rax.
-                    #is_global = self.cur_environment.is_global()
-                    #self.emitter.get_function_from_closure(is_global)
-                    
-                    #if its not a builtin, first add the closure as the arg,
-                    #then make rax be the function value ptr
                     self.evaluate_function(self.last_exp_res.value.value)
                     if self.last_exp_res.typeof == IdentifierType.FUNCTION:
                         func_obj = self.last_exp_res.value
@@ -418,7 +379,7 @@ class Parser:
             self.abort("Token " + self.cur_token.text + " is not a valid expression")
 
     #for general function calling when the compiler cant tell what function 
-    # is being used. The function object is in rax.
+    # is being used. The closure object is in rax.
     def general_function_call(self):
         print("GENERAL FUNCTION CALL")
         is_global = self.cur_environment.is_global()
@@ -455,8 +416,7 @@ class Parser:
             self.emitter.emit_push_live_local(is_global,arg_offset)
             self.emitter.add_rsp(abs(self.cur_environment.depth),is_global)
         
-        #pop args from live locals. if this placement gives problems, perhaps place
-        #it below emit_function_check or emit_zero_check
+        #pop args from live locals
         self.emitter.emit_to_section(";popping locals in general function",is_global)
         self.emitter.pop_live_locals(self.cur_environment,arg_count,False)
         self.cur_environment.depth += 8*arg_count
@@ -470,7 +430,6 @@ class Parser:
         
         #dealing with stack alignment for non varidic general function calling
         is_alignment_needed = self.check_if_alignment_needed(env_depth,arg_count)
-        print("IS_ALIGNMENT_NEEDED IS: ", is_alignment_needed)
         #now put args in the right place for non variadic case
         #-8 is offset of last arg (assuming env depth is 0)
         for cur_arg in range(arg_count):
@@ -520,10 +479,6 @@ class Parser:
             self.emitter.add_rsp_absolute(seventh_arg_offset,is_global)
         else:
             self.emitter.add_rsp(abs(env_depth),is_global)
-        #self.emitter.undo_save_rax(self.cur_environment)
-        #self.evaluate_function(func_obj) 
-        # not sure if i need a function call to set last_exp_res ill keep this
-        #commented out for now
     
     #given a function object, does a function call. last_exp_res will be set to
     #the function that was called
@@ -559,7 +514,6 @@ class Parser:
             if arg_count > func_obj.arity:
                 break
             self.expression()
-            #pass by value
             self.emitter.emit_pass_by_value(self.cur_environment.depth,is_global)
             #push each arg to the stack so that they're stored while evaluating each arg
             arg_offset = self.emitter.push_arg(
@@ -587,7 +541,6 @@ class Parser:
         self.place_args_and_call_function(
         env_depth,callable_obj_depth,is_global,arg_count,func_obj)
         self.emitter.undo_save_rax(self.cur_environment)
-        # self.cur_environment.remove_saved_offsets(offsets_used_for_args)
         if is_alignment_needed:
             self.cur_environment.depth += 8
         self.evaluate_function_call(func_obj.name)
@@ -606,7 +559,6 @@ class Parser:
         arg_count += 1
         self_arg_offset = self.emitter.push_arg(
         arg_count,self.cur_environment,old_env_depth,is_global)
-        # offsets_used_for_args.append(self_arg_offset)
         self.emitter.emit_to_section(";^added self arg",is_global)
         self.cur_environment.depth -= 8
         self.emitter.subtract_rsp(abs(self.cur_environment.depth),is_global)
@@ -628,8 +580,7 @@ class Parser:
         if arg_count < min_args:
             self.abort(f"Arity mismatch. {func_obj.name} requires at least" + 
             f" {min_args-1} arguments")
-        #pop args from live locals. if this placement gives problems, perhaps place
-        #it below emit_make_arg_list
+        #pop args from live locals
         self.emitter.emit_to_section(";popping locals in variadic function",is_global)
         self.emitter.pop_live_locals(self.cur_environment,arg_count,False)
         
@@ -664,15 +615,12 @@ class Parser:
         self.emitter.add_rsp_given_arity(
         func_obj.arity,old_env_depth,is_global,is_alignment_needed)
         self.emitter.undo_save_rax(self.cur_environment)
-        # self.cur_environment.remove_saved_offsets(offsets_used_for_args)
-        
-        # self.emitter.set_callable_obj_offset(old_offset)
-        
         self.evaluate_function_call(func_obj.name)
         self.next_token()
         
         
-    #(if <test> <consequent> <alternate>) | (if <test> <consequent>), where test,consequent and alternate are expressions
+    #(if <test> <consequent> <alternate>) | (if <test> <consequent>), where test,
+    # consequent and alternate are expressions
     def if_exp(self):
         is_global = self.cur_environment.is_global()
         is_alternate = False
@@ -725,8 +673,6 @@ class Parser:
         self.evaluate_closure(function_ident)
         self.emitter.emit_identifier_to_section(
         self.last_exp_res,self.cur_environment)
-        print("LAMBDA REQUESTS:")
-        print(self.tracker.anonymous_requests)
         self.add_upvals_to_anon_functions(is_global)
         self.match(TokenType.EXPR_END)
         
@@ -792,19 +738,19 @@ class Parser:
         self.emitter.emit_ctrl_label(is_global,end_label)
         self.next_token()
             
-    #(case <expression> <case clause>*) | (case <expression> <case clause>* (else <sequence>))  #<case clause> ::= ((<datum>*) <sequence>)       
+    #(case <expression> <case clause>*) | 
+    # (case <expression> <case clause>* (else <sequence>))  
+    # #<case clause> ::= ((<datum>*) <sequence>)       
     def case_exp(self):
         print("EXPRESSION-CASE")
         self.expression()
         
         if self.check_token(TokenType.EXPR_END):
-            #self.parens.pop()
             self.next_token()
             
         elif self.check_token(TokenType.EXPR_START) and self.check_peek(TokenType.ELSE):
             self.else_rule()
             self.match(TokenType.EXPR_END)
-            #self.parens.pop()
         
         # one or more case clauses and an optional else at the end
         else:
@@ -814,7 +760,6 @@ class Parser:
                     break
                 self.case_clause()
             self.match(TokenType.EXPR_END)
-            #self.parens.pop()
     
     # (let (<binding spec>*) <body>) | (let <variable> (<binding spec>*) <body>) 
     def let_exp(self):
@@ -837,7 +782,6 @@ class Parser:
             print("VARIABLE")
             does_let_have_name = True
             let_name = self.cur_token.text
-            # self.emitter.emit_definition(ident_name,is_global,offset)
             self.next_token()
         self.match(TokenType.EXPR_START)
         if let_name is None:
@@ -869,8 +813,6 @@ class Parser:
         self.cur_environment = parent_env
         if is_global:
             self.tracker.turn_tracker_off()
-        print("ANONYMOUS REQUESTS:")
-        print(self.tracker.anonymous_requests)
         #compile function in parent so function obj is in rax.
         #Note: A Closure isnt formed here since in let expressions, the closure 
         # will live internally.
@@ -922,7 +864,6 @@ class Parser:
         self,function,let_name,arg_count,parent_env_depth,parent_env,previous_function):
         print("BINDING-SPEC")
         if arg_count == 1: #self arg
-            print("EQUAL 1")
             function.add_param(let_name)
             self.cur_environment.add_definition(let_name,
             Identifier(IdentifierType.CLOSURE,Identifier(IdentifierType.FUNCTION,function)))
@@ -932,8 +873,6 @@ class Parser:
             self.emitter.set_current_function(previous_function)
             self.cur_environment = parent_env
             is_global = self.cur_environment.is_global()
-            # arg_offset = self.emitter.push_arg(arg_count,self.cur_environment,parent_env_depth,is_global)
-            # self.emitter.emit_to_section(";^self arg",is_global)
             self.cur_environment.depth -= 8
             #switch back to child environment
             self.emitter.set_current_function(child_function)
@@ -981,7 +920,6 @@ class Parser:
         self.next_token()
         self.body()
         self.match(TokenType.EXPR_END)
-        #self.parens.pop()
         
     # (letrec (<binding spec>*) <body>)
     def letrec_exp(self):
@@ -992,7 +930,6 @@ class Parser:
         self.next_token()
         self.body()
         self.match(TokenType.EXPR_END)
-        #self.parens.pop()
 
     # (set! <variable> <expression>)
     def setexclam_exp(self):
@@ -1036,16 +973,15 @@ class Parser:
         self.end_test()
         while not self.check_token(TokenType.EXPR_END):
             self.expression()
-        #self.parens.pop()
         self.next_token()
 
-    # (quasiquote <datum>) , but datum is handled differently here. It must accept unquote and unquote-splicing keywords
-    #remember for the emitter that for unquote, expr must evaluate to a constant, and for unquote-splicing, expr must eval to a list/vector
+    # (quasiquote <datum>) , but datum is handled differently here. It must 
+    # accept unquote and unquote-splicing keywords remember for the emitter that 
+    # for unquote, expr must evaluate to a constant, and for unquote-splicing, expr must eval to a list/vector
     def quasiquote_exp(self):
         print("EXPRESSION-QUASIQUOTE")
         self.quasiquote_datum()
         self.match(TokenType.EXPR_END)
-        #self.parens.pop()
         
     # <iteration spec> ::= (<variable> <init> <step>), init and step are expressions
     def iteration_spec(self):
@@ -1211,8 +1147,6 @@ class Parser:
             self.cur_environment = parent_env
             
             if self.cur_environment.is_global():
-                print("ALL REQUESTS:")
-                print(self.tracker.upvalue_requests)
                 self.tracker.turn_tracker_off()
                 
             function_ident = Identifier(IdentifierType.FUNCTION,function)
@@ -1227,7 +1161,6 @@ class Parser:
             self.abort("Incorrect syntax in definition expression")
             
         self.match(TokenType.EXPR_END)
-        # self.last_exp_res = None # since definitions arent exps
         return ident_name
 
     #adds param to current environment and emits if its arg 1-6. 
@@ -1277,7 +1210,6 @@ class Parser:
             #for the "self" param, so internally the function can reference its closure
             function.add_param(function.name)
             arg_count += 1
-            #self.add_param_to_env(arg_count)
             
             #instead of calling add_param_to_env, add the self param
             #as a closure since type is known at compile time. 
@@ -1348,7 +1280,6 @@ class Parser:
         #if no requests, wont do anything
         if self.tracker.function_has_requests(cur_function):
             function_requests = self.tracker.get_upvalue_requests(cur_function)
-            print("FUNCTION REQUESTS FOR ",cur_function ,"ARE: ", function_requests)
             for request in function_requests:
                 inner_function_def = self.cur_environment.symbol_table[request[0]] 
                 inner_function_offset = inner_function_def[0]
@@ -1378,8 +1309,6 @@ class Parser:
             self.expression()
         live_locals_count = function.arity + len(function.local_definitions) + \
         self.cur_environment.locals_moved_to_heap_count
-        print("ENV NAME IS: ",self.cur_environment.name," LOCALS_MOVED_TO_HEAP_COUNT IS: ", self.cur_environment.locals_moved_to_heap_count)
-        print("LIVE_LOCALS_COUNT IS: ",live_locals_count)
         self.emitter.emit_to_section(";popping live locals on function exit",self.cur_environment.is_global())
         self.emitter.pop_live_locals(self.cur_environment,live_locals_count)
         self.emitter.emit_function_epilog()
@@ -1524,7 +1453,6 @@ class Parser:
     def datum(self):
         print("DATUM")
         self.evaluate_datum()
-        #is_global = self.cur_environment.is_global()
         self.emitter.emit_identifier_to_section(self.last_exp_res,
         self.cur_environment)
     

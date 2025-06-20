@@ -9,7 +9,7 @@ const unsigned long BOOL_MASK = 0x2;
 const unsigned long CHAR_MASK = 0x4;
 const unsigned long TAGGED_TYPE_MASK = 0X7;
 const unsigned long IS_NEGATIVE_MASK = 0x8000000000000000;
-#define DEBUG_SYMBOLS_GC
+//#define DEBUG_SYMBOLS_GC
 //these are to determine when the gc should be called
 int bytes_allocated = 0;
 int next_gc = 2048;
@@ -118,15 +118,6 @@ void validate_ptr(void *ptr)
         }
 }
 
-
-/*
-//////////////////////////////////////////// Heap Objs Below ////////////////////////////////////////////
-
-these next 3 functions should only be used for list/vector elements.
-declaring an int,char, or bool that isnt in a vector/list should be done with the
-functions above
-*/
-
 Value *make_value_int(long integer)
 {
         Value *ptr_value_int = make_tagged_ptr(1);
@@ -183,8 +174,6 @@ struct Pair *allocate_pair()
         bytes_allocated += sizeof(struct Pair);
         pair_obj->car.type = VAL_EMPTY_LIST;
         pair_obj->cdr.type = VAL_EMPTY_LIST;
-        //add_object(&pair_obj->car);
-        //add_object(&pair_obj->cdr);
         return pair_obj; 
 }
 
@@ -462,7 +451,7 @@ bool is_non_ptr_type(Value *val_type)
 }
 
 /*
-value type is int,char,bool, turns it back into a non_ptr_type and returns.
+if value type is int,char,bool, turns it back into a non_ptr_type and returns.
 otherwise returns the value_type.
 this is used when turning a captured local thats a int,char,bool back into non_ptr
 type
@@ -548,7 +537,6 @@ Value *make_arg_list(Value *func_obj,long *args,int arg_amount)
         struct Pair *cur_pair = head;
         for (int i = varargs_index; i > -1;i--) {
                 if (is_ptr(args[i])) {
-                        // cur_pair->car = *(Value *)args[i];
                         value_deep_copy(&cur_pair->car,((Value *)args[i]));
                 } else {
                         turn_to_val_type(args[i],&cur_pair->car);
@@ -582,7 +570,6 @@ Value *make_arg_list_min_args(int min_args,long *args,int arg_amount)
         struct Pair *cur_pair = head;
         for (int i = varargs_index; i > -1;i--) {
                 if (is_ptr(args[i])) {
-                        //cur_pair->car = *(Value *)args[i];
                         value_deep_copy(&cur_pair->car,((Value *)args[i]));
 
                 } else {
@@ -604,21 +591,15 @@ long pass_by_value(long arg)
         if (!is_ptr(arg)) {
                 return arg;
         }
-        // Value* arg_copy = make_tagged_ptr(1);
-        // arg_copy->type = ((Value *)arg)->type;
-        // arg_copy->as.tagged_type = ((Value *)arg)->as.tagged_type;
-        // return (long)arg_copy;
 
         Value *copy = make_tagged_ptr(1);
         value_deep_copy(copy,(Value *)arg);
-        // Value *copy = value_deep_copy((Value *)arg);
         return (long)copy;
 }
 
 //does a deep copy of val_type. copy is what gets edited
 void value_deep_copy(Value *copy,Value* val_obj)
 {
-        //Value *copy = make_tagged_ptr(1);
         copy->type = val_obj->type;
         switch(copy->type) {
         case VAL_STR:
@@ -670,7 +651,6 @@ void value_deep_copy(Value *copy,Value* val_obj)
         default:
                 copy->as.tagged_type = val_obj->as.tagged_type;
         }
-        // return copy;
 }
 
 Value *add_upvalue(Value *closure,long value, int offset, int nesting_count)
@@ -770,14 +750,10 @@ void setexclam_upvalue(Value *closure,long new_val,int offset,int nesting_amt)
         for (int i = 0; i < upvalue_total; i++) {
                 if ((upvalues[i].offset == offset) && 
                 (nesting_amt == upvalues[i].nesting_count)) {
-                        //upvalues[i].value = new_val;
                         if (!is_ptr(new_val)) {
                                 turn_to_val_type(new_val,(Value *)upvalues[i].value);
                         } else {
                                 Value *cur_upvalue = (Value *)upvalues[i].value;
-                                // cur_upvalue->type = ((Value *)new_val)->type;
-                                // cur_upvalue->as.tagged_type = ((Value *)new_val)->as.tagged_type;
-                                // free((Value *)new_val);
                                 value_deep_copy(cur_upvalue,((Value *)new_val));
                         }
 
@@ -806,9 +782,6 @@ long setexclam(long definition,long new_val)
 
         } else {
                 Value *new_val_obj = (Value *)new_val;
-                // definition_obj->type = new_val_obj->type;
-                // definition_obj->as.tagged_type = new_val_obj->as.tagged_type;
-                // free((Value *)new_val);
                 value_deep_copy(definition_obj,new_val_obj);
         }
         return definition;
@@ -921,9 +894,6 @@ void mark_locals(Value *self_closure)
         
 }
 
-
-
-
 void collect_garbage(Value **global_start, long global_count, Value *self_closure)
 {
         if (bytes_allocated < 0) {
@@ -931,7 +901,6 @@ void collect_garbage(Value **global_start, long global_count, Value *self_closur
 
         }
         if (bytes_allocated <= next_gc) {
-                //printf("only %d bytes of the %d bytes have been allocated, so not enough to call gc\n",bytes_allocated,next_gc);
                 return;
         }
         #ifdef DEBUG_SYMBOLS_GC
@@ -986,13 +955,11 @@ void grow_capacity()
 {
        //initialization
         if (gray_stack == NULL) {
-                //printf("initializing gray_stack\t");
                 gray_stack = calloc(1,sizeof(Value*));
                 validate_ptr(gray_stack);
                 gray_capacity = 1;
                 return;
         }
-        //printf("resizing gray_stack\t");
         gray_capacity *= 2;
         gray_stack = realloc(gray_stack,gray_capacity * sizeof(Value*));
         validate_ptr(gray_stack);
@@ -1016,7 +983,6 @@ void trace_references()
 //Only pair,vector and closure have indirect references of Value structs
 void blacken_value(Value *val)
 {
-        //printf("In blacken. TYPE IS %d\n",val->type);
         switch (val->type) {
         case VAL_PAIR:
                 mark_value(&(val->as.pair->car));
@@ -1036,7 +1002,6 @@ void blacken_value(Value *val)
                 Value *vec_items = val->as.vector->items;
                 for (int i = 0; i < vec_size; i++) {
                         mark_value(&vec_items[i]);
-                        //blacken_value(&vec_items[i]);
                 }
                 break;
         default:
@@ -1052,7 +1017,9 @@ void blacken_value(Value *val)
 void free_value(Value *val,bool is_ptr_freeable)
 {
         if (val == NULL) {
-                printf("value was already freed!\n");
+                #ifdef DEBUG_SYMBOLS_GC
+                        printf("value was already freed!\n");
+                #endif
                 return;
         }
         #ifdef DEBUG_SYMBOLS_GC
@@ -1085,7 +1052,6 @@ void free_value(Value *val,bool is_ptr_freeable)
         case VAL_VECTOR:
                 int size = val->as.vector->size;
                 Value *vec_items = val->as.vector->items;
-                //printf("freeing items of vector:\n");
                 //starts at i = 1 because vec_items[0] is already in the linked list,
                 // so will get picked up
                 for (int i = 1; i < size; i++) {
@@ -1106,7 +1072,6 @@ void free_value(Value *val,bool is_ptr_freeable)
         }
         if (is_ptr_freeable) {
                 //free the actual value type
-                // printf("now freeing actual value struct, with address %p\n",val);
                 free(val);
         }
         bytes_allocated -= sizeof(Value);

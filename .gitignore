@@ -19,3 +19,4 @@ me.s
 lib.o
 lib_test*
 stack_alignment.c
+identifier_test.c
