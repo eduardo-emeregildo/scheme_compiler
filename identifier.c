@@ -661,7 +661,9 @@ Value *add_upvalue(Value *closure,long value, int offset, int nesting_count)
         //check size of upvalues, if multiple of 4, resize
         int upvalue_count = closure->as.closure->num_upvalues; 
         if (upvalue_count != 0 && ((upvalue_count & 0x3) == 0)) {
-                printf("Resizing:\n");
+                #ifdef DEBUG_SYMBOLS_GC
+                        printf("Resizing:\n");
+                #endif
                 int new_size = sizeof(struct UpvalueObj) * ((upvalue_count) * 2);
 
                 bytes_allocated -= (sizeof(struct UpvalueObj) *upvalue_count);

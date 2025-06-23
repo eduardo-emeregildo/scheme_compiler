@@ -1,31 +1,24 @@
-;if statements
-;(display (if #t 1 2))
-;(define (func op) (if #t (op 1 2 (op 3 4)) (op 3 4 (op 5 6))))
-;(display (func +))
+(display "if statements:")
+(display (if #t 1 2))
 
-;recursion: should just print infinite 1's until stack runs out of memory
-;(define (func1 op) (func1 (display 1)))
-;(func1 #t)
+(define x 1)
+(if (= x 1) 
+    (display "x is one!") 
+    (if (= x 2) (display "x is two!") (display "x is not 1 or 2")))
 
-;cond
-;(define (cond_test x) 
-    ;(cond ((= x 1) (display "x is one")) 
-    ;((= x 2) (display "x is two"))))
 
-;(define x 3)
-;(cond ((= x 1) (display "main: x is one")) 
-    ;((= x 2) (display "main: x is two")) (else (display "main: x is not one or two")))
-;(cond_test 3)
+(display "conditional addition:")
+(define (func op) (if #t (op 1 2 (op 3 4)) (op 3 4 (op 5 6))))
+(display (func +))
 
-;(cond (else (display "just an else!")))
-;(display "After :D")
 
-;the equivalent of above cond using only if
-;(define x 1)
-;(if (= x 1) 
-    ;(display "x is one!") 
-    ;(if (= x 2) (display "x is two!") (display "x is not 1 or 2")))
-;(display "after")
+(display "cond tests:")
+(define x 3)
+(cond ((= x 1) (display "main: x is one")) 
+    ((= x 2) (display "main: x is two")) (else (display "main: x is not one or two")))
+
+
+(cond (else (display "just an else!")))
 
 ;and
 (display "and tests:")
@@ -57,4 +50,3 @@
 (check 10)
 (check 11)
 (check 42)
-(display (or))

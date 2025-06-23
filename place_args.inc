@@ -20,12 +20,6 @@
 ;as args 1 and 2 respectively. 
 
 ;all other macros take 1 arg, which is the env_depth
-
-
-;%define ith_regarg_offset (%1 + (8*(r12 + 1)))
-;%define ith_stackarg_offset (%1 + ((rbx - r12) * 8))
-;%define seventh_arg_offset (%1 + ((r14 + 1) * 8))
-
 %define FALSE 2
 %define TRUE 10
 
@@ -73,9 +67,6 @@
         cmp r12, 5
         cmove r9, QWORD [rbp + r14]
 %endmacro
-;%define ith_regarg_offset (%1 + (8*(r12 + 1)))
-;%define ith_stackarg_offset (%1 + ((rbx - r12) * 8))
-;%define seventh_arg_offset (%1 + ((r14 + 1) * 8))
 
 %macro place_args 3
         mov r13, r15 ; store old r15 and restore after function call
@@ -96,7 +87,6 @@
                 ;assuming env depth is 0
                 compute_regarg_offset %1
                 mov r14, QWORD [rbp + r14]
-                ;mov r14, QWORD [rbp - ith_regarg_offset]
                 compute_stackarg_offset %1
                 mov QWORD [rbp + r15], r14
                 inc r12
@@ -107,7 +97,6 @@
                 ; and jumps back
                 compute_regarg_offset %1
                 mov QWORD [rbp + r14], rax
-                ;mov QWORD [rbp - ith_regarg_offset], rax
                 jmp %%register_args
         %%function_call:
                 ; subtrack the correct amt from rsp, do the function call, add rsp back
@@ -115,7 +104,6 @@
                 sub r14, 7
                 jge %%stack_args_function_call
                 ; no stack args case
-                ;sub rsp, %1
                 %if %1 == %3
                         sub rsp, %1
                 %else
@@ -126,15 +114,12 @@
                 add rax, 8
                 mov rax, QWORD [rax]
                 call QWORD [rax]
-                ;add rsp, %1
                 %if %1 == %3
                         add rsp, %1
                 %else
                         add rsp, %3
                 %endif
-                jmp %%end
-
-                
+                jmp %%end       
         %%stack_args_function_call:
                 ;stack args case, rsp has to point to 7th arg
                 compute_seventh_arg_offset %1

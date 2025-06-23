@@ -68,7 +68,6 @@ class UpvalueTracker:
     
     def function_has_anon_requests(self,function_name):
         return function_name in self.anonymous_requests
-    
     #for debugging
     def show_requests(self,function_name):
         requests = self.upvalue_requests[function_name]

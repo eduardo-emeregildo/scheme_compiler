@@ -74,8 +74,6 @@
 ;(vector-set! vec 5 '(1 2 3))
 
 (display "pair? tests:")
-;(display list?)
-;(display pair?)
 (display (pair? '())) ;f
 (display (pair? 3))
 (display (pair? '(1 2 3)));t
