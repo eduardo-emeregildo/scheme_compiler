@@ -120,7 +120,6 @@
 (display (fast_square 5)) ;; Uses cache, doesnt print 
 
 
-
 ; (define foo "hey")
 ;(display (append '()))
 

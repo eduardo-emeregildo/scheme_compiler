@@ -51,7 +51,8 @@ class Lexer:
 		
     # Skip whitespace except newlines, which we will use to indicate the end of a statement.
     def skip_whitespace(self):
-        while self.cur_char == "\n" or self.cur_char == "\t" or self.cur_char == "\r" or self.cur_char == " " :
+        while self.cur_char == "\n" or self.cur_char == "\t" or \
+            self.cur_char == "\r" or self.cur_char == " " :
             self.next_char()
 		
     # Skip comments in the code.
@@ -75,21 +76,18 @@ class Lexer:
             token = Token(self.cur_char,TokenType.NEWLINE)
         elif self.cur_char == "\0":
             token = Token(self.cur_char,TokenType.EOF)
-        elif self.cur_char == "." and (self.peek() == " " or self.peek() == "\n" or self.peek() == "\t" or self.peek() == "\r"):
+        elif self.cur_char == "." and (self.peek() == " " or self.peek() == "\n" 
+            or self.peek() == "\t" or self.peek() == "\r"):
             token = Token(self.cur_char,TokenType.DOT)
         elif self.cur_char == "+" and (not self.peek().isdigit()) and (self.peek() != "."):
             token = Token("ADDITION",TokenType.BUILTIN)
         elif self.cur_char == "-" and (not self.peek().isdigit()) and (self.peek() != "."):
-            #token = Token(self.cur_char,TokenType.MINUS)
             token = Token("SUBTRACTION",TokenType.BUILTIN)
         elif self.cur_char == "*":
-            #token = Token(self.cur_char,TokenType.ASTERISK)
             token = Token("MULT",TokenType.BUILTIN)
         elif self.cur_char == "/":
-            #token = Token(self.cur_char,TokenType.SLASH)
             token = Token("DIVISION",TokenType.BUILTIN)
         elif self.cur_char == "=":
-            # token = Token(self.cur_char,TokenType.EQUAL_SIGN)
             token = Token("EQUAL_SIGN",TokenType.BUILTIN)
         elif self.cur_char == "'":
             token = Token(self.cur_char,TokenType.QUOTE_SYMBOL)
@@ -97,20 +95,16 @@ class Lexer:
             if self.peek() == "=":
                 last = self.cur_char
                 self.next_char()
-                # token = Token(last + self.cur_char,TokenType.LEQ)
                 token = Token("LESS_EQUAL",TokenType.BUILTIN)
             else:
-                # token = Token(self.cur_char,TokenType.LESS)
                 token = Token("LESS",TokenType.BUILTIN)
 
         elif self.cur_char == ">":
             if self.peek() == "=":
                 last = self.cur_char
                 self.next_char()
-                # token = Token(last + self.cur_char,TokenType.GEQ)
                 token = Token("GREATER_EQUAL",TokenType.BUILTIN)
             else:
-                # token = Token(self.cur_char,TokenType.GREATER)
                 token = Token("GREATER",TokenType.BUILTIN)
         #Now the datatypes
         elif self.cur_char == "#":
@@ -120,7 +114,6 @@ class Lexer:
                 token = Token(last + self.cur_char.lower(),TokenType.BOOLEAN)
             elif self.peek() == "\\":
                 self.next_char()
-                #this is suspect, might need to be more restrictive with which characters are valid
                 if self.peek() != "\0":
                     self.next_char()
                     token = Token(self.cur_char,TokenType.CHAR)
@@ -131,7 +124,8 @@ class Lexer:
             else: 
                 self.abort("Illegal character after the #." + self.peek())
         #numbers
-        elif self.cur_char == "." or self.cur_char.isdigit() or self.cur_char == "+" or self.cur_char == "-":
+        elif self.cur_char == "." or self.cur_char.isdigit() or \
+            self.cur_char == "+" or self.cur_char == "-":
             start = self.cur_pos
             peek = self.peek()
             while peek != "\0" and (peek == "." or peek.isdigit()):
@@ -161,10 +155,12 @@ class Lexer:
                 self.abort("Error: Invalid string")
                 
         #keywords/identifiers. characters like _,-,>,< are acceptable for the start of an identifier
-        elif self.cur_char != "\n" and self.cur_char != "\t" and self.cur_char != "\r" and self.cur_char != " ":
+        elif self.cur_char != "\n" and self.cur_char != "\t" and \
+            self.cur_char != "\r" and self.cur_char != " ":
             start = self.cur_pos
             peek = self.peek()
-            while peek != "\0" and peek != "\n" and peek != "\t" and peek != "\r" and peek != " " and peek != "(" and peek != ")":
+            while peek != "\0" and peek != "\n" and peek != "\t" and \
+                peek != "\r" and peek != " " and peek != "(" and peek != ")":
                 if peek == '"' or peek == "'":
                     self.abort("Invalid identifier name.")
                 self.next_char()
@@ -202,24 +198,8 @@ TokenType = Enum(
         ("DOT" , 4),
         #for vector purposes
         ("HASH",5),
-        
-        #Operators
-        # ("PLUS" , 201),
-        # ("MINUS" , 202),
-        #("ASTERISK" , 203),
-        #("SLASH" , 204),
-        # ("EQUAL_SIGN" , 205),
         ("QUOTE_SYMBOL" , 206),
-        # ("LESS" , 207),
-        # ("GREATER" , 208),
-        #Operators longer than 1
-        # ("LEQ" , 209),
-        # ("GEQ" , 210),
-        #KeyWord Operators
-        #("CAR" , 301),
-        #("CDR" , 302),
         ("CADR" , 303),
-        # ("CONS" , 304),
         ("LIST" , 305),
         ("DEFINE" , 306),
         ("SET" , 307),
@@ -253,9 +233,6 @@ TokenType = Enum(
         ("CHAR" , 402),
         ("STRING" , 403),
         ("NUMBER" , 404),
-        # LIST = 405
-        # VECTOR = 406
-        # BYTEVECTOR = 407
         #type for all builtin functions. the text will how the builtin is
         #referenced in the runtime
         ("BUILTIN", 501),

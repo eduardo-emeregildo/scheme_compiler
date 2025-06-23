@@ -1,13 +1,10 @@
-# from environment import *
 import sys
 #class used to represent functions. for Identifier objs with 
-# typeof = IdentifierType.FUNCTION, its value will be this function object
+# if typeof = IdentifierType.FUNCTION, its value will be this function object
 
 #param_list is a python list of param names
-
 # local_definitions is for local define exps in the body of the function. the 
 # values are identifier objects
-
 #arity  is number of args the function accepts
 #is_variadic indicates if function was defined with dot notation in call pattrn
 #if the function is variadic, arity - 1 represents the minimum amt of args required
@@ -20,7 +17,7 @@ class Function():
         self.local_definitions = {}
         self.arity = 0
         self.is_variadic = False
-    
+        
     def add_param(self,param:str):
         if param in self.param_list:
             sys.exit("Error. Duplicate argument name in " + param)

@@ -4,16 +4,7 @@ from emit import *
 from environment import *
 from function import *
 from upvalue import *
-
-#TODO:
-#clean up code, get ready for making it public 
-
-#Todo5: implement gc
-#Todo6: test compiler with different optimization levels, see which one you can
-#get away with
-#Todo7: Add some macros for casting to improve readability
-#Todo8: implement list procedure
-
+#make the test files neat
 #Todo's in the future:
 # 1. implement string interning
 # 2. implement tail call optimization
@@ -22,6 +13,7 @@ from upvalue import *
 # 5. have a "debug" mode where it prints all the symbols,terminals,nonterminals
 # 6. Add some macros for casting to improve readability    
 # 7. see if i can remove emitting assembly to call collect_garbage
+
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
     def __init__(self, lexer,emitter):

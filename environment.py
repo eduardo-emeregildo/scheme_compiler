@@ -18,8 +18,6 @@ class IdentifierType(Enum):
     #signifies the evaluation of an arg. since type is not known the value
     #is just the name of the arg
     PARAM = 10
-    # if last exp was a function call, the value of identifier will be the name of function
-    #(Maybe add this)if function call was from a param, the value is ""
     FUNCTION_CALL = 11
 class Identifier:
     def __init__(self,typeof,value):
@@ -164,9 +162,6 @@ class Environment:
         Identifier(IdentifierType.PARAM,ident_name),False]
     
     def set_def_as_captured(self,variable_offset):
-        # if ident_name not in self.symbol_table:
-        #     sys.exit("Def not found in symbol table, cant set as captued.")
-        # self.symbol_table[ident_name][2] = True
         for ident_name in self.symbol_table:
             if self.symbol_table[ident_name][0] == variable_offset:
                 self.symbol_table[ident_name][2] = True
