@@ -2,7 +2,6 @@
 //prints a value type
 void print_value_type(Value *value_obj) 
 {
-        //printf("value location: %p. ",value_obj);
         switch(value_obj->type) {
         case VAL_CHAR:
                 printf("%c",(int)remove_tag(value_obj->as.tagged_type));
@@ -446,8 +445,6 @@ long _append(long self,Value *varargs)
         while (!is_list_initialized) {
                 if (vararg_cur_pair->car.type == VAL_PAIR) {
                 //copy, then check if improper
-                // cur_list->car = vararg_cur_pair->car.as.pair->car;
-                // cur_list->cdr = vararg_cur_pair->car.as.pair->cdr;
                 value_deep_copy(&cur_list->car,&vararg_cur_pair->car.as.pair->car);
                 value_deep_copy(&cur_list->cdr,&vararg_cur_pair->car.as.pair->cdr);
                 is_list_initialized = true;
@@ -601,8 +598,6 @@ Value *_cons(long self, long car_val, long cdr_val)
 {
         struct Pair *new_pair = allocate_pair();
         Value *pair_val_type = make_value_pair(new_pair);
-        //set_ith_value_unknown(&pair_val_type->as.pair->car,car_val,0);
-        //set_ith_value_unknown(&pair_val_type->as.pair->cdr,cdr_val,0);
         if (!is_ptr(car_val)){
                 set_ith_value_unknown(&new_pair->car,car_val,0);
         } else {
@@ -640,9 +635,6 @@ void append_to_list(struct Pair *list,struct Pair *varargs)
         bool end_of_varargs = false;
         while (!end_of_varargs) {
                 //add to the cdr of the list
-
-                //list->cdr.type = varargs->car.type;
-                // list->cdr.as.tagged_type = varargs->car.as.tagged_type;
                 value_deep_copy(&list->cdr,&varargs->car);
                 if (varargs->car.type == VAL_PAIR) {        
                         list = advance_lst_to_end(list);
@@ -721,5 +713,4 @@ void is_function(long type)
         else if (value_type->type != VAL_FUNCTION) {
                 abort_message("in runtime. Argument is not a function\n");
         }
-        //return value_type;
 }

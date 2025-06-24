@@ -4,7 +4,6 @@ from emit import *
 from environment import *
 from function import *
 from upvalue import *
-#write readme
 #Todo's in the future:
 # 1. implement string interning
 # 2. implement tail call optimization

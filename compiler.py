@@ -24,5 +24,6 @@ def main():
     emitter.writeFile() # Write the output to file.
     os.system("nasm -f elf64 -g -F dwarf out.asm")
     os.system("gcc -O3 out.o identifier.o lib.o -lm -o out -no-pie -z noexecstack")
+    os.system("rm out.asm out.o")
     print("Compiling completed.")
 main()
